@@ -1,2 +1,2 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  org.axonframework.springboot.autoconfig.KafkaAutoConfiguration
+  org.axonframework.extensions.kafka.autoconfig.KafkaAutoConfiguration
