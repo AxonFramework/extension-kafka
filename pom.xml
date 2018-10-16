@@ -29,10 +29,9 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <name>Axon Framework</name>
+    <name>Axon Framework - Kafka Extension</name>
     <description>
-        The Axon framework supports developers with the plumbing and wiring required to build a CQRS architecture, by
-        providing (abstract) implementations of common CQRS building blocks.
+        An Axn Framework extensions allowing Kafka integrations.
     </description>
 
     <inceptionYear>2010</inceptionYear>
@@ -105,7 +104,6 @@
                 </plugins>
             </build>
         </profile>
-
     </profiles>
 
     <properties>
@@ -120,7 +118,7 @@
     </properties>
 
     <dependencies>
-        <!-- test dependencies -->
+        <!-- Test dependencies -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-test</artifactId>
@@ -379,9 +377,9 @@
         </repository>
     </distributionManagement>
     <scm>
-        <connection>scm:git:git://github.com/AxonFramework/AxonFramework.git</connection>
-        <developerConnection>scm:git:git@github.com:AxonFramework/AxonFramework.git</developerConnection>
-        <url>https://github.com/AxonFramework/AxonFramework</url>
+        <connection>scm:git:git://github.com/AxonFramework/extension-kafka.git</connection>
+        <developerConnection>scm:git:git@github.com:AxonFramework/extension-kafka.git</developerConnection>
+        <url>https://github.com/AxonFramework/extension-kafka</url>
         <tag>HEAD</tag>
     </scm>
 
