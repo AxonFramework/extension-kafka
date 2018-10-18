@@ -15,9 +15,7 @@
   ~ limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -28,7 +26,7 @@
 
     <groupId>org.axonframework.extensions.kafka</groupId>
     <artifactId>axon-kafka-spring-boot-starter</artifactId>
-    <version>4.0-SNAPSHOT</version>
+    <version>4.0-RC2</version>
 
     <name>Axon Framework Kafka Extension - Spring Boot Starter</name>
     <description>Spring Boot Starter module for the Kafka Extension of Axon Framework</description>
@@ -157,7 +155,7 @@
         <connection>scm:git:git://github.com/AxonFramework/extension-kafka.git</connection>
         <developerConnection>scm:git:git@github.com:AxonFramework/extension-kafka.git</developerConnection>
         <url>https://github.com/AxonFramework/extension-kafka</url>
-        <tag>HEAD</tag>
+        <tag>axon-kafka-4.0-RC2</tag>
     </scm>
 
 </project>
