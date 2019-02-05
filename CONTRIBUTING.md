@@ -25,7 +25,7 @@ To keep everyone out of trouble (both you and us), we require that all contribut
 License Agreement. Basically, the agreement says that we may freely use the code you contribute to the Axon Framework,
 and that we won't hold you liable for any unfortunate side effects that the code may cause.
 
-To sign the CLA, visit: http://www.axonframework.org/cla. You can sign using a GitHub (preferred) or Google account.
+To sign the CLA, visit: https://www.clahub.com/agreements/AxonFramework/extension-kafka.
 
 ### Code style
 
