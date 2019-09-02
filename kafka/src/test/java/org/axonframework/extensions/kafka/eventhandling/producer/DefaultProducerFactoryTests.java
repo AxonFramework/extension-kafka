@@ -117,9 +117,10 @@ public class DefaultProducerFactoryTests {
         List<Producer<String, String>> producers = new ArrayList<>();
         List<Future<RecordMetadata>> results = new ArrayList<>();
         String topic = "testSendingMessagesUsingMultipleProducers";
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 12; i++) {
             Producer<String, String> producer = pf.createProducer();
             results.add(send(producer, topic, "foo" + i));
+            producer.close();
             producers.add(producer);
         }
         assertOffsets(results);

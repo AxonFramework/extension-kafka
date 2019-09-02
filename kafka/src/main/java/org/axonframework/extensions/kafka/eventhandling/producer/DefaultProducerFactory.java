@@ -71,7 +71,7 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
 
     private final AtomicInteger transactionIdSuffix;
 
-    private volatile CloseLazyProducer<K, V> producer;
+    private volatile CloseNeverProducer<K, V> producer;
 
     /**
      * Instantiate a {@link DefaultProducerFactory} based on the fields contained in the {@link Builder}.
@@ -121,10 +121,7 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
         if (this.producer == null) {
             synchronized (this) {
                 if (this.producer == null) {
-                    this.producer = new CloseLazyProducer<>(createKafkaProducer(configuration),
-                                                            cache,
-                                                            closeTimeout,
-                                                            timeUnit);
+                    this.producer = new CloseNeverProducer<>(createKafkaProducer(configuration));
                 }
             }
         }
@@ -165,7 +162,7 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
      */
     @Override
     public void shutDown() {
-        CloseLazyProducer<K, V> producer = this.producer;
+        ProducerDecorator<K, V> producer = this.producer;
         this.producer = null;
         if (producer != null) {
             producer.delegate.close(this.closeTimeout, timeUnit);
@@ -198,19 +195,12 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
         return new KafkaProducer<>(configs);
     }
 
-    private static final class CloseLazyProducer<K, V> implements Producer<K, V> {
+    private abstract static class ProducerDecorator<K, V> implements Producer<K, V> {
 
-        private final Producer<K, V> delegate;
-        private final BlockingQueue<CloseLazyProducer<K, V>> cache;
-        private final int closeTimeout;
-        private final TimeUnit unit;
+        final Producer<K, V> delegate;
 
-        CloseLazyProducer(Producer<K, V> delegate, BlockingQueue<CloseLazyProducer<K, V>> cache, int closeTimeout,
-                          TimeUnit unit) {
+        ProducerDecorator(Producer<K, V> delegate) {
             this.delegate = delegate;
-            this.cache = cache;
-            this.closeTimeout = closeTimeout;
-            this.unit = unit;
         }
 
         @Override
@@ -266,6 +256,36 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
 
         @Override
         public void close() {
+            this.delegate.close();
+        }
+
+        @Override
+        public void close(long timeout, TimeUnit unit) {
+            this.delegate.close(timeout, unit);
+        }
+
+        @Override
+        public String toString() {
+            return this.getClass().getSimpleName() + " [delegate=" + this.delegate + "]";
+        }
+    }
+
+    private static final class CloseLazyProducer<K, V> extends ProducerDecorator<K, V> {
+
+        private final BlockingQueue<CloseLazyProducer<K, V>> cache;
+        private final int closeTimeout;
+        private final TimeUnit unit;
+
+        CloseLazyProducer(Producer<K, V> delegate, BlockingQueue<CloseLazyProducer<K, V>> cache, int closeTimeout,
+                          TimeUnit unit) {
+            super(delegate);
+            this.cache = cache;
+            this.closeTimeout = closeTimeout;
+            this.unit = unit;
+        }
+
+        @Override
+        public void close() {
             close(this.closeTimeout, unit);
         }
 
@@ -273,13 +293,23 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
         public void close(long timeout, TimeUnit unit) {
             boolean isAdded = this.cache.offer(this);
             if (!isAdded) {
-                this.delegate.close(timeout, unit);
+                super.close(timeout, unit);
             }
+        }
+    }
+
+    private static final class CloseNeverProducer<K, V> extends ProducerDecorator<K, V> {
+
+        CloseNeverProducer(Producer<K, V> delegate) {
+            super(delegate);
         }
 
         @Override
-        public String toString() {
-            return "CloseLazyProducer [delegate=" + this.delegate + "]";
+        public void close() {
+        }
+
+        @Override
+        public void close(long timeout, TimeUnit unit) {
         }
     }
 
