@@ -197,7 +197,7 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
 
     private abstract static class ProducerDecorator<K, V> implements Producer<K, V> {
 
-        final Producer<K, V> delegate;
+        private final Producer<K, V> delegate;
 
         ProducerDecorator(Producer<K, V> delegate) {
             this.delegate = delegate;
@@ -306,10 +306,12 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
 
         @Override
         public void close() {
+            // Do nothing
         }
 
         @Override
         public void close(long timeout, TimeUnit unit) {
+            // Do nothing
         }
     }
 
