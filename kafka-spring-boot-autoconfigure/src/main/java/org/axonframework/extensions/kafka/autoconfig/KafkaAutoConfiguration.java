@@ -32,7 +32,6 @@
 
 package org.axonframework.extensions.kafka.autoconfig;
 
-import org.axonframework.eventhandling.EventBus;
 import org.axonframework.extensions.kafka.KafkaProperties;
 import org.axonframework.extensions.kafka.eventhandling.DefaultKafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
@@ -113,14 +112,12 @@ public class KafkaAutoConfiguration {
     }
 
     @ConditionalOnMissingBean
-    @Bean(initMethod = "start", destroyMethod = "shutDown")
+    @Bean(destroyMethod = "shutDown")
     @ConditionalOnBean({ProducerFactory.class, KafkaMessageConverter.class})
     public KafkaPublisher<String, byte[]> kafkaPublisher(ProducerFactory<String, byte[]> kafkaProducerFactory,
-                                                         EventBus eventBus,
                                                          KafkaMessageConverter<String, byte[]> kafkaMessageConverter,
                                                          AxonConfiguration configuration) {
         return KafkaPublisher.<String, byte[]>builder()
-                .messageSource(eventBus)
                 .producerFactory(kafkaProducerFactory)
                 .messageConverter(kafkaMessageConverter)
                 .messageMonitor(configuration.messageMonitor(KafkaPublisher.class, "kafkaPublisher"))

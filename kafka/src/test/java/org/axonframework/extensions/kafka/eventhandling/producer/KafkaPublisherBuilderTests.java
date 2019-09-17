@@ -27,11 +27,6 @@ import org.junit.*;
 public class KafkaPublisherBuilderTests {
 
     @Test(expected = AxonConfigurationException.class)
-    public void testConfiguringInvalidMessageSource() {
-        KafkaPublisher.builder().messageSource(null);
-    }
-
-    @Test(expected = AxonConfigurationException.class)
     public void testConfiguringInvalidProducerFactory() {
         KafkaPublisher.builder().producerFactory(null).build();
     }

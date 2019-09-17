@@ -320,15 +320,12 @@ public class KafkaPublisherTests {
                                             .serializer(XStreamSerializer.builder().build())
                                             .build();
         KafkaPublisher<?, ?> testSubject = KafkaPublisher.<String, byte[]>builder()
-                .messageSource(eventBus)
                 .producerFactory(producerFactory)
                 .messageConverter(messageConverter)
                 .messageMonitor(monitor)
                 .topic(topic)
                 .publisherAckTimeout(1000)
                 .build();
-
-        testSubject.start();
         return testSubject;
     }
 
