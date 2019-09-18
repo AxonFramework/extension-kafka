@@ -65,7 +65,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.Map;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.axonframework.extensions.kafka.KafkaProperties.*;
+import static org.axonframework.extensions.kafka.KafkaProperties.EventProcessorMode;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for Apache Kafka.
@@ -155,18 +155,33 @@ public class KafkaAutoConfiguration {
     @ConditionalOnBean({ EventProcessingConfigurer.class })
     @Autowired
     public void configureKafkaEventProcessor(
-        EventProcessingConfigurer eventProcessingConfigurer,
-        KafkaProperties kafkaProperties) {
+        final EventProcessingConfigurer eventProcessingConfigurer,
+        final KafkaProperties kafkaProperties) {
 
         final EventProcessorMode mode = kafkaProperties.getEventProcessorMode();
         switch (mode) {
             case SUBSCRIBING:
                 eventProcessingConfigurer.registerSubscribingEventProcessor(KafkaSendingEventHandler.GROUP);
-                return;
+                break;
             case TRACKING:
                 eventProcessingConfigurer.registerTrackingEventProcessor(KafkaSendingEventHandler.GROUP);
-                return;
+                break;
+            default:
+                break;
         }
+        /*
+         * Register an invocation error handler, re-throwing exception.
+         * This will lead the tracking processor to go to error mode and retry
+         * and will cause the subscribing event handler to bubble the exception to the caller.
+         * For more information see https://docs.axoniq.io/reference-guide/configuring-infrastructure-components/event-processing/event-processors#error-handling
+         */
+        eventProcessingConfigurer.registerListenerInvocationErrorHandler(
+            KafkaSendingEventHandler.GROUP,
+            configuration ->
+                (exception, event, eventHandler) -> {
+                    throw exception;
+                }
+        );
     }
 
     @ConditionalOnMissingBean

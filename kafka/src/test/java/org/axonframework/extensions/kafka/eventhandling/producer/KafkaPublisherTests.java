@@ -38,10 +38,8 @@ import org.axonframework.serialization.xml.XStreamSerializer;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.kafka.test.rule.KafkaEmbedded;
@@ -342,9 +340,25 @@ public class KafkaPublisherTests {
             .topic(topic)
             .publisherAckTimeout(1000)
             .build();
-        KafkaSendingEventHandler handler = new KafkaSendingEventHandler(testSubject);
 
-        configurer.eventProcessing(eventProcessingConfigurer -> eventProcessingConfigurer.registerEventHandler(c -> handler));
+        /*
+         * Simulate configuration.
+         * - use event subscribing for simplicity
+         * - use kafka sending event handler
+         * - since it uses a processor, it will catch exceptions, so register the corresponding
+         */
+        configurer.eventProcessing(eventProcessingConfigurer -> {
+            eventProcessingConfigurer.registerSubscribingEventProcessor(KafkaSendingEventHandler.GROUP);
+            eventProcessingConfigurer.registerListenerInvocationErrorHandler(
+                KafkaSendingEventHandler.GROUP,
+                configuration ->
+                    (exception, event, eventHandler) -> {
+                        throw exception;
+                    });
+            eventProcessingConfigurer.registerEventHandler(c -> new KafkaSendingEventHandler(testSubject));
+        });
+
+
         configurer.start();
         return testSubject;
     }

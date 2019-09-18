@@ -64,7 +64,7 @@ public class KafkaIntegrationTest {
     private Fetcher fetcher;
 
     @Before
-    public void setup() {
+    public void setupComponents() {
         producerFactory = ProducerConfigUtil.ackProducerFactory(kafka, ByteArraySerializer.class);
         publisher = KafkaPublisher.<String, byte[]>builder()
             .producerFactory(producerFactory)
