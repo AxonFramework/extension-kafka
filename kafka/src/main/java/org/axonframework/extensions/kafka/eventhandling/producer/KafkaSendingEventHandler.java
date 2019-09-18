@@ -3,13 +3,13 @@ package org.axonframework.extensions.kafka.eventhandling.producer;
 import org.axonframework.config.ProcessingGroup;
 import org.axonframework.eventhandling.EventHandler;
 import org.axonframework.eventhandling.EventMessage;
-import org.springframework.stereotype.Component;
 
 import java.util.Collections;
 
-@Component
-@ProcessingGroup("axon.kafka.event")
+@ProcessingGroup(KafkaSendingEventHandler.GROUP)
 public class KafkaSendingEventHandler {
+
+    public static final String GROUP = "axon.kafka.event";
 
     private final KafkaPublisher kafkaPublisher;
 

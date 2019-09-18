@@ -50,13 +50,6 @@
             <version>${axon.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-context</artifactId>
-            <version>${spring.version}</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.12</artifactId>
             <version>${kafka.version}</version>
@@ -124,7 +117,6 @@
                                     <includes>
                                         <!-- allow any spring dependency with test or provided scopes -->
                                         <include>org.springframework:*:*:*:test</include>
-                                        <include>org.springframework:*:*:*:provided</include>
                                     </includes>
                                 </bannedDependencies>
                             </rules>

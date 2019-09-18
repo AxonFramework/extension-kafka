@@ -62,6 +62,7 @@ import java.util.Map;
  * @author Stephane Nicoll
  * @author Artem Bilan
  * @author Nakul Mishra
+ * @author Simon Zambrovski
  * @since 3.0
  */
 @ConfigurationProperties(prefix = "axon.kafka")
@@ -84,6 +85,11 @@ public class KafkaProperties {
      * Default topic to which messages will be sent.
      */
     private String defaultTopic;
+
+    /**
+     * Default handling mode is subscribing.
+     */
+    private EventProcessorMode eventProcessorMode = EventProcessorMode.SUBSCRIBING;
 
     /**
      * Additional properties, common to producers and consumers, used to configure the
@@ -146,6 +152,15 @@ public class KafkaProperties {
     public Ssl getSsl() {
         return this.ssl;
     }
+
+    public EventProcessorMode getEventProcessorMode() {
+        return eventProcessorMode;
+    }
+
+    public void setEventProcessorMode(EventProcessorMode eventProcessorMode) {
+        this.eventProcessorMode = eventProcessorMode;
+    }
+
 
     public void put(String key, String value) {
         this.properties.put(key, value);
@@ -474,6 +489,19 @@ public class KafkaProperties {
         }
     }
 
+    /**
+     * Modes for handler publishing messages from Axon to Kafka.
+     * <ul>
+     * <li>SUBSCRIBING: use kafka transactions while sending messages.</li>
+     * <li>TRACKING : use a individual tracking processor to publish messages.</li>
+     * </ul>
+     *
+     * @author Simon Zambrovski
+     */
+    public enum EventProcessorMode {
+        SUBSCRIBING,
+        TRACKING
+    }
     /**
      * Fetches messages from Kafka
      */
