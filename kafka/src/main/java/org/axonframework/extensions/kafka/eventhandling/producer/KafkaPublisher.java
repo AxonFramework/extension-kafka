@@ -157,13 +157,11 @@ public class KafkaPublisher<K, V> {
      *
      * @param events   list of event messages to publish.
      * @param producer Kafka producer used for publishing.
-     *
      * @return Map containing futures for each event that was published to kafka. You can interact with a specific
      * {@link Future} to check whether a giSpringAxonAutoConfigurerTestven message was published successfully or not.
      */
-    private Map<Future<RecordMetadata>, ? super EventMessage<?>> publishToKafka(
-        List<? extends EventMessage<?>> events,
-        Producer<K, V> producer) {
+    private Map<Future<RecordMetadata>, ? super EventMessage<?>> publishToKafka(List<? extends EventMessage<?>> events,
+                                                                                Producer<K, V> producer) {
         Map<Future<RecordMetadata>, ? super EventMessage<?>> results = new HashMap<>();
         events.forEach(event -> results.put(producer.send(messageConverter.createKafkaMessage(event, topic)), event));
         return results;
@@ -172,20 +170,18 @@ public class KafkaPublisher<K, V> {
     /**
      * Commit/rollback Kafka work once a given unit of work is committed/rollback.
      */
-    private void handleActiveUnitOfWork(
-        Producer<K, V> producer,
-        Map<Future<RecordMetadata>, ? super EventMessage<?>> futures,
-        Map<? super EventMessage<?>, MonitorCallback> monitorCallbacks,
-        ConfirmationMode confirmationMode) {
+    private void handleActiveUnitOfWork(Producer<K, V> producer,
+                                        Map<Future<RecordMetadata>, ? super EventMessage<?>> futures,
+                                        Map<? super EventMessage<?>, MonitorCallback> monitorCallbacks,
+                                        ConfirmationMode confirmationMode) {
         UnitOfWork<?> uow = CurrentUnitOfWork.get();
         uow.afterCommit(u -> completeKafkaWork(monitorCallbacks, producer, confirmationMode, futures));
         uow.onRollback(u -> rollbackKafkaWork(producer, confirmationMode));
     }
 
-    private void completeKafkaWork(
-        Map<? super EventMessage<?>, MonitorCallback> monitorCallbackMap,
-        Producer<K, V> producer, ConfirmationMode confirmationMode,
-        Map<Future<RecordMetadata>, ? super EventMessage<?>> futures) {
+    private void completeKafkaWork(Map<? super EventMessage<?>, MonitorCallback> monitorCallbackMap,
+                                   Producer<K, V> producer, ConfirmationMode confirmationMode,
+                                   Map<Future<RecordMetadata>, ? super EventMessage<?>> futures) {
         if (confirmationMode.isTransactional()) {
             tryCommit(producer, monitorCallbackMap);
         } else if (confirmationMode.isWaitForAck()) {
@@ -202,9 +198,8 @@ public class KafkaPublisher<K, V> {
     }
 
     @SuppressWarnings("SuspiciousMethodCalls")
-    private void waitForPublishAck(
-        Map<Future<RecordMetadata>, ? super EventMessage<?>> futures,
-        Map<? super EventMessage<?>, MonitorCallback> monitorCallbacks) {
+    private void waitForPublishAck(Map<Future<RecordMetadata>, ? super EventMessage<?>> futures,
+                                   Map<? super EventMessage<?>, MonitorCallback> monitorCallbacks) {
         long deadline = System.currentTimeMillis() + publisherAckTimeout;
         futures.forEach((k, v) -> {
             try {
@@ -225,14 +220,13 @@ public class KafkaPublisher<K, V> {
         } catch (ProducerFencedException e) {
             logger.warn("Unable to begin transaction", e);
             throw new EventPublicationFailedException(
-                "Event publication failed: Exception occurred while starting kafka transaction",
-                e);
+                    "Event publication failed: Exception occurred while starting kafka transaction",
+                    e);
         }
     }
 
-    private void tryCommit(
-        Producer<?, ?> producer,
-        Map<? super EventMessage<?>, MonitorCallback> monitorCallbacks) {
+    private void tryCommit(Producer<?, ?> producer,
+                           Map<? super EventMessage<?>, MonitorCallback> monitorCallbacks) {
         try {
             producer.commitTransaction();
             monitorCallbacks.forEach((k, v) -> v.reportSuccess());
@@ -240,8 +234,8 @@ public class KafkaPublisher<K, V> {
             logger.warn("Unable to commit transaction", e);
             monitorCallbacks.forEach((k, v) -> v.reportFailure(e));
             throw new EventPublicationFailedException(
-                "Event publication failed: Exception occurred while committing kafka transaction",
-                e);
+                    "Event publication failed: Exception occurred while committing kafka transaction",
+                    e);
         }
     }
 
@@ -281,10 +275,10 @@ public class KafkaPublisher<K, V> {
         private ProducerFactory<K, V> producerFactory;
         @SuppressWarnings("unchecked")
         private KafkaMessageConverter<K, V> messageConverter =
-            (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder()
-                                                                      .serializer(XStreamSerializer.builder()
-                                                                                                   .build())
-                                                                      .build();
+                (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder()
+                                                                          .serializer(XStreamSerializer.builder()
+                                                                                                       .build())
+                                                                          .build();
         private MessageMonitor<? super EventMessage<?>> messageMonitor = NoOpMessageMonitor.instance();
         private String topic = "Axon.Events";
         private long publisherAckTimeout = 1_000;
@@ -295,7 +289,6 @@ public class KafkaPublisher<K, V> {
          *
          * @param producerFactory a {@link ProducerFactory} which will instantiate {@link Producer} instances to publish
          *                        {@link EventMessage}s on the Kafka topic
-         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder<K, V> producerFactory(ProducerFactory<K, V> producerFactory) {
@@ -312,7 +305,6 @@ public class KafkaPublisher<K, V> {
          *
          * @param messageConverter a {@link KafkaMessageConverter} used to convert {@link EventMessage}s into Kafka
          *                         messages
-         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder<K, V> messageConverter(KafkaMessageConverter<K, V> messageConverter) {
@@ -326,7 +318,6 @@ public class KafkaPublisher<K, V> {
          * publisher. Defaults to a {@link NoOpMessageMonitor}.
          *
          * @param messageMonitor a {@link MessageMonitor} used to monitor this Kafka publisher
-         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder<K, V> messageMonitor(MessageMonitor<? super EventMessage<?>> messageMonitor) {
@@ -339,7 +330,6 @@ public class KafkaPublisher<K, V> {
          * Set the Kafka {@code topic} to publish {@link EventMessage}s on. Defaults to {@code Axon.Events}.
          *
          * @param topic the Kafka {@code topic} to publish {@link EventMessage}s on
-         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder<K, V> topic(String topic) {
@@ -354,14 +344,12 @@ public class KafkaPublisher<K, V> {
          *
          * @param publisherAckTimeout a {@code long} specifying how long to wait for a publisher to acknowledge a
          *                            message has been sent
-         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder<K, V> publisherAckTimeout(long publisherAckTimeout) {
-            assertThat(
-                publisherAckTimeout,
-                timeout -> timeout >= 0,
-                "The publisherAckTimeout should be a positive number or zero");
+            assertThat(publisherAckTimeout,
+                       timeout -> timeout >= 0,
+                       "The publisherAckTimeout should be a positive number or zero");
             this.publisherAckTimeout = publisherAckTimeout;
             return this;
         }

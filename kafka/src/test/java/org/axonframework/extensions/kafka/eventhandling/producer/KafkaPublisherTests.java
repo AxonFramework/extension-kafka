@@ -248,8 +248,6 @@ public class KafkaPublisherTests {
         cleanup(producerFactory, testSubject, consumer);
     }
 
-    // FIXME: try to fix this.
-    @Ignore
     @SuppressWarnings("unchecked")
     @Test(expected = EventPublicationFailedException.class)
     public void testPublishMessages_KafkaTransactionCannotBeStarted_ShouldThrowAnException() {
@@ -261,8 +259,6 @@ public class KafkaPublisherTests {
         publishWithException(topic, testSubject, message);
     }
 
-    // FIXME: try to fix this.
-    @Ignore
     @SuppressWarnings("unchecked")
     @Test(expected = EventPublicationFailedException.class)
     public void testPublishMessage_KafkaTransactionCannotBeCommitted_ShouldThrowAnException() {
