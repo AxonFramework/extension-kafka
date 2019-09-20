@@ -33,6 +33,7 @@
 package org.axonframework.extensions.kafka.autoconfig;
 
 import org.axonframework.config.EventProcessingConfigurer;
+import org.axonframework.eventhandling.PropagatingErrorHandler;
 import org.axonframework.extensions.kafka.KafkaProperties;
 import org.axonframework.extensions.kafka.eventhandling.DefaultKafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
@@ -177,10 +178,7 @@ public class KafkaAutoConfiguration {
          */
         eventProcessingConfigurer.registerListenerInvocationErrorHandler(
             KafkaSendingEventHandler.GROUP,
-            configuration ->
-                (exception, event, eventHandler) -> {
-                    throw exception;
-                }
+            configuration -> PropagatingErrorHandler.instance()
         );
     }
 

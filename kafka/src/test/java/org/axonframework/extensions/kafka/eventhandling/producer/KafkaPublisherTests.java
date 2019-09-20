@@ -49,6 +49,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -129,19 +130,8 @@ public class KafkaPublisherTests {
         Producer producer = mock(Producer.class);
         when(producerFactory.createProducer()).thenReturn(producer);
 
-        ExecutorService executorService = Executors.newSingleThreadExecutor();
-        Future<RecordMetadata> timeoutFuture1 = executorService.submit(() -> {
-            //infinite loop for causing timeout exception
-            //noinspection InfiniteLoopStatement,StatementWithEmptyBody
-            for (; ; ) {
-            }
-        });
-        Future<RecordMetadata> timeoutFuture2 = executorService.submit(() -> {
-            //infinite loop for causing timeout exception
-            //noinspection InfiniteLoopStatement,StatementWithEmptyBody
-            for (; ; ) {
-            }
-        });
+        Future<RecordMetadata> timeoutFuture1 = new CompletableFuture<>();
+        Future<RecordMetadata> timeoutFuture2 = new CompletableFuture<>();
         when(producer.send(any())).thenReturn(timeoutFuture1).thenReturn(timeoutFuture2);
         String topic = "testSendMessagesAck_NoUnitOfWorkWithTimeout";
         KafkaPublisher<?, ?> testSubject = publisher(topic, producerFactory);
@@ -155,7 +145,6 @@ public class KafkaPublisherTests {
         assertThat(monitor.ignoreCount()).isZero();
 
         testSubject.shutDown();
-        executorService.shutdownNow();
     }
 
     @Test
