@@ -42,6 +42,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.axonframework.common.BuilderUtils.assertNonNull;
 import static org.axonframework.common.BuilderUtils.assertThat;
@@ -64,6 +65,8 @@ import static org.axonframework.common.BuilderUtils.assertThat;
 public class KafkaPublisher<K, V> {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaPublisher.class);
+
+    private static final String EXCEPTION_KEY = KafkaPublisher.class.getName() + ".EXCEPTION";
 
     private final ProducerFactory<K, V> producerFactory;
     private final KafkaMessageConverter<K, V> messageConverter;
@@ -128,6 +131,8 @@ public class KafkaPublisher<K, V> {
      *
      * @param events the events to publish on the Kafka broker.
      */
+    // TODO: This is never called with more than one message anymore, so we could simplify quite a bit
+    // TODO: Also, I think it is always called within a UnitOfWork now, so we could drop all the stuff for being called outside an UOW
     public void send(List<? extends EventMessage<?>> events) {
         final Map<? super EventMessage<?>, MonitorCallback> monitorCallbacks = messageMonitor
             .onMessagesIngested(events);
@@ -158,7 +163,7 @@ public class KafkaPublisher<K, V> {
      * @param events   list of event messages to publish.
      * @param producer Kafka producer used for publishing.
      * @return Map containing futures for each event that was published to kafka. You can interact with a specific
-     * {@link Future} to check whether a giSpringAxonAutoConfigurerTestven message was published successfully or not.
+     * {@link Future} to check whether a given message was published successfully or not.
      */
     private Map<Future<RecordMetadata>, ? super EventMessage<?>> publishToKafka(List<? extends EventMessage<?>> events,
                                                                                 Producer<K, V> producer) {
@@ -175,17 +180,31 @@ public class KafkaPublisher<K, V> {
                                         Map<? super EventMessage<?>, MonitorCallback> monitorCallbacks,
                                         ConfirmationMode confirmationMode) {
         UnitOfWork<?> uow = CurrentUnitOfWork.get();
-        uow.afterCommit(u -> completeKafkaWork(monitorCallbacks, producer, confirmationMode, futures));
+        uow.onPrepareCommit(u -> completeKafkaWork(monitorCallbacks, producer, confirmationMode, futures, uow));
         uow.onRollback(u -> rollbackKafkaWork(producer, confirmationMode));
     }
 
     private void completeKafkaWork(Map<? super EventMessage<?>, MonitorCallback> monitorCallbackMap,
                                    Producer<K, V> producer, ConfirmationMode confirmationMode,
-                                   Map<Future<RecordMetadata>, ? super EventMessage<?>> futures) {
+                                   Map<Future<RecordMetadata>, ? super EventMessage<?>> futures,
+                                   UnitOfWork<?> uow) {
         if (confirmationMode.isTransactional()) {
             tryCommit(producer, monitorCallbackMap);
         } else if (confirmationMode.isWaitForAck()) {
-            waitForPublishAck(futures, monitorCallbackMap);
+            try {
+                waitForPublishAck(futures, monitorCallbackMap);
+            }
+            catch (EventPublicationFailedException e) {
+                EventPublicationFailedException previousException = uow.getResource(EXCEPTION_KEY);
+                if (previousException == null) {
+                    uow.resources().put(EXCEPTION_KEY, e);
+//                    uow.rollback(e);
+                    uow.onCommit(u->{throw e;});
+                }
+                else {
+                    previousException.addSuppressed(e);
+                }
+            }
         }
         tryClose(producer);
     }
@@ -201,6 +220,7 @@ public class KafkaPublisher<K, V> {
     private void waitForPublishAck(Map<Future<RecordMetadata>, ? super EventMessage<?>> futures,
                                    Map<? super EventMessage<?>, MonitorCallback> monitorCallbacks) {
         long deadline = System.currentTimeMillis() + publisherAckTimeout;
+        AtomicReference<EventPublicationFailedException> lastFoundException = new AtomicReference<>();
         futures.forEach((k, v) -> {
             try {
                 k.get(Math.max(0, deadline - System.currentTimeMillis()), TimeUnit.MILLISECONDS);
@@ -210,8 +230,19 @@ public class KafkaPublisher<K, V> {
             } catch (InterruptedException | ExecutionException | TimeoutException ex) {
                 monitorCallbacks.get(v).reportFailure(ex);
                 logger.warn("Encountered error while waiting for event publication", ex);
+                lastFoundException.accumulateAndGet(new EventPublicationFailedException("Event publication failed: Exception occurred while waiting for event publication", ex),
+                                                    (previous, current) -> {
+                                                        if (previous == null) {
+                                                            return current;
+                                                        }
+                                                        previous.addSuppressed(current);
+                                                        return previous;
+                                                    });
             }
         });
+        if (lastFoundException.get() != null) {
+            throw lastFoundException.get();
+        }
     }
 
     private void tryBeginTxn(Producer<?, ?> producer) {
