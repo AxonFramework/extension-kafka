@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: KafkaAxonExample
+
+axon:
+  kafka:
+    clientid: kafka-axon-example
+    defaulttopic: local.event
+    producer:
+      retries: 0
+      bootstrapservers: localhost:9092
+
+    properties:
+      security.protocol: PLAINTEXT

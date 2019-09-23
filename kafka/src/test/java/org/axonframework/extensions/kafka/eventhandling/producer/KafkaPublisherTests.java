@@ -60,6 +60,7 @@ import java.util.stream.IntStream;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.axonframework.extensions.kafka.eventhandling.ConsumerConfigUtil.transactionalConsumerFactory;
 import static org.axonframework.extensions.kafka.eventhandling.ProducerConfigUtil.ackProducerFactory;
 import static org.axonframework.extensions.kafka.eventhandling.ProducerConfigUtil.txnProducerFactory;
@@ -137,11 +138,10 @@ public class KafkaPublisherTests {
         KafkaPublisher<?, ?> testSubject = publisher(topic, producerFactory);
         List<GenericDomainEventMessage<String>> messages = domainMessages("98765", 2);
 
-        eventBus.publish(messages);
-
-        assertThat(messages).isEqualTo(monitor.received);
+        assertThatExceptionOfType(EventPublicationFailedException.class).isThrownBy(() -> eventBus.publish(messages));
         assertThat(monitor.successCount()).isZero();
-        assertThat(monitor.failureCount()).isEqualTo(messages.size());
+        // the first error is propagated and the whole batch is cancelled.
+        assertThat(monitor.failureCount()).isEqualTo(1);
         assertThat(monitor.ignoreCount()).isZero();
 
         testSubject.shutDown();

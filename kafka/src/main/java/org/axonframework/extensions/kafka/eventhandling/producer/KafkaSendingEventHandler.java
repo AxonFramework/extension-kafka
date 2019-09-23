@@ -4,8 +4,6 @@ import org.axonframework.config.ProcessingGroup;
 import org.axonframework.eventhandling.EventHandler;
 import org.axonframework.eventhandling.EventMessage;
 
-import java.util.Collections;
-
 @ProcessingGroup(KafkaSendingEventHandler.GROUP)
 public class KafkaSendingEventHandler {
 
@@ -19,6 +17,6 @@ public class KafkaSendingEventHandler {
 
     @EventHandler
     public <T> void handle(EventMessage<T> message) {
-        kafkaPublisher.send(Collections.singletonList(message));
+        kafkaPublisher.send(message);
     }
 }
