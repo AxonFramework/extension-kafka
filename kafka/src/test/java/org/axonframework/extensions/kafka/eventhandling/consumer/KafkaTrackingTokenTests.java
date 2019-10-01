@@ -18,7 +18,6 @@ package org.axonframework.extensions.kafka.eventhandling.consumer;
 
 import org.apache.kafka.common.TopicPartition;
 import org.assertj.core.util.Lists;
-import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaTrackingToken;
 import org.junit.*;
 
 import java.util.Collection;
@@ -196,6 +195,46 @@ public class KafkaTrackingTokenTests {
         }});
 
         assertThat(first.lowerBound(second)).isEqualTo(expected);
+    }
+
+    @Test
+    public void testCoversRegression() {
+        KafkaTrackingToken first = KafkaTrackingToken.newInstance(new HashMap<Integer, Long>() {{
+            put(1, 2L);
+        }});
+
+        KafkaTrackingToken second = KafkaTrackingToken.newInstance(new HashMap<Integer, Long>() {{
+            put(0, 1L);
+        }});
+
+
+        assertThat(first.covers(second)).isFalse();
+    }
+
+    @Test
+    public void testRelationOfCoversAndUpperBounds() {
+        java.util.Random random = new java.util.Random();
+        for (int i = 0; i <= 10; i++) {
+            KafkaTrackingToken first = KafkaTrackingToken.newInstance(new HashMap<Integer, Long>() {{
+                put(random.nextInt(2), (long) random.nextInt(4) + 1);
+                put(random.nextInt(2), (long) random.nextInt(4) + 1);
+            }});
+
+            KafkaTrackingToken second = KafkaTrackingToken.newInstance(new HashMap<Integer, Long>() {{
+                put(random.nextInt(2), (long) random.nextInt(4) + 1);
+                put(random.nextInt(2), (long) random.nextInt(4) + 1);
+            }});
+
+            if (first.upperBound(second).equals(first)) {
+                assertThat(first.covers(second))
+                        .withFailMessage("The upper bound of first(%s) and second(%s) is not first, so first shouldn't cover second", first, second)
+                        .isTrue();
+            } else {
+                assertThat(first.covers(second))
+                        .withFailMessage("The upper bound of first(%s) and second(%s) is not first, so first shouldn't cover second", first, second)
+                        .isFalse();
+            }
+        }
     }
 
     private static KafkaTrackingToken nonEmptyToken() {
