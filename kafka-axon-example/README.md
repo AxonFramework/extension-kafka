@@ -10,7 +10,7 @@ Kafka message publishing using Kafka infrastructure run locally.
 You will need `docker` and `docker-compose` to run this example.
 Please run 
 
-``` 
+```bash 
 docker-compose -f ./kafka-axon-example/docker-compose.yaml up
 ```
 
@@ -18,7 +18,7 @@ This will start Kafka, Zookeeper, Kafka Rest and Kafka Rest UI (available then o
 
 Now build the application by running
 
-``` 
+```bash
 mvn clean package -f ./kafka-axon-example 
 ``` 
 

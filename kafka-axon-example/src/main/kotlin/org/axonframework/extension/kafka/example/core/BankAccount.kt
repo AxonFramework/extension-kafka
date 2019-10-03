@@ -35,18 +35,25 @@ class BankAccount() {
     private var overdraftLimit: Long = 0
     private var balanceInCents: Long = 0
 
-
+    /**
+     * Creates a new bank account.
+     */
     @CommandHandler
     constructor(command: CreateBankAccountCommand) : this() {
         apply(BankAccountCreatedEvent(command.bankAccountId, command.overdraftLimit))
     }
 
-
+    /**
+     * Deposits money to account.
+     */
     @CommandHandler
     fun deposit(command: DepositMoneyCommand) {
         apply(MoneyDepositedEvent(id, command.amountOfMoney))
     }
 
+    /**
+     * Withdraw money from account.
+     */
     @CommandHandler
     fun withdraw(command: WithdrawMoneyCommand) {
         if (command.amountOfMoney <= balanceInCents + overdraftLimit) {
@@ -54,23 +61,17 @@ class BankAccount() {
         }
     }
 
+    /**
+     * Return money from account.
+     */
     @CommandHandler
     fun returnMoney(command: ReturnMoneyOfFailedBankTransferCommand) {
         apply(MoneyOfFailedBankTransferReturnedEvent(id, command.amount))
     }
 
-    fun debit(amount: Long, bankTransferId: String) {
-        if (amount <= balanceInCents + overdraftLimit) {
-            apply(SourceBankAccountDebitedEvent(id, amount, bankTransferId))
-        } else {
-            apply(SourceBankAccountDebitRejectedEvent(bankTransferId))
-        }
-    }
-
-    fun credit(amount: Long, bankTransferId: String) {
-        apply(DestinationBankAccountCreditedEvent(id, amount, bankTransferId))
-    }
-
+    /**
+     * Handler to initialize bank accounts attributes.
+     */
     @EventSourcingHandler
     fun on(event: BankAccountCreatedEvent) {
         id = event.id
@@ -78,11 +79,17 @@ class BankAccount() {
         balanceInCents = 0
     }
 
+    /**
+     * Handler adjusting balance.
+     */
     @EventSourcingHandler
     fun on(event: MoneyAddedEvent) {
         balanceInCents += event.amount
     }
 
+    /**
+     * Handler adjusting balance.
+     */
     @EventSourcingHandler
     fun on(event: MoneySubtractedEvent) {
         balanceInCents -= event.amount

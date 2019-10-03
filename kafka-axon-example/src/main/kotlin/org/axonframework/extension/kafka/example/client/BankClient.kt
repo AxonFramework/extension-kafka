@@ -30,14 +30,20 @@ import java.util.concurrent.CompletableFuture
 @Component
 class BankClient(private val commandGateway: CommandGateway) {
 
-    val accountId = UUID.randomUUID().toString()
-    var amount = 100
+    private val accountId = UUID.randomUUID().toString()
+    private var amount = 100
 
+    /**
+     * Creates account once.
+     */
     @Scheduled(initialDelay = 5_000, fixedDelay = 1000_000_000)
     fun createAccount() {
         commandGateway.send<CompletableFuture<String>>(CreateBankAccountCommand(bankAccountId = accountId, overdraftLimit = 1000))
     }
 
+    /**
+     * Deposit some money every 20 seconds.
+     */
     @Scheduled(initialDelay = 10_000, fixedDelay = 20_000)
     fun deposit() {
         commandGateway.send<CompletableFuture<String>>(DepositMoneyCommand(bankAccountId = accountId, amountOfMoney = amount.toLong()))

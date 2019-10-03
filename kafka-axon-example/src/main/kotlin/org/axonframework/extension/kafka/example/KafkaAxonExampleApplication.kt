@@ -41,12 +41,21 @@ fun main(args: Array<String>) {
 @EnableScheduling
 class KafkaAxonExampleApplication {
 
+    /**
+     * Configures to use in-memory embedded event store.
+     */
     @Bean
     fun eventStore() = EmbeddedEventStore.builder().storageEngine(InMemoryEventStorageEngine()).build()
 
+    /**
+     * Configures to us in-memory token store.
+     */
     @Bean
     fun tokenStore() = InMemoryTokenStore()
 
+    /**
+     * Creates a Kafka producer factory, using the Kakfa properties configured in resources/application.yml
+     */
     @Bean
     fun producerFactory(kafkaProperties: KafkaProperties): ProducerFactory<String, ByteArray>? {
         return DefaultProducerFactory.builder<String, ByteArray>()
