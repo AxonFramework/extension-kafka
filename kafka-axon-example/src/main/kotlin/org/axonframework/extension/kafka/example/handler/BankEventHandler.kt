@@ -29,6 +29,9 @@ class BankEventHandler {
 
     companion object: KLogging()
 
+    /**
+     * Receive all events and log them.
+     */
     @EventHandler
     fun <T : EventMessage<Any>> on(event: T) {
         logger.info { "received event ${event.payload}" }
