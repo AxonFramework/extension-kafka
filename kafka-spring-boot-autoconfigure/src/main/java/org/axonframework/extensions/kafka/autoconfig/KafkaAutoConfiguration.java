@@ -153,7 +153,6 @@ public class KafkaAutoConfiguration {
         return new KafkaMessageSource(kafkaFetcher);
     }
 
-    @ConditionalOnBean({ EventProcessingConfigurer.class })
     @Autowired
     public void configureKafkaEventProcessor(
         final EventProcessingConfigurer eventProcessingConfigurer,
