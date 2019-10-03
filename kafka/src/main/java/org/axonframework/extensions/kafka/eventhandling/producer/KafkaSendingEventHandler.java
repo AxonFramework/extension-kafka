@@ -20,18 +20,38 @@ import org.axonframework.config.ProcessingGroup;
 import org.axonframework.eventhandling.EventHandler;
 import org.axonframework.eventhandling.EventMessage;
 
+/**
+ * Event handler responsible for sending messages to Kafka using provided {@link KafkaPublisher}.
+ * <p>
+ * This class is intentionally not a Spring Component, but is initialized during auto-configuration
+ * taking the EventProcessor Mode into account.
+ * </p>
+ * This class is not intended to be neither sub-classed nor instantiated by the end user of the extension.
+ */
 @SuppressWarnings("UNUSED")
 @ProcessingGroup(KafkaSendingEventHandler.GROUP)
 public class KafkaSendingEventHandler {
 
+    /**
+     * Kafka Event Handler processing group.
+     */
     public static final String GROUP = "axon.kafka.event";
 
     private final KafkaPublisher kafkaPublisher;
 
+    /**
+     * Constructs the event handler.
+     * @param kafkaPublisher publisher to be used to send message to Kafka and acknowledge them.
+     */
     public KafkaSendingEventHandler(KafkaPublisher kafkaPublisher) {
         this.kafkaPublisher = kafkaPublisher;
     }
 
+    /**
+     * Main event handling method matching all events and delegating them to Kafka.
+     * @param message event received.
+     * @param <T> event type.
+     */
     @EventHandler
     public <T> void handle(EventMessage<T> message) {
         kafkaPublisher.send(message);
