@@ -27,11 +27,16 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.context.annotation.Bean
 import org.springframework.scheduling.annotation.EnableScheduling
 
-
+/**
+ * Starting point.
+ */
 fun main(args: Array<String>) {
     SpringApplication.run(KafkaAxonExampleApplication::class.java, *args)
 }
 
+/**
+ * Main application class.
+ */
 @SpringBootApplication
 @EnableScheduling
 class KafkaAxonExampleApplication {

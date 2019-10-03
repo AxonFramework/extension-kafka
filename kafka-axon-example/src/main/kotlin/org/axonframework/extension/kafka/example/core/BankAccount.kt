@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.axonframework.extension.kafka.example.core
 
 import org.axonframework.commandhandling.CommandHandler
@@ -22,6 +23,9 @@ import org.axonframework.modelling.command.AggregateIdentifier
 import org.axonframework.modelling.command.AggregateLifecycle.apply
 import org.axonframework.spring.stereotype.Aggregate
 
+/**
+ * Represent account.
+ */
 @Suppress("unused")
 @Aggregate
 class BankAccount() {
@@ -33,7 +37,7 @@ class BankAccount() {
 
 
     @CommandHandler
-    constructor(command: CreateBankAccountCommand): this() {
+    constructor(command: CreateBankAccountCommand) : this() {
         apply(BankAccountCreatedEvent(command.bankAccountId, command.overdraftLimit))
     }
 

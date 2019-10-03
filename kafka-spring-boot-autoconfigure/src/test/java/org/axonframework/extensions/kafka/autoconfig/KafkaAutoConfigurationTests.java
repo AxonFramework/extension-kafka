@@ -345,6 +345,7 @@ public class KafkaAutoConfigurationTests {
             return mock(EventBus.class);
         }
 
+        @SuppressWarnings("unchecked")
         @Bean
         public AxonConfiguration axonConfiguration() {
             AxonConfiguration mock = mock(AxonConfiguration.class);

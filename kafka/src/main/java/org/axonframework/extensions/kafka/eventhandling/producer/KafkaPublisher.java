@@ -65,8 +65,6 @@ public class KafkaPublisher<K, V> {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaPublisher.class);
 
-    private static final String EXCEPTION_KEY = KafkaPublisher.class.getName() + ".EXCEPTION";
-
     private final ProducerFactory<K, V> producerFactory;
     private final KafkaMessageConverter<K, V> messageConverter;
     private final MessageMonitor<? super EventMessage<?>> messageMonitor;
@@ -81,7 +79,7 @@ public class KafkaPublisher<K, V> {
      *
      * @param builder the {@link Builder} used to instantiate a {@link KafkaPublisher} instance
      */
-    private KafkaPublisher(Builder<K, V> builder) {
+    protected KafkaPublisher(Builder<K, V> builder) {
         builder.validate();
         this.producerFactory = builder.producerFactory;
         this.messageConverter = builder.messageConverter;
@@ -310,6 +308,7 @@ public class KafkaPublisher<K, V> {
          *
          * @return the current Builder instance, for fluent interfacing
          */
+        @SuppressWarnings("WeakerAccess")
         public Builder<K, V> publisherAckTimeout(long publisherAckTimeout) {
             assertThat(
                 publisherAckTimeout,
@@ -334,6 +333,7 @@ public class KafkaPublisher<K, V> {
          * @throws AxonConfigurationException if one field is asserted to be incorrect according to the Builder's
          *                                    specifications
          */
+        @SuppressWarnings("WeakerAccess")
         protected void validate() throws AxonConfigurationException {
             assertNonNull(producerFactory, "The ProducerFactory is a hard requirement and should be provided");
         }

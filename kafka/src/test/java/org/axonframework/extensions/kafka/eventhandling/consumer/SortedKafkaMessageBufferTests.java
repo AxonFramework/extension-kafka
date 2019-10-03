@@ -43,6 +43,7 @@ import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage
  *
  * @author Nakul Mishra.
  */
+@SuppressWarnings("ALL")
 public class SortedKafkaMessageBufferTests extends JSR166TestCase {
 
     public void testCreateBuffer_WithNonPositiveCapacity() {

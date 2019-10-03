@@ -80,14 +80,20 @@ public class KafkaProperties {
      */
     private String clientId;
 
-
     /**
      * Default topic to which messages will be sent.
      */
     private String defaultTopic;
 
     /**
-     * Default handling mode is subscribing.
+     * Controls the mode of event processor responsible for sending messages to Kafka.
+     * <p>
+     * Depending on this, different error handling behaviours are taken in case of
+     * any errors during Kafka publishing.
+     * </p>
+     * <p>
+     * Possible values are "SUBSCRIBING" (default) and "TRACKING".
+     * </p>
      */
     private EventProcessorMode eventProcessorMode = EventProcessorMode.SUBSCRIBING;
 
@@ -499,7 +505,13 @@ public class KafkaProperties {
      * @author Simon Zambrovski
      */
     public enum EventProcessorMode {
+        /**
+         * Register publishing processor in subscribing mode.
+         */
         SUBSCRIBING,
+        /**
+         * Register publishing processor in tracking mode.
+         */
         TRACKING
     }
     /**

@@ -14,7 +14,7 @@ Please run
 docker-compose -f ./kafka-axon-example/docker-compose.yaml up
 ```
 
-This will start Kafka, Zookeeper, Kafka Rest and Kafka Rest UI (available then on http://localhost:8000/)
+This will start Kafka, Zookeeper, Kafka Rest and Kafka Rest UI (available then on [http://localhost:8000/](http://localhost:8000/))
 
 Now build the application by running
 
@@ -29,5 +29,3 @@ You can start the application by running `java -jar ./kafka-axon-example/target/
 The application runs in two different modes demonstrating publishing of events to Kafka in 
 subscribing or tracking modes. To activate these modes, please use Spring profiles by providing a command
 line parameter `--spring.profiles.active=subscribing` and `--spring.profiles.active=tracking` respectively.   
-
- 

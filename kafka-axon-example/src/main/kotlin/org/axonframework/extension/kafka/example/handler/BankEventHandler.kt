@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.axonframework.extension.kafka.example.handler
 
 import mu.KLogging
@@ -20,6 +21,9 @@ import org.axonframework.eventhandling.EventHandler
 import org.axonframework.eventhandling.EventMessage
 import org.springframework.stereotype.Component
 
+/**
+ * Collecting event handler for logging.
+ */
 @Component
 class BankEventHandler {
 

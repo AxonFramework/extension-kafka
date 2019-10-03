@@ -13,11 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.axonframework.extension.kafka.example.api
 
 import org.axonframework.modelling.command.TargetAggregateIdentifier
 import javax.validation.constraints.Min
 
+/**
+ * Create account.
+ */
 data class CreateBankAccountCommand(
         @TargetAggregateIdentifier
         val bankAccountId: String,
@@ -25,18 +29,27 @@ data class CreateBankAccountCommand(
         val overdraftLimit: Long
 )
 
+/**
+ * Deposit money.
+ */
 data class DepositMoneyCommand(
         @TargetAggregateIdentifier
         val bankAccountId: String,
         val amountOfMoney: Long
 )
 
+/**
+ * Withdraw money.
+ */
 data class WithdrawMoneyCommand(
         @TargetAggregateIdentifier
         val bankAccountId: String,
         val amountOfMoney: Long
 )
 
+/**
+ * Return money if transfer is not possible.
+ */
 data class ReturnMoneyOfFailedBankTransferCommand(
         @TargetAggregateIdentifier
         val bankAccountId: String,

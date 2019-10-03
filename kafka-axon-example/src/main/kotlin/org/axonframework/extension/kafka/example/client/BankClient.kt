@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.axonframework.extension.kafka.example.client
 
 import org.axonframework.commandhandling.gateway.CommandGateway
@@ -23,6 +24,9 @@ import org.springframework.stereotype.Component
 import java.util.*
 import java.util.concurrent.CompletableFuture
 
+/**
+ * Bank client sending scheduled commands.
+ */
 @Component
 class BankClient(private val commandGateway: CommandGateway) {
 

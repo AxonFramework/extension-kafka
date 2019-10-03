@@ -32,7 +32,6 @@ import org.axonframework.common.AxonConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -103,6 +102,7 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
      *
      * @param <K> a generic type for the key of the {@link Producer} this {@link ProducerFactory} will create
      * @param <V> a generic type for the value of the {@link Producer} this {@link ProducerFactory} will create
+     *
      * @return a Builder to be able to create a {@link DefaultProducerFactory}
      */
     public static <K, V> Builder<K, V> builder() {
@@ -122,10 +122,11 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
         if (this.producer == null) {
             synchronized (this) {
                 if (this.producer == null) {
-                    this.producer = new CloseLazyProducer<>(createKafkaProducer(configuration),
-                                                            cache,
-                                                            closeTimeout,
-                                                            timeUnit);
+                    this.producer = new CloseLazyProducer<>(
+                        createKafkaProducer(configuration),
+                        cache,
+                        closeTimeout,
+                        timeUnit);
                 }
             }
         }
@@ -188,8 +189,9 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
             return producer;
         }
         Map<String, Object> configs = new HashMap<>(this.configuration);
-        configs.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG,
-                    this.transactionIdPrefix + this.transactionIdSuffix.getAndIncrement());
+        configs.put(
+            ProducerConfig.TRANSACTIONAL_ID_CONFIG,
+            this.transactionIdPrefix + this.transactionIdSuffix.getAndIncrement());
         producer = new CloseLazyProducer<>(createKafkaProducer(configs), cache, closeTimeout, timeUnit);
         producer.initTransactions();
         return producer;
@@ -206,8 +208,9 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
         private final int closeTimeout;
         private final TimeUnit unit;
 
-        CloseLazyProducer(Producer<K, V> delegate, BlockingQueue<CloseLazyProducer<K, V>> cache, int closeTimeout,
-                          TimeUnit unit) {
+        CloseLazyProducer(
+            Producer<K, V> delegate, BlockingQueue<CloseLazyProducer<K, V>> cache, int closeTimeout,
+            TimeUnit unit) {
             this.delegate = delegate;
             this.cache = cache;
             this.closeTimeout = closeTimeout;
@@ -251,7 +254,7 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
 
         @Override
         public void sendOffsetsToTransaction(Map<TopicPartition, OffsetAndMetadata> offsets, String consumerGroupId)
-                throws ProducerFencedException {
+            throws ProducerFencedException {
             this.delegate.sendOffsetsToTransaction(offsets, consumerGroupId);
         }
 
@@ -311,6 +314,7 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
          * @param timeout  the time to wait before invoking {@link Producer#close(long, TimeUnit)} in units of
          *                 {@code timeUnit}.
          * @param timeUnit a {@code TimeUnit} determining how to interpret the {@code timeout} parameter
+         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder<K, V> closeTimeout(int timeout, TimeUnit timeUnit) {
@@ -327,6 +331,7 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
          * Will instantiate an {@link ArrayBlockingQueue} based on this number.
          *
          * @param producerCacheSize an {@code int} specifying the number of {@link Producer} instances to cache
+         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder<K, V> producerCacheSize(int producerCacheSize) {
@@ -340,6 +345,7 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
          *
          * @param configuration a {@link Map} of {@link String} to {@link Object} containing Kafka properties for
          *                      creating {@link Producer} instances
+         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder<K, V> configuration(Map<String, Object> configuration) {
@@ -353,6 +359,7 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
          * {@link ConfirmationMode#NONE}.
          *
          * @param confirmationMode the {@link ConfirmationMode} for producing {@link Producer} instances
+         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder<K, V> confirmationMode(ConfirmationMode confirmationMode) {
@@ -366,6 +373,7 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
          *
          * @param transactionIdPrefix a {@link String} specifying the prefix used to generate the
          *                            {@code transactional.id} required for transactional {@link Producer}s
+         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder<K, V> transactionalIdPrefix(String transactionIdPrefix) {
