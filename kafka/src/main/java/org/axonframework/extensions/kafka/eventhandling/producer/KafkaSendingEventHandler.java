@@ -27,6 +27,9 @@ import org.axonframework.eventhandling.EventMessage;
  * taking the EventProcessor Mode into account.
  * </p>
  * This class is not intended to be neither sub-classed nor instantiated by the end user of the extension.
+ *
+ * @author Simon Zambrovski
+ * @since 4.0.1
  */
 @SuppressWarnings("UNUSED")
 @ProcessingGroup(KafkaSendingEventHandler.GROUP)
