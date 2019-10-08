@@ -1,0 +1,3 @@
+axon:
+  kafka:
+    event-processor-mode: tracking

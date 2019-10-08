@@ -62,6 +62,7 @@ import java.util.Map;
  * @author Stephane Nicoll
  * @author Artem Bilan
  * @author Nakul Mishra
+ * @author Simon Zambrovski
  * @since 3.0
  */
 @ConfigurationProperties(prefix = "axon.kafka")
@@ -79,11 +80,22 @@ public class KafkaProperties {
      */
     private String clientId;
 
-
     /**
      * Default topic to which messages will be sent.
      */
     private String defaultTopic;
+
+    /**
+     * Controls the mode of event processor responsible for sending messages to Kafka.
+     * <p>
+     * Depending on this, different error handling behaviours are taken in case of
+     * any errors during Kafka publishing.
+     * </p>
+     * <p>
+     * Possible values are "SUBSCRIBING" (default) and "TRACKING".
+     * </p>
+     */
+    private EventProcessorMode eventProcessorMode = EventProcessorMode.SUBSCRIBING;
 
     /**
      * Additional properties, common to producers and consumers, used to configure the
@@ -146,6 +158,15 @@ public class KafkaProperties {
     public Ssl getSsl() {
         return this.ssl;
     }
+
+    public EventProcessorMode getEventProcessorMode() {
+        return eventProcessorMode;
+    }
+
+    public void setEventProcessorMode(EventProcessorMode eventProcessorMode) {
+        this.eventProcessorMode = eventProcessorMode;
+    }
+
 
     public void put(String key, String value) {
         this.properties.put(key, value);
@@ -474,6 +495,25 @@ public class KafkaProperties {
         }
     }
 
+    /**
+     * Modes for handler publishing messages from Axon to Kafka.
+     * <ul>
+     * <li>SUBSCRIBING: use kafka transactions while sending messages.</li>
+     * <li>TRACKING : use a individual tracking processor to publish messages.</li>
+     * </ul>
+     *
+     * @author Simon Zambrovski
+     */
+    public enum EventProcessorMode {
+        /**
+         * Register publishing processor in subscribing mode.
+         */
+        SUBSCRIBING,
+        /**
+         * Register publishing processor in tracking mode.
+         */
+        TRACKING
+    }
     /**
      * Fetches messages from Kafka
      */

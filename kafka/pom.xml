@@ -44,7 +44,11 @@
             <artifactId>axon-messaging</artifactId>
             <version>${axon.version}</version>
         </dependency>
-
+        <dependency>
+            <groupId>org.axonframework</groupId>
+            <artifactId>axon-configuration</artifactId>
+            <version>${axon.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.12</artifactId>
@@ -111,7 +115,7 @@
                                         <exclude>org.springframework</exclude>
                                     </excludes>
                                     <includes>
-                                        <!-- allow any spring dependency with test scope -->
+                                        <!-- allow any spring dependency with test or provided scopes -->
                                         <include>org.springframework:*:*:*:test</include>
                                     </includes>
                                 </bannedDependencies>

@@ -21,8 +21,9 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.KafkaException;
 import org.axonframework.common.AxonConfigurationException;
-import org.junit.*;
-import org.junit.runner.*;
+import org.junit.Assume;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.kafka.test.rule.KafkaEmbedded;
@@ -42,7 +43,6 @@ import static org.axonframework.extensions.kafka.eventhandling.ProducerConfigUti
 import static org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode.NONE;
 import static org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode.TRANSACTIONAL;
 import static org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducerFactory.builder;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
 /**
@@ -53,11 +53,12 @@ import static org.mockito.Mockito.*;
 @RunWith(SpringRunner.class)
 @DirtiesContext
 @EmbeddedKafka(topics = {
-        "testProducerCreation",
-        "testSendingMessagesUsingMultipleProducers",
-        "testSendingMessagesUsingMultipleTransactionalProducers",
-        "testUsingCallbackWhilePublishingMessages",
-        "testTransactionalProducerBehaviorOnCommittingAnAbortedTransaction"}, count = 3)
+    "testProducerCreation",
+    "testSendingMessagesUsingMultipleProducers",
+    "testSendingMessagesUsingMultipleTransactionalProducers",
+    "testUsingCallbackWhilePublishingMessages",
+    "testTransactionalProducerBehaviorOnCommittingAnAbortedTransaction"
+}, count = 3)
 public class DefaultProducerFactoryTests {
 
     @Autowired
@@ -128,8 +129,9 @@ public class DefaultProducerFactoryTests {
 
     @Test
     public void testTransactionalProducerCreation() {
-        Assume.assumeFalse("Transactional producers not supported on Windows",
-                           System.getProperty("os.name").contains("Windows"));
+        Assume.assumeFalse(
+            "Transactional producers not supported on Windows",
+            System.getProperty("os.name").contains("Windows"));
 
         ProducerFactory<String, String> pf = txnProducerFactory(kafka, "xyz");
         Producer<String, String> producer = pf.createProducer();
@@ -154,7 +156,7 @@ public class DefaultProducerFactoryTests {
 
     @Test
     public void testSendingMessages_UsingMultipleTransactionalProducers()
-            throws ExecutionException, InterruptedException {
+        throws ExecutionException, InterruptedException {
         ProducerFactory<String, String> pf = txnProducerFactory(kafka, "xyz");
         List<Producer<String, String>> producers = new ArrayList<>();
         List<Future<RecordMetadata>> results = new ArrayList<>();
@@ -172,8 +174,9 @@ public class DefaultProducerFactoryTests {
 
     @Test(expected = KafkaException.class)
     public void testTransactionalProducerBehavior_OnCommittingAnAbortedTransaction() {
-        Assume.assumeFalse("Transactional producers not supported on Windows",
-                           System.getProperty("os.name").contains("Windows"));
+        Assume.assumeFalse(
+            "Transactional producers not supported on Windows",
+            System.getProperty("os.name").contains("Windows"));
 
         ProducerFactory<String, String> pf = txnProducerFactory(kafka, "xyz");
         Producer<String, String> producer = pf.createProducer();
@@ -189,8 +192,9 @@ public class DefaultProducerFactoryTests {
 
     @Test(expected = KafkaException.class)
     public void testTransactionalProducerBehavior_OnSendingOffsetsWhenTransactionIsClosed() {
-        Assume.assumeFalse("Transactional producers not supported on Windows",
-                           System.getProperty("os.name").contains("Windows"));
+        Assume.assumeFalse(
+            "Transactional producers not supported on Windows",
+            System.getProperty("os.name").contains("Windows"));
         ProducerFactory<String, String> pf = txnProducerFactory(kafka, "xyz");
         Producer<String, String> producer = pf.createProducer();
         producer.beginTransaction();
@@ -203,10 +207,10 @@ public class DefaultProducerFactoryTests {
     @Test
     public void testClosingProducer_ShouldReturnItToCache() {
         ProducerFactory<Object, Object> pf = builder()
-                .producerCacheSize(2)
-                .configuration(minimalTransactional(kafka))
-                .transactionalIdPrefix("cache")
-                .build();
+            .producerCacheSize(2)
+            .configuration(minimalTransactional(kafka))
+            .transactionalIdPrefix("cache")
+            .build();
         Producer<Object, Object> first = pf.createProducer();
         first.close();
         Producer<Object, Object> second = pf.createProducer();
@@ -242,7 +246,7 @@ public class DefaultProducerFactoryTests {
     }
 
     private static void assertOffsets(List<Future<RecordMetadata>> results)
-            throws InterruptedException, ExecutionException {
+        throws InterruptedException, ExecutionException {
         for (Future<RecordMetadata> result : results) {
             assertThat(result.get().offset()).isGreaterThanOrEqualTo(0);
         }

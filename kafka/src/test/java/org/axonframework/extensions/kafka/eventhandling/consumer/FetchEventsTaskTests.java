@@ -130,12 +130,11 @@ public class FetchEventsTaskTests {
                               -1, null);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testTaskExecution_StartingThreadAndInterrupt_ShouldNotCauseAnyException() {
         SortedKafkaMessageBuffer<KafkaEventMessage> buffer = new SortedKafkaMessageBuffer<>(TOTAL_MESSAGES);
         KafkaMessageConverter<String, String> converter = new AsyncFetcherTests.ValueConverter();
-        FetchEventsTask testSubject = new FetchEventsTask<>(consumer(),
+        FetchEventsTask<String, String> testSubject = new FetchEventsTask<>(consumer(),
                                                             emptyToken(),
                                                             buffer,
                                                             converter,

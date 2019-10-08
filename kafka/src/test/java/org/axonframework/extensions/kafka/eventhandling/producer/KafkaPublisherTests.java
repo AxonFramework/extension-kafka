@@ -22,6 +22,8 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.errors.ProducerFencedException;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.axonframework.config.Configurer;
+import org.axonframework.config.DefaultConfigurer;
 import org.axonframework.eventhandling.GenericDomainEventMessage;
 import org.axonframework.eventhandling.SimpleEventBus;
 import org.axonframework.extensions.kafka.eventhandling.DefaultKafkaMessageConverter;
@@ -33,8 +35,11 @@ import org.axonframework.messaging.unitofwork.DefaultUnitOfWork;
 import org.axonframework.messaging.unitofwork.UnitOfWork;
 import org.axonframework.monitoring.MessageMonitor;
 import org.axonframework.serialization.xml.XStreamSerializer;
-import org.junit.*;
-import org.junit.runner.*;
+import org.junit.After;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.kafka.test.rule.KafkaEmbedded;
@@ -44,9 +49,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -54,10 +58,12 @@ import java.util.stream.IntStream;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.axonframework.extensions.kafka.eventhandling.ConsumerConfigUtil.transactionalConsumerFactory;
 import static org.axonframework.extensions.kafka.eventhandling.ProducerConfigUtil.ackProducerFactory;
 import static org.axonframework.extensions.kafka.eventhandling.ProducerConfigUtil.txnProducerFactory;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
 
 /**
@@ -66,13 +72,14 @@ import static org.mockito.Mockito.*;
  * @author Nakul Mishra
  */
 
-@EmbeddedKafka(topics = {"testPublishMessagesWithAckMode_NoUnitOfWork_ShouldBePublishedAndReadSuccessfully",
-        "testPublishMessagesWithTransactionalMode_NoUnitOfWork_ShouldBePublishedAndReadSuccessfully",
-        "testSendMessagesAck_UnitOfWork",
-        "testSendMessage_UnitOfWork",
-        "testShouldNotPublishEventsWhenKafkaTransactionCannotBeStarted",
-        "testShouldNotPublishEventsWhenKafkaTransactionCannotBeCommitted",
-        "testSendMessage_WithKafkaTransactionRollback"
+@EmbeddedKafka(topics = {
+    "testPublishMessagesWithAckMode_NoUnitOfWork_ShouldBePublishedAndReadSuccessfully",
+    "testPublishMessagesWithTransactionalMode_NoUnitOfWork_ShouldBePublishedAndReadSuccessfully",
+    "testSendMessagesAck_UnitOfWork",
+    "testSendMessage_UnitOfWork",
+    "testShouldNotPublishEventsWhenKafkaTransactionCannotBeStarted",
+    "testShouldNotPublishEventsWhenKafkaTransactionCannotBeCommitted",
+    "testSendMessage_WithKafkaTransactionRollback"
 }, count = 3)
 @RunWith(SpringRunner.class)
 @DirtiesContext
@@ -82,11 +89,16 @@ public class KafkaPublisherTests {
     private KafkaEmbedded kafka;
     private SimpleEventBus eventBus;
     private MessageCollector monitor;
+    private Configurer configurer;
 
     @Before
     public void setUp() {
+
+        this.configurer = DefaultConfigurer.defaultConfiguration();
         this.eventBus = SimpleEventBus.builder().build();
         this.monitor = new MessageCollector();
+
+        configurer.configureEventBus(configuration -> eventBus);
     }
 
     @Test
@@ -117,39 +129,27 @@ public class KafkaPublisherTests {
         Producer producer = mock(Producer.class);
         when(producerFactory.createProducer()).thenReturn(producer);
 
-        ExecutorService executorService = Executors.newSingleThreadExecutor();
-        Future<RecordMetadata> timeoutFuture1 = executorService.submit(() -> {
-            //infinite loop for causing timeout exception
-            //noinspection InfiniteLoopStatement,StatementWithEmptyBody
-            for (; ; ) {
-            }
-        });
-        Future<RecordMetadata> timeoutFuture2 = executorService.submit(() -> {
-            //infinite loop for causing timeout exception
-            //noinspection InfiniteLoopStatement,StatementWithEmptyBody
-            for (; ; ) {
-            }
-        });
+        Future<RecordMetadata> timeoutFuture1 = new CompletableFuture<>();
+        Future<RecordMetadata> timeoutFuture2 = new CompletableFuture<>();
         when(producer.send(any())).thenReturn(timeoutFuture1).thenReturn(timeoutFuture2);
         String topic = "testSendMessagesAck_NoUnitOfWorkWithTimeout";
         KafkaPublisher<?, ?> testSubject = publisher(topic, producerFactory);
         List<GenericDomainEventMessage<String>> messages = domainMessages("98765", 2);
 
-        eventBus.publish(messages);
-
-        assertThat(messages).isEqualTo(monitor.received);
+        assertThatExceptionOfType(EventPublicationFailedException.class).isThrownBy(() -> eventBus.publish(messages));
         assertThat(monitor.successCount()).isZero();
-        assertThat(monitor.failureCount()).isEqualTo(messages.size());
+        // the first error is propagated and the whole batch is cancelled.
+        assertThat(monitor.failureCount()).isEqualTo(1);
         assertThat(monitor.ignoreCount()).isZero();
 
         testSubject.shutDown();
-        executorService.shutdownNow();
     }
 
     @Test
     public void testPublishMessagesWithTransactionalMode_NoUnitOfWork_ShouldBePublishedAndReadSuccessfully() {
-        Assume.assumeFalse("Transactional producers not supported on Windows",
-                           System.getProperty("os.name").contains("Windows"));
+        Assume.assumeFalse(
+            "Transactional producers not supported on Windows",
+            System.getProperty("os.name").contains("Windows"));
 
         String topic = "testPublishMessagesWithTransactionalMode_NoUnitOfWork_ShouldBePublishedAndReadSuccessfully";
         ProducerFactory<String, byte[]> producerFactory = txnProducerFactory(kafka, "foo", ByteArraySerializer.class);
@@ -190,8 +190,9 @@ public class KafkaPublisherTests {
 
     @Test
     public void testPublishMessagesWithTransactionalMode_UnitOfWork_ShouldBePublishedAndReadSuccessfully() {
-        Assume.assumeFalse("Transactional producers not supported on Windows",
-                           System.getProperty("os.name").contains("Windows"));
+        Assume.assumeFalse(
+            "Transactional producers not supported on Windows",
+            System.getProperty("os.name").contains("Windows"));
 
         String topic = "testPublishMessagesWithTransactionalMode_UnitOfWork_ShouldBePublishedAndReadSuccessfully";
         ProducerFactory<String, byte[]> producerFactory = txnProducerFactory(kafka, "foo", ByteArraySerializer.class);
@@ -288,8 +289,8 @@ public class KafkaPublisherTests {
     }
 
     private static DefaultProducerFactory producerFactoryWithFencedExceptionOnAbort() {
-        DefaultProducerFactory producerFactory = mock(DefaultProducerFactory.class);
-        Producer producer = mock(Producer.class);
+        DefaultProducerFactory producerFactory = mock(DefaultProducerFactory.class, "FactoryForExceptionOnAbortTx");
+        Producer producer = mock(Producer.class, "ExceptionOnAbortTx");
         when(producerFactory.confirmationMode()).thenReturn(ConfirmationMode.TRANSACTIONAL);
         when(producerFactory.createProducer()).thenReturn(producer);
         doThrow(RuntimeException.class).when(producer).abortTransaction();
@@ -297,8 +298,8 @@ public class KafkaPublisherTests {
     }
 
     private static DefaultProducerFactory producerFactoryWithFencedExceptionOnBeginTransaction() {
-        DefaultProducerFactory producerFactory = mock(DefaultProducerFactory.class);
-        Producer producer = mock(Producer.class);
+        DefaultProducerFactory producerFactory = mock(DefaultProducerFactory.class, "FactoryForExceptionOnBeginTx");
+        Producer producer = mock(Producer.class, "ExceptionOnBeginTxMock");
         when(producerFactory.confirmationMode()).thenReturn(ConfirmationMode.TRANSACTIONAL);
         when(producerFactory.createProducer()).thenReturn(producer);
         doThrow(ProducerFencedException.class).when(producer).beginTransaction();
@@ -307,7 +308,7 @@ public class KafkaPublisherTests {
 
     private static DefaultProducerFactory producerFactoryWithFencedExceptionOnCommit() {
         DefaultProducerFactory producerFactory = mock(DefaultProducerFactory.class);
-        Producer producer = mock(Producer.class);
+        Producer producer = mock(Producer.class, "ExceptionOnCommitTxMock");
         when(producerFactory.confirmationMode()).thenReturn(ConfirmationMode.TRANSACTIONAL);
         when(producerFactory.createProducer()).thenReturn(producer);
         doThrow(ProducerFencedException.class).when(producer).commitTransaction();
@@ -316,33 +317,51 @@ public class KafkaPublisherTests {
 
     private KafkaPublisher<?, ?> publisher(String topic, ProducerFactory<String, byte[]> producerFactory) {
         DefaultKafkaMessageConverter messageConverter =
-                DefaultKafkaMessageConverter.builder()
-                                            .serializer(XStreamSerializer.builder().build())
-                                            .build();
+            DefaultKafkaMessageConverter.builder()
+                                        .serializer(XStreamSerializer.builder().build())
+                                        .build();
         KafkaPublisher<?, ?> testSubject = KafkaPublisher.<String, byte[]>builder()
-                .messageSource(eventBus)
-                .producerFactory(producerFactory)
-                .messageConverter(messageConverter)
-                .messageMonitor(monitor)
-                .topic(topic)
-                .publisherAckTimeout(1000)
-                .build();
+            .producerFactory(producerFactory)
+            .messageConverter(messageConverter)
+            .messageMonitor(monitor)
+            .topic(topic)
+            .publisherAckTimeout(1000)
+            .build();
 
-        testSubject.start();
+        /*
+         * Simulate configuration.
+         * - use event subscribing for simplicity
+         * - use kafka sending event handler
+         * - since it uses a processor, it will catch exceptions, so register the corresponding
+         */
+        configurer.eventProcessing(eventProcessingConfigurer -> {
+            eventProcessingConfigurer.registerSubscribingEventProcessor(KafkaSendingEventHandler.GROUP);
+            eventProcessingConfigurer.registerListenerInvocationErrorHandler(
+                KafkaSendingEventHandler.GROUP,
+                configuration ->
+                    (exception, event, eventHandler) -> {
+                        throw exception;
+                    });
+            eventProcessingConfigurer.registerEventHandler(c -> new KafkaSendingEventHandler(testSubject));
+        });
+
+
+        configurer.start();
         return testSubject;
     }
 
     private Consumer<?, ?> consumer(String topic) {
         Consumer<?, ?> consumer = transactionalConsumerFactory(
-                kafka, topic, ByteArrayDeserializer.class
+            kafka, topic, ByteArrayDeserializer.class
         ).createConsumer();
         consumer.subscribe(Collections.singleton(topic));
         return consumer;
     }
 
-    private static void cleanup(ProducerFactory<String, byte[]> producerFactory,
-                                KafkaPublisher<?, ?> testSubject,
-                                Consumer<?, ?> consumer) {
+    private static void cleanup(
+        ProducerFactory<String, byte[]> producerFactory,
+        KafkaPublisher<?, ?> testSubject,
+        Consumer<?, ?> consumer) {
         consumer.close();
         producerFactory.shutDown();
         testSubject.shutDown();
@@ -358,8 +377,9 @@ public class KafkaPublisherTests {
         return new GenericDomainEventMessage<>("Stub", aggregateId, 1L, "Payload", MetaData.with("key", "value"));
     }
 
-    private void publishWithException(String topic, KafkaPublisher<?, ?> testSubject,
-                                      GenericDomainEventMessage<String> message) {
+    private void publishWithException(
+        String topic, KafkaPublisher<?, ?> testSubject,
+        GenericDomainEventMessage<String> message) {
         try {
             UnitOfWork<?> uow = DefaultUnitOfWork.startAndGet(message);
             eventBus.publish(message);
