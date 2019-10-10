@@ -39,9 +39,9 @@ import java.util.function.BiFunction;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage;
-import static org.axonframework.extensions.kafka.eventhandling.HeaderAssertUtils.assertDomainHeaders;
-import static org.axonframework.extensions.kafka.eventhandling.HeaderAssertUtils.assertEventHeaders;
 import static org.axonframework.extensions.kafka.eventhandling.HeaderUtils.*;
+import static org.axonframework.extensions.kafka.eventhandling.util.HeaderAssertUtil.assertDomainHeaders;
+import static org.axonframework.extensions.kafka.eventhandling.util.HeaderAssertUtil.assertEventHeaders;
 import static org.axonframework.messaging.Headers.MESSAGE_METADATA;
 import static org.mockito.Mockito.*;
 
@@ -50,10 +50,10 @@ import static org.mockito.Mockito.*;
  *
  * @author Nakul Mishra
  */
-public class HeaderUtilsTests {
+public class HeaderUtilsTest {
 
     @Test
-    public void testReadingValueAsBytes_ExistingKey_ShouldReturnBytes() {
+    public void testReadingValueAsBytesExistingKeyShouldReturnBytes() {
         RecordHeaders headers = new RecordHeaders();
         String value = "a1b2";
         addHeader(headers, "bar", value);
@@ -62,17 +62,17 @@ public class HeaderUtilsTests {
     }
 
     @Test
-    public void testReadingValuesAsBytes_NonExistingKey_ShouldReturnNull() {
+    public void testReadingValuesAsBytesNonExistingKeyShouldReturnNull() {
         assertThat(value(new RecordHeaders(), "123")).isNull();
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testReadingValue_FromNullHeader_ShouldThrowException() {
+    public void testReadingValueFromNullHeaderShouldThrowException() {
         value(null, "bar");
     }
 
     @Test
-    public void testReadingValuesAsText_ExistingKey_ShouldReturnText() {
+    public void testReadingValuesAsTextExistingKeyShouldReturnText() {
         RecordHeaders headers = new RecordHeaders();
         String expectedValue = "Şơм℮ śẩмρŀę ÅŚÇÍỈ-ťęҳť FFlETYeKU3H5QRqw";
         addHeader(headers, "foo", expectedValue);
@@ -82,17 +82,17 @@ public class HeaderUtilsTests {
     }
 
     @Test
-    public void testReadingValueAsText_NonExistingKey_ShouldReturnNull() {
+    public void testReadingValueAsTextNonExistingKeyShouldReturnNull() {
         assertThat(valueAsString(new RecordHeaders(), "some-invalid-key")).isNull();
     }
 
     @Test
-    public void testReadingValueAsText_NonExistingKey_ShouldReturnDefaultValue() {
+    public void testReadingValueAsTextNonExistingKeyShouldReturnDefaultValue() {
         assertThat(valueAsString(new RecordHeaders(), "some-invalid-key", "default-value")).isEqualTo("default-value");
     }
 
     @Test
-    public void testReadingValuesAsLong_ExistingKey_ShouldReturnLong() {
+    public void testReadingValuesAsLongExistingKeyShouldReturnLong() {
         RecordHeaders headers = new RecordHeaders();
         addHeader(headers, "positive", 4_891_00_921_388_62621L);
         addHeader(headers, "zero", 0L);
@@ -104,12 +104,12 @@ public class HeaderUtilsTests {
     }
 
     @Test
-    public void testReadingValueAsLong_NonExistingKey_ShouldReturnNull() {
+    public void testReadingValueAsLongNonExistingKeyShouldReturnNull() {
         assertThat(valueAsLong(new RecordHeaders(), "some-invalid-key")).isNull();
     }
 
     @Test
-    public void testWriting_Timestamp_ShouldBeWrittenAsLong() {
+    public void testWritingTimestampShouldBeWrittenAsLong() {
         RecordHeaders target = new RecordHeaders();
         Instant value = Instant.now();
         addHeader(target, "baz", value);
@@ -118,7 +118,7 @@ public class HeaderUtilsTests {
     }
 
     @Test
-    public void testWriting_NonNegativeValues_ShouldBeWrittenAsNonNegativeValues() {
+    public void testWritingNonNegativeValuesShouldBeWrittenAsNonNegativeValues() {
         RecordHeaders target = new RecordHeaders();
         short expectedShort = 1;
         int expectedInt = 200;
@@ -143,7 +143,7 @@ public class HeaderUtilsTests {
     }
 
     @Test
-    public void testWriting_NegativeValues_ShouldBeWrittenAsNegativeValues() {
+    public void testWritingNegativeValuesShouldBeWrittenAsNegativeValues() {
         RecordHeaders target = new RecordHeaders();
         short expectedShort = -123;
         int expectedInt = -1_234_567_8;
@@ -168,12 +168,12 @@ public class HeaderUtilsTests {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testWriting_NonPrimitiveJavaValue_ShouldThrowAnException() {
+    public void testWritingNonPrimitiveJavaValueShouldThrowAnException() {
         addHeader(new RecordHeaders(), "short", BigInteger.ZERO);
     }
 
     @Test
-    public void testWriting_TextValue_ShouldBeWrittenAsString() {
+    public void testWritingTextValueShouldBeWrittenAsString() {
         RecordHeaders target = new RecordHeaders();
         String expectedKey = "foo";
         String expectedValue = "a";
@@ -185,7 +185,7 @@ public class HeaderUtilsTests {
     }
 
     @Test
-    public void testWriting_NullValue_ShouldBeWrittenAsNull() {
+    public void testWritingNullValueShouldBeWrittenAsNull() {
         RecordHeaders target = new RecordHeaders();
         addHeader(target, "baz", null);
 
@@ -193,7 +193,7 @@ public class HeaderUtilsTests {
     }
 
     @Test
-    public void testWriting_CustomValue_ShouldBeWrittenAsRepresentedByToString() {
+    public void testWritingCustomValueShouldBeWrittenAsRepresentedByToString() {
         RecordHeaders target = new RecordHeaders();
         Foo expectedValue = new Foo("someName", new Bar(100));
         addHeader(target, "object", expectedValue);
@@ -202,7 +202,7 @@ public class HeaderUtilsTests {
     }
 
     @Test
-    public void testExtracting_ExistingKeys_ShouldReturnAllKeys() {
+    public void testExtractingExistingKeysShouldReturnAllKeys() {
         RecordHeaders target = new RecordHeaders();
         addHeader(target, "a", "someValue");
         addHeader(target, "b", "someValue");
@@ -214,51 +214,50 @@ public class HeaderUtilsTests {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testExtracting_KeysFromNullHeader_ShouldThrowAnException() {
+    public void testExtractingKeysFromNullHeaderShouldThrowAnException() {
         keys(null);
     }
 
     @Test
-    public void testGeneratingKey_ForSendingAxonMetadataToKafka_ShouldGenerateCorrectKeys() {
+    public void testGeneratingKeyForSendingAxonMetadataToKafkaShouldGenerateCorrectKeys() {
         assertThat(generateMetadataKey("foo")).isEqualTo(MESSAGE_METADATA + "-foo");
         assertThat(generateMetadataKey(null)).isEqualTo(MESSAGE_METADATA + "-null");
     }
 
     @Test
-    public void testExtractingKey_ForSendingAxonMetadataToKafka_ShouldReturnActualKey() {
+    public void testExtractingKeyForSendingAxonMetadataToKafkaShouldReturnActualKey() {
         assertThat(extractKey(generateMetadataKey("foo"))).isEqualTo("foo");
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testExtractingKey_NullMetadataKey_ShouldThrowAnException() {
+    public void testExtractingKeyNullMetadataKeyShouldThrowAnException() {
         extractKey(null);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testExtractingKey_NonExistingMetadataKey_ShouldThrowAnException() {
+    public void testExtractingKeyNonExistingMetadataKeyShouldThrowAnException() {
         extractKey("foo-bar-axon-metadata");
     }
 
     @Test
-    public void testExtracting_AxonMetadata_ShouldReturnMetadata() {
+    public void testExtractingAxonMetadataShouldReturnMetadata() {
         RecordHeaders target = new RecordHeaders();
         String key = generateMetadataKey("headerKey");
         String value = "abc";
-        Map<String, Object> expectedValue = new HashMap<String, Object>() {{
-            put("headerKey", value);
-        }};
+        Map<String, Object> expectedValue = new HashMap<>();
+        expectedValue.put("headerKey", value);
         addHeader(target, key, value);
 
         assertThat(extractAxonMetadata(target)).isEqualTo(expectedValue);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testExtracting_AxonMetadataFromNullHeader_ShouldThrowAnException() {
+    public void testExtractingAxonMetadataFromNullHeaderShouldThrowAnException() {
         extractAxonMetadata(null);
     }
 
     @Test
-    public void testGeneratingHeaders_ForEventMessage_ShouldGenerateEventHeaders() {
+    public void testGeneratingHeadersForEventMessageShouldGenerateEventHeaders() {
         String metaKey = "someHeaderKey";
         EventMessage<Object> evt = asEventMessage("SomePayload").withMetaData(
                 MetaData.with(metaKey, "someValue")
@@ -270,13 +269,10 @@ public class HeaderUtilsTests {
     }
 
     @Test
-    public void testGeneratingHeaders_ForDomainMessage_ShouldGenerateBothEventAndDomainHeaders() {
+    public void testGeneratingHeadersForDomainMessageShouldGenerateBothEventAndDomainHeaders() {
         String metaKey = "someHeaderKey";
-        DomainEventMessage<Object> evt = new GenericDomainEventMessage<>("Stub",
-                                                                         "axc123-v",
-                                                                         1L,
-                                                                         "Payload",
-                                                                         MetaData.with("key", "value"));
+        DomainEventMessage<Object> evt =
+                new GenericDomainEventMessage<>("Stub", "axc123-v", 1L, "Payload", MetaData.with("key", "value"));
         SerializedObject<byte[]> so = serializedObject();
         Headers headers = toHeaders(evt, so, byteMapper());
 
@@ -285,7 +281,7 @@ public class HeaderUtilsTests {
     }
 
     @Test
-    public void testByteMapper_NullValue_ShouldBeAbleToHandle() {
+    public void testByteMapperNullValueShouldBeAbleToHandle() {
         BiFunction<String, Object, RecordHeader> fxn = byteMapper();
         RecordHeader header = fxn.apply("abc", null);
 
@@ -293,7 +289,7 @@ public class HeaderUtilsTests {
     }
 
     @Test
-    public void testGeneratingHeaders_WithByteMapper_ShouldGenerateCorrectHeaders() {
+    public void testGeneratingHeadersWithByteMapperShouldGenerateCorrectHeaders() {
         BiFunction<String, Object, RecordHeader> fxn = byteMapper();
         String expectedKey = "abc";
         String expectedValue = "xyz";
@@ -304,13 +300,11 @@ public class HeaderUtilsTests {
     }
 
     @Test
-    public void testGeneratingHeaders_WithCustomMapper_ShouldGeneratedCorrectHeaders() {
+    public void testGeneratingHeadersWithCustomMapperShouldGeneratedCorrectHeaders() {
         String metaKey = "someHeaderKey";
         String expectedMetaDataValue = "evt:someValue";
         Headers header = toHeaders(
-                asEventMessage("SomePayload").withMetaData(
-                        MetaData.with(metaKey, "someValue")
-                ),
+                asEventMessage("SomePayload").withMetaData(MetaData.with(metaKey, "someValue")),
                 serializedObject(),
                 (key, value) -> new RecordHeader(key, ("evt:" + value.toString()).getBytes())
         );
@@ -341,8 +335,7 @@ public class HeaderUtilsTests {
     @SuppressWarnings("unchecked")
     private static SerializedObject<byte[]> serializedObject() {
         SerializedObject serializedObject = mock(SerializedObject.class);
-        when(serializedObject.getType()).thenReturn(new SimpleSerializedType("someObjectType",
-                                                                             "10"));
+        when(serializedObject.getType()).thenReturn(new SimpleSerializedType("someObjectType", "10"));
         return serializedObject;
     }
 

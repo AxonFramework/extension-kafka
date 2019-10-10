@@ -34,9 +34,9 @@ import static org.apache.kafka.common.record.RecordBatch.NO_TIMESTAMP;
 import static org.apache.kafka.common.record.TimestampType.NO_TIMESTAMP_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage;
-import static org.axonframework.extensions.kafka.eventhandling.HeaderAssertUtils.assertDomainHeaders;
-import static org.axonframework.extensions.kafka.eventhandling.HeaderAssertUtils.assertEventHeaders;
 import static org.axonframework.extensions.kafka.eventhandling.HeaderUtils.*;
+import static org.axonframework.extensions.kafka.eventhandling.util.HeaderAssertUtil.assertDomainHeaders;
+import static org.axonframework.extensions.kafka.eventhandling.util.HeaderAssertUtil.assertEventHeaders;
 import static org.axonframework.messaging.Headers.*;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -46,7 +46,7 @@ import static org.mockito.Mockito.*;
  *
  * @author Nakul Mishra
  */
-public class DefaultKafkaMessageConverterTests {
+public class DefaultKafkaMessageConverterTest {
 
     private static final String SOME_TOPIC = "topicFoo";
     private static final int SOME_OFFSET = 0;
@@ -65,21 +65,21 @@ public class DefaultKafkaMessageConverterTests {
     }
 
     @Test
-    public void testKafkaKeyGeneration_EventMessage_ShouldBeNull() {
+    public void testKafkaKeyGenerationEventMessageShouldBeNull() {
         ProducerRecord<String, byte[]> evt = testSubject.createKafkaMessage(eventMessage(), SOME_TOPIC);
 
         assertThat(evt.key()).isNull();
     }
 
     @Test
-    public void testKafkaKeyGeneration_DomainMessage_ShouldBeAggregateIdentifier() {
+    public void testKafkaKeyGenerationDomainMessageShouldBeAggregateIdentifier() {
         ProducerRecord<String, byte[]> domainEvt = testSubject.createKafkaMessage(domainMessage(), SOME_TOPIC);
 
         assertThat(domainEvt.key()).isEqualTo((domainMessage().getAggregateIdentifier()));
     }
 
     @Test
-    public void testWriting_EventMessageAsKafkaMessage_ShouldAppendEventHeaders() {
+    public void testWritingEventMessageAsKafkaMessageShouldAppendEventHeaders() {
         EventMessage<?> expected = eventMessage();
         ProducerRecord<String, byte[]> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
         SerializedObject<byte[]> serializedObject = expected.serializePayload(serializer, byte[].class);
@@ -88,7 +88,7 @@ public class DefaultKafkaMessageConverterTests {
     }
 
     @Test
-    public void testWriting_DomainMessageAsKafkaMessage_ShouldAppendDomainHeaders() {
+    public void testWritingDomainMessageAsKafkaMessageShouldAppendDomainHeaders() {
         GenericDomainEventMessage<String> expected = domainMessage();
         ProducerRecord<String, byte[]> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
 
@@ -106,15 +106,14 @@ public class DefaultKafkaMessageConverterTests {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testReadingMessage_MissingAxonHeader_ShouldReturnEmptyMessage() {
+    public void testReadingMessageMissingAxonHeaderShouldReturnEmptyMessage() {
         ConsumerRecord msgWithoutHeaders = new ConsumerRecord("foo", 0, 0, "abc", 1);
 
         assertThat(testSubject.readKafkaMessage(msgWithoutHeaders).isPresent()).isFalse();
     }
 
-    @SuppressWarnings("unchecked")
     @Test
-    public void testReadingMessage_WithoutId_ShouldReturnEmptyMessage() {
+    public void testReadingMessageWithoutIdShouldReturnEmptyMessage() {
         EventMessage<?> event = eventMessage();
         ProducerRecord<String, byte[]> msg = testSubject.createKafkaMessage(event, SOME_TOPIC);
         msg.headers().remove(MESSAGE_ID);
@@ -122,9 +121,8 @@ public class DefaultKafkaMessageConverterTests {
         assertThat(testSubject.readKafkaMessage(toReceiverRecord(msg)).isPresent()).isFalse();
     }
 
-    @SuppressWarnings("unchecked")
     @Test
-    public void testReadingMessage_WithoutType_ShouldReturnEmptyMessage() {
+    public void testReadingMessageWithoutTypeShouldReturnEmptyMessage() {
         EventMessage<?> event = eventMessage();
         ProducerRecord<String, byte[]> msg = testSubject.createKafkaMessage(event, SOME_TOPIC);
         msg.headers().remove(MESSAGE_TYPE);
@@ -134,7 +132,7 @@ public class DefaultKafkaMessageConverterTests {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testReadingMessage_PayloadDifferentThanByte_ShouldReturnEmptyMessage() {
+    public void testReadingMessagePayloadDifferentThanByteShouldReturnEmptyMessage() {
         EventMessage<Object> eventMessage = eventMessage();
         SerializedObject serializedObject = mock(SerializedObject.class);
         when(serializedObject.getType()).thenReturn(new SimpleSerializedType("foo", null));
@@ -148,7 +146,7 @@ public class DefaultKafkaMessageConverterTests {
     }
 
     @Test
-    public void testWriting_EventMessage_ShouldBeReadAsEventMessage() {
+    public void testWritingEventMessageShouldBeReadAsEventMessage() {
         EventMessage<?> expected = eventMessage();
         ProducerRecord<String, byte[]> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
         EventMessage<?> actual = receiverMessage(senderMessage);
@@ -157,7 +155,7 @@ public class DefaultKafkaMessageConverterTests {
     }
 
     @Test
-    public void testWriting_EventMessageWithNullRevision_ShouldWriteRevisionAsNull() {
+    public void testWritingEventMessageWithNullRevisionShouldWriteRevisionAsNull() {
         testSubject = DefaultKafkaMessageConverter.builder()
                                                   .serializer(XStreamSerializer.builder().build())
                                                   .build();
@@ -168,7 +166,7 @@ public class DefaultKafkaMessageConverterTests {
     }
 
     @Test
-    public void testWriting_DomainEventMessage_ShouldBeReadAsDomainMessage() {
+    public void testWritingDomainEventMessageShouldBeReadAsDomainMessage() {
         DomainEventMessage<?> expected = domainMessage();
         ProducerRecord<String, byte[]> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
         EventMessage<?> actual = receiverMessage(senderMessage);
@@ -196,11 +194,9 @@ public class DefaultKafkaMessageConverterTests {
     }
 
     private static GenericDomainEventMessage<String> domainMessage() {
-        return new GenericDomainEventMessage<>("Stub",
-                                               SOME_AGGREGATE_IDENTIFIER,
-                                               1L,
-                                               "Payload",
-                                               MetaData.with("key", "value"));
+        return new GenericDomainEventMessage<>(
+                "Stub", SOME_AGGREGATE_IDENTIFIER, 1L, "Payload", MetaData.with("key", "value")
+        );
     }
 
     private EventMessage<?> receiverMessage(ProducerRecord<String, byte[]> senderMessage) {

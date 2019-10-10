@@ -31,33 +31,38 @@ import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaMessageSou
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaSendingEventHandler;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil;
+import org.junit.*;
+import org.junit.runner.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
-import org.springframework.kafka.test.rule.KafkaEmbedded;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.concurrent.TimeUnit;
 
 import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage;
-import static org.axonframework.extensions.kafka.eventhandling.ConsumerConfigUtil.minimal;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.minimal;
+import static org.junit.Assert.*;
 
+/**
+ * Kafka Integration tests asserting a message can be published through a Producer on a Kafka topic and received through
+ * a Consumer.
+ *
+ * @author Nakul Mishra
+ * @author Steven van Beelen
+ */
 @RunWith(SpringRunner.class)
 @DirtiesContext
-@EmbeddedKafka(topics = { "integration" }, partitions = 5, controlledShutdown = true)
+@EmbeddedKafka(topics = {"integration"}, partitions = 5, controlledShutdown = true)
 public class KafkaIntegrationTest {
 
+    @SuppressWarnings("SpringJavaAutowiredMembersInspection")
     @Autowired
-    private KafkaEmbedded kafka;
+    private EmbeddedKafkaBroker kafkaBroker;
 
     private Configurer configurer = DefaultConfigurer.defaultConfiguration();
-
     private EventBus eventBus;
     private ProducerFactory<String, byte[]> producerFactory;
     private KafkaPublisher<String, byte[]> publisher;
@@ -65,25 +70,25 @@ public class KafkaIntegrationTest {
 
     @Before
     public void setupComponents() {
-        producerFactory = ProducerConfigUtil.ackProducerFactory(kafka, ByteArraySerializer.class);
+        producerFactory = ProducerConfigUtil.ackProducerFactory(kafkaBroker, ByteArraySerializer.class);
         publisher = KafkaPublisher.<String, byte[]>builder()
-            .producerFactory(producerFactory)
-            .topic("integration")
-            .build();
+                .producerFactory(producerFactory)
+                .topic("integration")
+                .build();
         KafkaSendingEventHandler sender = new KafkaSendingEventHandler(publisher);
-        // event processor for listening to event bus and writing to kafka
-        configurer.eventProcessing(eventProcessingConfigurer -> eventProcessingConfigurer.registerEventHandler(c -> sender));
+        configurer.eventProcessing(
+                eventProcessingConfigurer -> eventProcessingConfigurer.registerEventHandler(c -> sender)
+        );
 
         ConsumerFactory<String, byte[]> consumerFactory =
-            new DefaultConsumerFactory<>(minimal(kafka, "consumer1", ByteArrayDeserializer.class));
+                new DefaultConsumerFactory<>(minimal(kafkaBroker, "consumer1", ByteArrayDeserializer.class));
 
         fetcher = AsyncFetcher.<String, byte[]>builder()
-            .consumerFactory(consumerFactory)
-            .topic("integration")
-            .pollTimeout(300, TimeUnit.MILLISECONDS)
-            .build();
+                .consumerFactory(consumerFactory)
+                .topic("integration")
+                .pollTimeout(300)
+                .build();
 
-        // event bus
         eventBus = SimpleEventBus.builder().build();
         configurer.configureEventBus(configuration -> eventBus);
 
@@ -99,8 +104,6 @@ public class KafkaIntegrationTest {
 
     @Test
     public void testPublishAndReadMessages() throws Exception {
-
-
         KafkaMessageSource messageSource = new KafkaMessageSource(fetcher);
         BlockingStream<TrackedEventMessage<?>> stream1 = messageSource.openStream(null);
         stream1.close();
@@ -108,7 +111,7 @@ public class KafkaIntegrationTest {
 
         eventBus.publish(asEventMessage("test"));
 
-        // the consumer may need some time to start
+        // The consumer may need some time to start
         assertTrue(stream2.hasNextAvailable(25, TimeUnit.SECONDS));
         TrackedEventMessage<?> actual = stream2.nextAvailable();
         assertNotNull(actual);

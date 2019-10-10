@@ -45,17 +45,18 @@ import static org.axonframework.extensions.kafka.eventhandling.HeaderUtils.*;
 import static org.axonframework.messaging.Headers.*;
 
 /**
- * Converts: {@link EventMessage} to {@link ProducerRecord kafkaMessage} and {@link ConsumerRecord message read from
- * Kafka} back to {@link EventMessage} (if possible).
+ * Converts and {@link EventMessage} to a {@link ProducerRecord} Kafka message and {from a @link ConsumerRecord} Kafka
+ * message back to an EventMessage (if possible).
  * <p>
- * During conversion it passes all meta-data entries with {@code 'axon-metadata-'} prefix to {@link Headers}. Other
- * message-specific attributes are added as metadata. The payload is serialized using the configured {@link Serializer}
- * and passed as the message body.
+ * During conversion meta data entries with the {@code 'axon-metadata-'} prefix are passed to the {@link Headers}. Other
+ * message-specific attributes are added as metadata. The {@link EventMessage#getPayload()} is serialized using the
+ * configured {@link Serializer} and passed as the Kafka recordd's body.
  * <p>
  * This implementation will suffice in most cases.
  *
  * @author Nakul Mishra
- * @since 3.0
+ * @author Steven van Beelen
+ * @since 4.0
  */
 public class DefaultKafkaMessageConverter implements KafkaMessageConverter<String, byte[]> {
 
@@ -73,6 +74,7 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
      *
      * @param builder the {@link Builder} used to instantiate a {@link DefaultKafkaMessageConverter} instance
      */
+    @SuppressWarnings("WeakerAccess")
     protected DefaultKafkaMessageConverter(Builder builder) {
         builder.validate();
         this.serializer = builder.serializer;
@@ -93,22 +95,34 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
         return new Builder();
     }
 
-
+    /**
+     * {@inheritDoc}
+     * <p/>
+     * Note that the {@link ProducerRecord} created through this method sets the {@link ProducerRecord#timestamp()} to
+     * {@code null}. Doing so will ensure the used Producer sets a timestamp itself for the record. The
+     * {@link EventMessage#getTimestamp()} field is however still taken into account, but as headers.
+     * <p/>
+     * Additional note that the ProducerRecord will be given a {@code null} {@link ProducerRecord#partition()} value.
+     * In return, the {@link ProducerRecord#key()} field is defined by using the configured {@link SequencingPolicy} to
+     * retrieve the given {@code eventMessage}'s {@code sequenceIdentifier}. The combination of a {@code null}
+     * partition and the possibly present or empty key will define which partition the Producer will choose to dispatch
+     * the record on.
+     *
+     * @see ProducerRecord
+     */
     @Override
     public ProducerRecord<String, byte[]> createKafkaMessage(EventMessage<?> eventMessage, String topic) {
         SerializedObject<byte[]> serializedObject = eventMessage.serializePayload(serializer, byte[].class);
-        byte[] payload = serializedObject.getData();
-        return new ProducerRecord<>(topic,
-                                    null,
-                                    null,
-                                    key(eventMessage),
-                                    payload,
-                                    toHeaders(eventMessage, serializedObject, headerValueMapper));
+        return new ProducerRecord<>(
+                topic, null, null, recordKey(eventMessage),
+                serializedObject.getData(),
+                toHeaders(eventMessage, serializedObject, headerValueMapper)
+        );
     }
 
-    private String key(EventMessage<?> eventMessage) {
-        Object identifier = sequencingPolicy.getSequenceIdentifierFor(eventMessage);
-        return identifier != null ? identifier.toString() : null;
+    private String recordKey(EventMessage<?> eventMessage) {
+        Object sequenceIdentifier = sequencingPolicy.getSequenceIdentifierFor(eventMessage);
+        return sequenceIdentifier != null ? sequenceIdentifier.toString() : null;
     }
 
     @Override
@@ -121,17 +135,14 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
                 return buildMessage(headers, message);
             }
         } catch (Exception e) {
-            logger.trace("Error converting {} to axon", consumerRecord, e);
+            logger.trace("Error converting ConsumerRecord [{}] to an EventMessage", consumerRecord, e);
         }
 
         return Optional.empty();
     }
 
-    private Optional<EventMessage<?>> buildMessage(Headers headers, SerializedMessage<?> message) {
-        long timestamp = valueAsLong(headers, MESSAGE_TIMESTAMP);
-        return headers.lastHeader(AGGREGATE_ID) != null ?
-                domainEvent(headers, message, timestamp) :
-                event(message, timestamp);
+    private boolean isAxonMessage(Headers headers) {
+        return keys(headers).containsAll(Arrays.asList(MESSAGE_ID, MESSAGE_TYPE));
     }
 
     private SerializedMessage<?> extractSerializedMessage(Headers headers, byte[] messageBody) {
@@ -141,25 +152,32 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
                 valueAsString(headers, MESSAGE_TYPE),
                 valueAsString(headers, MESSAGE_REVISION, null)
         );
+
         return new SerializedMessage<>(
                 valueAsString(headers, MESSAGE_ID),
                 new LazyDeserializingObject<>(serializedObject, serializer),
-                new LazyDeserializingObject<>(MetaData.from(extractAxonMetadata(headers))));
+                new LazyDeserializingObject<>(MetaData.from(extractAxonMetadata(headers)))
+        );
     }
 
-    private boolean isAxonMessage(Headers headers) {
-        return keys(headers).containsAll(Arrays.asList(MESSAGE_ID, MESSAGE_TYPE));
+    private Optional<EventMessage<?>> buildMessage(Headers headers, SerializedMessage<?> message) {
+        long timestamp = valueAsLong(headers, MESSAGE_TIMESTAMP);
+        return headers.lastHeader(AGGREGATE_ID) != null
+                ? buildDomainEvent(headers, message, timestamp)
+                : buildEvent(message, timestamp);
     }
 
-    private Optional<EventMessage<?>> domainEvent(Headers headers,
-                                                  SerializedMessage<?> message, long timestamp) {
-        return Optional.of(new GenericDomainEventMessage<>(valueAsString(headers, AGGREGATE_TYPE),
-                                                           valueAsString(headers, AGGREGATE_ID),
-                                                           valueAsLong(headers, AGGREGATE_SEQ),
-                                                           message, () -> Instant.ofEpochMilli(timestamp)));
+    private Optional<EventMessage<?>> buildDomainEvent(Headers headers, SerializedMessage<?> message, long timestamp) {
+        return Optional.of(new GenericDomainEventMessage<>(
+                valueAsString(headers, AGGREGATE_TYPE),
+                valueAsString(headers, AGGREGATE_ID),
+                valueAsLong(headers, AGGREGATE_SEQ),
+                message,
+                () -> Instant.ofEpochMilli(timestamp)
+        ));
     }
 
-    private Optional<EventMessage<?>> event(SerializedMessage<?> message, long timestamp) {
+    private Optional<EventMessage<?>> buildEvent(SerializedMessage<?> message, long timestamp) {
         return Optional.of(new GenericEventMessage<>(message, () -> Instant.ofEpochMilli(timestamp)));
     }
 
@@ -231,6 +249,7 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
          * @throws AxonConfigurationException if one field is asserted to be incorrect according to the Builder's
          *                                    specifications
          */
+        @SuppressWarnings("WeakerAccess")
         protected void validate() throws AxonConfigurationException {
             assertNonNull(serializer, "The Serializer is a hard requirement and should be provided");
         }

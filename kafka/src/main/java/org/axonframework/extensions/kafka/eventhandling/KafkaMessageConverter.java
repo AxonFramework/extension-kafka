@@ -23,30 +23,31 @@ import org.axonframework.eventhandling.EventMessage;
 import java.util.Optional;
 
 /**
- * Converts Kafka Message from Axon Message and vice versa.
+ * Converts Kafka records from Axon {@link EventMessage}s and vice versa.
  *
- * @param <K> the key type.
- * @param <V> the value type.
+ * @param <K> the key type of the Kafka record
+ * @param <V> the value type of the Kafka record
  * @author Nakul Mishra
- * @since 3.0
+ * @author Steven van Beelen
+ * @since 4.0
  */
 public interface KafkaMessageConverter<K, V> {
 
     /**
-     * Creates {@link ProducerRecord} for a given {@link EventMessage}
+     * Creates a {@link ProducerRecord} for a given {@link EventMessage} to be published on a Kafka Producer.
      *
-     * @param eventMessage the event message to send to Kafka.
-     * @param topic        the Kafka topic.
-     * @return the record.
+     * @param eventMessage the event message to convert into a {@link ProducerRecord} for Kafka
+     * @param topic        the Kafka topic to publish the message on
+     * @return the converted {@code eventMessage} as a {@link ProducerRecord}
      */
     ProducerRecord<K, V> createKafkaMessage(EventMessage<?> eventMessage, String topic);
 
     /**
-     * Reconstruct an EventMessage from the given  {@link ConsumerRecord}. The returned optional
-     * resolves to a message if the given input parameters represented a correct {@link EventMessage}.
+     * Reconstruct an {@link EventMessage} from the given  {@link ConsumerRecord}. The returned optional
+     * resolves to a message if the given input parameters represented a correct EventMessage.
      *
-     * @param consumerRecord Event message represented inside kafka
-     * @return The Event Message to publish on the local event processors
+     * @param consumerRecord the Event Message represented inside Kafka
+     * @return the converted {@code consumerRecord} as an {@link EventMessage}
      */
     Optional<EventMessage<?>> readKafkaMessage(ConsumerRecord<K, V> consumerRecord);
 }
