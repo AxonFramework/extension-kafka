@@ -32,6 +32,7 @@
 
 package org.axonframework.extensions.kafka.autoconfig;
 
+import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.config.EventProcessingConfigurer;
 import org.axonframework.eventhandling.PropagatingErrorHandler;
 import org.axonframework.extensions.kafka.KafkaProperties;
@@ -45,13 +46,12 @@ import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaMessageSou
 import org.axonframework.extensions.kafka.eventhandling.consumer.SortedKafkaMessageBuffer;
 import org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode;
 import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducerFactory;
+import org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaPublisher;
-import org.axonframework.extensions.kafka.eventhandling.producer.KafkaSendingEventHandler;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
 import org.axonframework.serialization.Serializer;
 import org.axonframework.spring.config.AxonConfiguration;
 import org.axonframework.springboot.autoconfig.AxonAutoConfiguration;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -63,8 +63,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.Map;
-
-import static org.axonframework.extensions.kafka.KafkaProperties.EventProcessorMode;
 
 /**
  * Auto configuration for the Axon Kafka Extension as an Event Message distribution solution.
@@ -124,35 +122,35 @@ public class KafkaAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnBean(KafkaPublisher.class)
-    public KafkaSendingEventHandler kafkaEventHandler(KafkaPublisher<String, byte[]> kafkaPublisher) {
-        return new KafkaSendingEventHandler(kafkaPublisher);
-    }
+    @ConditionalOnBean({KafkaPublisher.class})
+    public KafkaEventPublisher kafkaEventHandler(KafkaPublisher<String, byte[]> kafkaPublisher,
+                                                 KafkaProperties kafkaProperties,
+                                                 EventProcessingConfigurer eventProcessingConfigurer) {
+        KafkaEventPublisher kafkaEventPublisher =
+                KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(kafkaPublisher).build();
 
-    @Autowired
-    public void configureKafkaEventProcessor(KafkaProperties kafkaProperties,
-                                             EventProcessingConfigurer eventProcessingConfigurer) {
-        EventProcessorMode processorMode = kafkaProperties.getEventProcessorMode();
-        switch (processorMode) {
-            case SUBSCRIBING:
-                eventProcessingConfigurer.registerSubscribingEventProcessor(KafkaSendingEventHandler.GROUP);
-                break;
-            case TRACKING:
-                eventProcessingConfigurer.registerTrackingEventProcessor(KafkaSendingEventHandler.GROUP);
-                break;
-            default:
-                break;
-        }
         /*
-         * Register an invocation error handler, re-throwing exception.
-         * This will lead the tracking processor to go to error mode and retry
-         * and will cause the subscribing event handler to bubble the exception to the caller.
-         * For more information see https://docs.axoniq.io/reference-guide/configuring-infrastructure-components/event-processing/event-processors#error-handling
+         * Register an invocation error handler which re-throws any exception.
+         * This will ensure a TrackingEventProcessor to enter the error mode which will retry, and it will ensure the
+         * SubscribingEventProcessor to bubble the exception to the callee. For more information see
+         *  https://docs.axoniq.io/reference-guide/configuring-infrastructure-components/event-processing/event-processors#error-handling
          */
-        eventProcessingConfigurer.registerListenerInvocationErrorHandler(
-                KafkaSendingEventHandler.GROUP,
-                configuration -> PropagatingErrorHandler.instance()
-        );
+        eventProcessingConfigurer.registerEventHandler(configuration -> kafkaEventPublisher)
+                                 .registerListenerInvocationErrorHandler(
+                                         KafkaEventPublisher.PROCESSING_GROUP,
+                                         configuration -> PropagatingErrorHandler.instance()
+                                 );
+
+        KafkaProperties.EventProcessorMode processorMode = kafkaProperties.getEventProcessorMode();
+        if (processorMode == KafkaProperties.EventProcessorMode.SUBSCRIBING) {
+            eventProcessingConfigurer.registerSubscribingEventProcessor(KafkaEventPublisher.PROCESSING_GROUP);
+        } else if (processorMode == KafkaProperties.EventProcessorMode.TRACKING) {
+            eventProcessingConfigurer.registerTrackingEventProcessor(KafkaEventPublisher.PROCESSING_GROUP);
+        } else {
+            throw new AxonConfigurationException("Unknown Event Processor Mode [" + processorMode + "] detected");
+        }
+
+        return kafkaEventPublisher;
     }
 
     @Bean("axonKafkaConsumerFactory")

@@ -17,7 +17,6 @@
 package org.axonframework.extensions.kafka.eventhandling.producer;
 
 import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.errors.ProducerFencedException;
@@ -98,7 +97,7 @@ public class KafkaPublisherTest {
 
     private ProducerFactory<String, byte[]> testProducerFactory;
     private Consumer<?, ?> testConsumer = mock(Consumer.class);
-    private KafkaPublisher<?, ?> testSubject;
+    private KafkaPublisher<String, byte[]> testSubject;
 
     @Before
     public void setUp() {
@@ -326,12 +325,12 @@ public class KafkaPublisherTest {
         return producerFactory;
     }
 
-    private KafkaPublisher<?, ?> buildPublisher(String topic) {
+    private KafkaPublisher<String, byte[]> buildPublisher(String topic) {
         DefaultKafkaMessageConverter messageConverter =
                 DefaultKafkaMessageConverter.builder()
                                             .serializer(XStreamSerializer.builder().build())
                                             .build();
-        KafkaPublisher<?, ?> testSubject = KafkaPublisher.<String, byte[]>builder()
+        KafkaPublisher<String, byte[]> testSubject = KafkaPublisher.<String, byte[]>builder()
                 .producerFactory(testProducerFactory)
                 .messageConverter(messageConverter)
                 .messageMonitor(monitor)
@@ -346,14 +345,16 @@ public class KafkaPublisherTest {
          * - since it uses a processor, it will catch exceptions, so register the corresponding
          */
         configurer.eventProcessing(eventProcessingConfigurer -> {
-            eventProcessingConfigurer.registerSubscribingEventProcessor(KafkaSendingEventHandler.GROUP);
+            eventProcessingConfigurer.registerSubscribingEventProcessor(KafkaEventPublisher.PROCESSING_GROUP);
             eventProcessingConfigurer.registerListenerInvocationErrorHandler(
-                    KafkaSendingEventHandler.GROUP,
+                    KafkaEventPublisher.PROCESSING_GROUP,
                     configuration -> (exception, event, eventHandler) -> {
                         throw exception;
                     }
             );
-            eventProcessingConfigurer.registerEventHandler(c -> new KafkaSendingEventHandler(testSubject));
+            eventProcessingConfigurer.registerEventHandler(
+                    c -> KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(testSubject).build()
+            );
         });
         configurer.start();
 

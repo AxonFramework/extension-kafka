@@ -62,6 +62,7 @@ import org.axonframework.serialization.Serializer;
 import org.axonframework.serialization.xml.XStreamSerializer;
 import org.axonframework.spring.config.AxonConfiguration;
 import org.junit.*;
+import org.mockito.invocation.*;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -316,8 +317,10 @@ public class KafkaAutoConfigurationTest {
         }
 
         @Bean
-        public EventProcessingConfigurer configurer() {
-            return mock(EventProcessingConfigurer.class);
+        public EventProcessingConfigurer eventProcessingConfigurer() {
+            EventProcessingConfigurer eventProcessingConfigurer = mock(EventProcessingConfigurer.class);
+            when(eventProcessingConfigurer.registerEventHandler(any())).thenAnswer(InvocationOnMock::getMock);
+            return eventProcessingConfigurer;
         }
     }
 }
