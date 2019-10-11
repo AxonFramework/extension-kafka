@@ -32,6 +32,8 @@ import org.axonframework.common.AxonConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
+import java.time.temporal.TemporalUnit;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -39,7 +41,6 @@ import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.axonframework.common.BuilderUtils.assertNonNull;
@@ -53,17 +54,16 @@ import static org.axonframework.common.BuilderUtils.assertThat;
  * <p>
  * Setting {@link Builder#confirmationMode(ConfirmationMode)} to transactional produces a transactional producer; in
  * which case, a cache of producers is maintained; closing the producer returns it to the cache. If cache is full the
- * producer will be closed {@link KafkaProducer#close(long, TimeUnit)} and evicted from cache.
+ * producer will be closed through {@link KafkaProducer#close(Duration)} and evicted from cache.
  *
  * @author Nakul Mishra
- * @since 3.0
+ * @since 4.0
  */
 public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultProducerFactory.class);
 
-    private final int closeTimeout;
-    private final TimeUnit timeUnit;
+    private final Duration closeTimeout;
     private final BlockingQueue<CloseLazyProducer<K, V>> cache;
     private final Map<String, Object> configuration;
     private final ConfirmationMode confirmationMode;
@@ -79,12 +79,12 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
      * Will assert that the {@code configuration} is not {@code null}, and will throw an
      * {@link AxonConfigurationException} if it is {@code null}.
      *
-     * @param builder the {@link Builder} used to instantiate a {@link []} instance
+     * @param builder the {@link Builder} used to instantiate a {@link DefaultProducerFactory} instance
      */
+    @SuppressWarnings("WeakerAccess")
     protected DefaultProducerFactory(Builder<K, V> builder) {
         builder.validate();
         this.closeTimeout = builder.closeTimeout;
-        this.timeUnit = builder.timeUnit;
         this.cache = new ArrayBlockingQueue<>(builder.producerCacheSize);
         this.configuration = builder.configuration;
         this.confirmationMode = builder.confirmationMode;
@@ -95,87 +95,71 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
     /**
      * Instantiate a Builder to be able to create a {@link DefaultProducerFactory}.
      * <p>
-     * The {@code closeTimeout} is defaulted to {@code 30}, the {@link TimeUnit} for the {@code closeTimeout} is
-     * defaulted to {@link TimeUnit#SECONDS}, the {@code producerCacheSize} defaults to {@code 10} and the
-     * {@link ConfirmationMode} is defaulted to {@link ConfirmationMode#NONE}.
-     * The {@code configuration} is a <b>hard requirement</b> and as such should be provided.
+     * The {@code closeTimeout} is defaulted to a {@link Duration#ofSeconds(long)} of {@code 30}, the
+     * {@code producerCacheSize} defaults to {@code 10} and the {@link ConfirmationMode} is defaulted to
+     * {@link ConfirmationMode#NONE}. The {@code configuration} is a <b>hard requirement</b> and as such should be
+     * provided.
      *
      * @param <K> a generic type for the key of the {@link Producer} this {@link ProducerFactory} will create
      * @param <V> a generic type for the value of the {@link Producer} this {@link ProducerFactory} will create
-     *
      * @return a Builder to be able to create a {@link DefaultProducerFactory}
      */
     public static <K, V> Builder<K, V> builder() {
         return new Builder<>();
     }
 
-    /**
-     * Create a producer with the settings supplied in configuration properties.
-     *
-     * @return the producer.
-     */
     @Override
     public Producer<K, V> createProducer() {
         if (confirmationMode.isTransactional()) {
             return createTransactionalProducer();
         }
+
         if (this.producer == null) {
             synchronized (this) {
                 if (this.producer == null) {
-                    this.producer = new CloseLazyProducer<>(
-                        createKafkaProducer(configuration),
-                        cache,
-                        closeTimeout,
-                        timeUnit);
+                    this.producer = new CloseLazyProducer<>(createKafkaProducer(configuration), cache, closeTimeout);
                 }
             }
         }
+
         return this.producer;
     }
 
-    /**
-     * Confirmation mode for all producer instances.
-     *
-     * @return the confirmation mode.
-     */
     @Override
     public ConfirmationMode confirmationMode() {
         return confirmationMode;
     }
 
     /**
-     * Return an unmodifiable reference to the configuration map for this factory.
-     * Useful for cloning to make a similar factory.
+     * Return an unmodifiable reference to the configuration map for this factory. Useful for cloning to make a similar
+     * factory.
      *
-     * @return the configuration.
+     * @return a configuration {@link Map} used by this {@link ProducerFactory} to build {@link Producer}s
      */
     public Map<String, Object> configurationProperties() {
         return Collections.unmodifiableMap(configuration);
     }
 
     /**
-     * TransactionalIdPrefix for all producer instances.
+     * The {@code transactionalIdPrefix} used to mark all {@link Producer} instances.
      *
-     * @return the transactionalIdPrefix.
+     * @return the {@code transactionalIdPrefix} used to mark all {@link Producer} instances
      */
     public String transactionIdPrefix() {
         return transactionIdPrefix;
     }
 
-    /**
-     * Closes all producer instances.
-     */
     @Override
     public void shutDown() {
         CloseLazyProducer<K, V> producer = this.producer;
         this.producer = null;
         if (producer != null) {
-            producer.delegate.close(this.closeTimeout, timeUnit);
+            producer.delegate.close(this.closeTimeout);
         }
         producer = this.cache.poll();
         while (producer != null) {
             try {
-                producer.delegate.close(this.closeTimeout, timeUnit);
+                producer.delegate.close(this.closeTimeout);
             } catch (Exception e) {
                 logger.error("Exception closing producer", e);
             }
@@ -189,10 +173,9 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
             return producer;
         }
         Map<String, Object> configs = new HashMap<>(this.configuration);
-        configs.put(
-            ProducerConfig.TRANSACTIONAL_ID_CONFIG,
-            this.transactionIdPrefix + this.transactionIdSuffix.getAndIncrement());
-        producer = new CloseLazyProducer<>(createKafkaProducer(configs), cache, closeTimeout, timeUnit);
+        configs.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG,
+                    this.transactionIdPrefix + this.transactionIdSuffix.getAndIncrement());
+        producer = new CloseLazyProducer<>(createKafkaProducer(configs), cache, closeTimeout);
         producer.initTransactions();
         return producer;
     }
@@ -205,16 +188,14 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
 
         private final Producer<K, V> delegate;
         private final BlockingQueue<CloseLazyProducer<K, V>> cache;
-        private final int closeTimeout;
-        private final TimeUnit unit;
+        private final Duration closeTimeout;
 
-        CloseLazyProducer(
-            Producer<K, V> delegate, BlockingQueue<CloseLazyProducer<K, V>> cache, int closeTimeout,
-            TimeUnit unit) {
+        CloseLazyProducer(Producer<K, V> delegate,
+                          BlockingQueue<CloseLazyProducer<K, V>> cache,
+                          Duration closeTimeout) {
             this.delegate = delegate;
             this.cache = cache;
             this.closeTimeout = closeTimeout;
-            this.unit = unit;
         }
 
         @Override
@@ -254,7 +235,7 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
 
         @Override
         public void sendOffsetsToTransaction(Map<TopicPartition, OffsetAndMetadata> offsets, String consumerGroupId)
-            throws ProducerFencedException {
+                throws ProducerFencedException {
             this.delegate.sendOffsetsToTransaction(offsets, consumerGroupId);
         }
 
@@ -270,14 +251,14 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
 
         @Override
         public void close() {
-            close(this.closeTimeout, unit);
+            close(closeTimeout);
         }
 
         @Override
-        public void close(long timeout, TimeUnit unit) {
+        public void close(Duration duration) {
             boolean isAdded = this.cache.offer(this);
             if (!isAdded) {
-                this.delegate.close(timeout, unit);
+                this.delegate.close(duration);
             }
         }
 
@@ -290,38 +271,52 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
     /**
      * Builder class to instantiate a {@link DefaultProducerFactory}.
      * <p>
-     * The {@code closeTimeout} is defaulted to {@code 30}, the {@link TimeUnit} for the {@code closeTimeout} is
-     * defaulted to {@link TimeUnit#SECONDS}, the {@code producerCacheSize} defaults to {@code 10} and the
-     * {@link ConfirmationMode} is defaulted to {@link ConfirmationMode#NONE}. The {@code configuration} is a
-     * <b>hard requirement</b> and as such should be provided.
+     * The {@code closeTimeout} is defaulted to a {@link Duration#ofSeconds(long)} of {@code 30}, the
+     * {@code producerCacheSize} defaults to {@code 10} and the {@link ConfirmationMode} is defaulted to
+     * {@link ConfirmationMode#NONE}. The {@code configuration} is a <b>hard requirement</b> and as such should be
+     * provided.
      *
      * @param <K> a generic type for the key of the {@link Producer} this {@link ProducerFactory} will create
      * @param <V> a generic type for the value of the {@link Producer} this {@link ProducerFactory} will create
      */
     public static final class Builder<K, V> {
 
-        private int closeTimeout = 30;
-        private TimeUnit timeUnit = TimeUnit.SECONDS;
+        private Duration closeTimeout = Duration.ofSeconds(30);
         private int producerCacheSize = 10;
         private Map<String, Object> configuration;
         private ConfirmationMode confirmationMode = ConfirmationMode.NONE;
         private String transactionIdPrefix;
 
         /**
-         * Set the {@code closeTimeout} specifying how long to wait when {@link Producer#close(long, TimeUnit)} is
-         * invoked. Defaults to {@code 30} {@link TimeUnit#SECONDS}.
+         * Set the {@code closeTimeout} specifying how long to wait when {@link Producer#close(Duration)} is
+         * invoked. Defaults to a {@link Duration#ofSeconds(long)} of {@code 30}.
          *
-         * @param timeout  the time to wait before invoking {@link Producer#close(long, TimeUnit)} in units of
-         *                 {@code timeUnit}.
-         * @param timeUnit a {@code TimeUnit} determining how to interpret the {@code timeout} parameter
-         *
+         * @param timeout      the time to wait before invoking {@link Producer#close(Duration)} in units of
+         *                     {@code temporalUnit}.
+         * @param temporalUnit a {@link TemporalUnit} determining how to interpret the {@code timeout} parameter
          * @return the current Builder instance, for fluent interfacing
          */
-        public Builder<K, V> closeTimeout(int timeout, TimeUnit timeUnit) {
-            assertThat(timeout, time -> time > 0, "The closeTimeout should be a positive number");
-            assertNonNull(timeUnit, "The timeUnit may not be null");
-            this.closeTimeout = timeout;
-            this.timeUnit = timeUnit;
+        public Builder<K, V> closeTimeout(int timeout, TemporalUnit temporalUnit) {
+            assertNonNull(temporalUnit, "The temporalUnit may not be null");
+            return closeTimeout(Duration.of(timeout, temporalUnit));
+        }
+
+        /**
+         * Set the {@code closeTimeout} specifying how long to wait when {@link Producer#close(Duration)} is
+         * invoked. Defaults to a {@link Duration#ofSeconds(long)} of {@code 30}.
+         *
+         * @param closeTimeout the {@link Duration} to wait before invoking {@link Producer#close(Duration)}
+         * @return the current Builder instance, for fluent interfacing
+         */
+        @SuppressWarnings("WeakerAccess")
+        public Builder<K, V> closeTimeout(Duration closeTimeout) {
+            assertThat(
+                    closeTimeout,
+                    timeoutDuration -> !timeoutDuration.isNegative(),
+                    "The closeTimeout should be a positive duration"
+            );
+            assertNonNull(closeTimeout, "The closeTimeout may not be null");
+            this.closeTimeout = closeTimeout;
             return this;
         }
 
@@ -331,7 +326,6 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
          * Will instantiate an {@link ArrayBlockingQueue} based on this number.
          *
          * @param producerCacheSize an {@code int} specifying the number of {@link Producer} instances to cache
-         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder<K, V> producerCacheSize(int producerCacheSize) {
@@ -345,7 +339,6 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
          *
          * @param configuration a {@link Map} of {@link String} to {@link Object} containing Kafka properties for
          *                      creating {@link Producer} instances
-         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder<K, V> configuration(Map<String, Object> configuration) {
@@ -359,7 +352,6 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
          * {@link ConfirmationMode#NONE}.
          *
          * @param confirmationMode the {@link ConfirmationMode} for producing {@link Producer} instances
-         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder<K, V> confirmationMode(ConfirmationMode confirmationMode) {
@@ -373,7 +365,6 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
          *
          * @param transactionIdPrefix a {@link String} specifying the prefix used to generate the
          *                            {@code transactional.id} required for transactional {@link Producer}s
-         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder<K, V> transactionalIdPrefix(String transactionIdPrefix) {
@@ -396,6 +387,7 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
          * @throws AxonConfigurationException if one field is asserted to be incorrect according to the Builder's
          *                                    specifications
          */
+        @SuppressWarnings("WeakerAccess")
         protected void validate() throws AxonConfigurationException {
             assertNonNull(configuration, "The configuration is a hard requirement and should be provided");
         }

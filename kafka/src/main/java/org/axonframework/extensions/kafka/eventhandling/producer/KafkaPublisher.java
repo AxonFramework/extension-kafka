@@ -24,7 +24,6 @@ import org.axonframework.eventhandling.EventMessage;
 import org.axonframework.extensions.kafka.eventhandling.DefaultKafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
 import org.axonframework.messaging.EventPublicationFailedException;
-import org.axonframework.messaging.SubscribableMessageSource;
 import org.axonframework.messaging.unitofwork.CurrentUnitOfWork;
 import org.axonframework.messaging.unitofwork.UnitOfWork;
 import org.axonframework.monitoring.MessageMonitor;
@@ -55,15 +54,16 @@ import static org.axonframework.common.BuilderUtils.assertThat;
  *            {@link KafkaMessageConverter}
  * @param <V> a generic type for the value of the {@link ProducerFactory}, {@link Producer} and
  *            {@link KafkaMessageConverter}
- *
  * @author Nakul Mishra
  * @author Simon Zambrovski
  * @author Lars Bilger
- * @since 3.0
+ * @since 4.0
  */
 public class KafkaPublisher<K, V> {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaPublisher.class);
+
+    private static final String DEFAULT_TOPIC = "Axon.Events";
 
     private final ProducerFactory<K, V> producerFactory;
     private final KafkaMessageConverter<K, V> messageConverter;
@@ -74,8 +74,8 @@ public class KafkaPublisher<K, V> {
     /**
      * Instantiate a {@link KafkaPublisher} based on the fields contained in the {@link Builder}.
      * <p>
-     * Will assert that {@link ProducerFactory} are not {@code null}, and will
-     * throw an {@link AxonConfigurationException} if any of them is {@code null}.
+     * Will assert that {@link ProducerFactory} is not {@code null}, and will throw an
+     * {@link AxonConfigurationException} if it is.
      *
      * @param builder the {@link Builder} used to instantiate a {@link KafkaPublisher} instance
      */
@@ -93,25 +93,17 @@ public class KafkaPublisher<K, V> {
      * <p>
      * The {@link KafkaMessageConverter} is defaulted to a {@link DefaultKafkaMessageConverter}, the
      * {@link MessageMonitor} to a {@link NoOpMessageMonitor}, the {@code topic} to {code Axon.Events} and the
-     * {@code publisherAckTimeout} to {@code 1000} milliseconds. The {@link SubscribableMessageSource} and
-     * {@link ProducerFactory} are <b>hard requirements</b> and as such should be provided.
+     * {@code publisherAckTimeout} to {@code 1000} milliseconds. The {@link ProducerFactory} is a
+     * <b>hard requirements</b> and as such should be provided.
      *
      * @param <K> a generic type for the key of the {@link ProducerFactory}, {@link Producer} and
      *            {@link KafkaMessageConverter}
      * @param <V> a generic type for the value of the {@link ProducerFactory}, {@link Producer} and
      *            {@link KafkaMessageConverter}
-     *
      * @return a Builder to be able to create a {@link KafkaPublisher}
      */
     public static <K, V> Builder<K, V> builder() {
         return new Builder<>();
-    }
-
-    /**
-     * Shuts down this component and un-subscribes it from its messageSource.
-     */
-    public void shutDown() {
-        producerFactory.shutDown();
     }
 
     /**
@@ -130,7 +122,6 @@ public class KafkaPublisher<K, V> {
      * @param event the events to publish on the Kafka broker.
      */
     public <T extends EventMessage<?>> void send(T event) {
-
         UnitOfWork<?> uow = CurrentUnitOfWork.get();
 
         MonitorCallback monitorCallback = messageMonitor.onMessageIngested(event);
@@ -141,9 +132,7 @@ public class KafkaPublisher<K, V> {
             tryBeginTxn(producer);
         }
 
-        /*
-         * Send's event messages to Kafka and receive a future indicating the status.
-         */
+        // Send's event messages to Kafka and receive a future indicating the status.
         Future<RecordMetadata> publishStatus = producer.send(messageConverter.createKafkaMessage(event, topic));
 
         uow.onPrepareCommit(u -> {
@@ -161,7 +150,6 @@ public class KafkaPublisher<K, V> {
             }
             tryClose(producer);
         });
-
     }
 
     private void tryBeginTxn(Producer<?, ?> producer) {
@@ -169,7 +157,9 @@ public class KafkaPublisher<K, V> {
             producer.beginTransaction();
         } catch (ProducerFencedException e) {
             logger.warn("Unable to begin transaction", e);
-            throw new EventPublicationFailedException("Event publication failed: Exception occurred while starting kafka transaction", e);
+            throw new EventPublicationFailedException(
+                    "Event publication failed, exception occurred while starting Kafka transaction", e
+            );
         }
     }
 
@@ -180,25 +170,9 @@ public class KafkaPublisher<K, V> {
         } catch (ProducerFencedException e) {
             logger.warn("Unable to commit transaction", e);
             monitorCallback.reportFailure(e);
-            throw new EventPublicationFailedException("Event publication failed: Exception occurred while committing kafka transaction", e);
-        }
-    }
-
-    private void tryRollback(Producer<?, ?> producer) {
-        try {
-            producer.abortTransaction();
-        } catch (Exception e) {
-            logger.warn("Unable to abort transaction", e);
-            //not re-throwing exception, its too late
-        }
-    }
-
-    private void tryClose(Producer<?, ?> producer) {
-        try {
-            producer.close();
-        } catch (Exception e) {
-            logger.debug("Unable to close producer.", e);
-            //not re-throwing exception, can't do anything
+            throw new EventPublicationFailedException(
+                    "Event publication failed, exception occurred while committing Kafka transaction", e
+            );
         }
     }
 
@@ -210,8 +184,36 @@ public class KafkaPublisher<K, V> {
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             monitorCallback.reportFailure(e);
             logger.warn("Encountered error while waiting for event publication", e);
-            throw new EventPublicationFailedException("Event publication failed: Exception occurred while waiting for event publication", e);
+            throw new EventPublicationFailedException(
+                    "Event publication failed, exception occurred while waiting for event publication", e
+            );
         }
+    }
+
+    private void tryRollback(Producer<?, ?> producer) {
+        try {
+            producer.abortTransaction();
+        } catch (Exception e) {
+            logger.warn("Unable to abort transaction", e);
+            // Not re-throwing exception, its too late
+        }
+    }
+
+    private void tryClose(Producer<?, ?> producer) {
+        try {
+            producer.close();
+        } catch (Exception e) {
+            logger.debug("Unable to close producer", e);
+            // Not re-throwing exception, can't do anything
+        }
+    }
+
+    /**
+     * Shuts down this component by calling {@link ProducerFactory#shutDown()} ensuring no new {@link Producer}
+     * instances can be created.
+     */
+    public void shutDown() {
+        producerFactory.shutDown();
     }
 
     /**
@@ -219,8 +221,8 @@ public class KafkaPublisher<K, V> {
      * <p>
      * The {@link KafkaMessageConverter} is defaulted to a {@link DefaultKafkaMessageConverter}, the
      * {@link MessageMonitor} to a {@link NoOpMessageMonitor}, the {@code topic} to {code Axon.Events} and the
-     * {@code publisherAckTimeout} to {@code 1000} milliseconds. The {@link SubscribableMessageSource} and
-     * {@link ProducerFactory} are a <b>hard requirements</b> and as such should be provided.
+     * {@code publisherAckTimeout} to {@code 1000} milliseconds. The {@link ProducerFactory} is a
+     * <b>hard requirements</b> and as such should be provided.
      *
      * @param <K> a generic type for the key of the {@link ProducerFactory}, {@link Producer} and
      *            {@link KafkaMessageConverter}
@@ -232,12 +234,12 @@ public class KafkaPublisher<K, V> {
         private ProducerFactory<K, V> producerFactory;
         @SuppressWarnings("unchecked")
         private KafkaMessageConverter<K, V> messageConverter =
-            (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder()
-                                                                      .serializer(XStreamSerializer.builder()
-                                                                                                   .build())
-                                                                      .build();
+                (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder()
+                                                                          .serializer(XStreamSerializer.builder()
+                                                                                                       .build())
+                                                                          .build();
         private MessageMonitor<? super EventMessage<?>> messageMonitor = NoOpMessageMonitor.instance();
-        private String topic = "Axon.Events";
+        private String topic = DEFAULT_TOPIC;
         private long publisherAckTimeout = 1_000;
 
         /**
@@ -246,7 +248,6 @@ public class KafkaPublisher<K, V> {
          *
          * @param producerFactory a {@link ProducerFactory} which will instantiate {@link Producer} instances to publish
          *                        {@link EventMessage}s on the Kafka topic
-         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder<K, V> producerFactory(ProducerFactory<K, V> producerFactory) {
@@ -263,7 +264,6 @@ public class KafkaPublisher<K, V> {
          *
          * @param messageConverter a {@link KafkaMessageConverter} used to convert {@link EventMessage}s into Kafka
          *                         messages
-         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder<K, V> messageConverter(KafkaMessageConverter<K, V> messageConverter) {
@@ -277,7 +277,6 @@ public class KafkaPublisher<K, V> {
          * publisher. Defaults to a {@link NoOpMessageMonitor}.
          *
          * @param messageMonitor a {@link MessageMonitor} used to monitor this Kafka publisher
-         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder<K, V> messageMonitor(MessageMonitor<? super EventMessage<?>> messageMonitor) {
@@ -290,7 +289,6 @@ public class KafkaPublisher<K, V> {
          * Set the Kafka {@code topic} to publish {@link EventMessage}s on. Defaults to {@code Axon.Events}.
          *
          * @param topic the Kafka {@code topic} to publish {@link EventMessage}s on
-         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder<K, V> topic(String topic) {
@@ -305,15 +303,14 @@ public class KafkaPublisher<K, V> {
          *
          * @param publisherAckTimeout a {@code long} specifying how long to wait for a publisher to acknowledge a
          *                            message has been sent
-         *
          * @return the current Builder instance, for fluent interfacing
          */
         @SuppressWarnings("WeakerAccess")
         public Builder<K, V> publisherAckTimeout(long publisherAckTimeout) {
             assertThat(
-                publisherAckTimeout,
-                timeout -> timeout >= 0,
-                "The publisherAckTimeout should be a positive number or zero");
+                    publisherAckTimeout, timeout -> timeout >= 0,
+                    "The publisherAckTimeout should be a positive number or zero"
+            );
             this.publisherAckTimeout = publisherAckTimeout;
             return this;
         }

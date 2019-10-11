@@ -24,7 +24,7 @@ import org.junit.*;
  *
  * @author Nakul Mishra
  */
-public class KafkaPublisherBuilderTests {
+public class KafkaPublisherBuilderTest {
 
     @Test(expected = AxonConfigurationException.class)
     public void testConfiguringInvalidProducerFactory() {
@@ -48,6 +48,6 @@ public class KafkaPublisherBuilderTests {
 
     @Test(expected = AxonConfigurationException.class)
     public void testConfiguringInvalidAckTimeout() {
-        KafkaPublisher.builder().publisherAckTimeout((long) -12);
+        KafkaPublisher.builder().publisherAckTimeout(-12);
     }
 }

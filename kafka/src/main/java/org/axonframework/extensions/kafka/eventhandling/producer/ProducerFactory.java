@@ -19,26 +19,35 @@ package org.axonframework.extensions.kafka.eventhandling.producer;
 import org.apache.kafka.clients.producer.Producer;
 
 /**
- * The strategy to produce a {@link Producer} instance(s).
+ * A functional interface towards building {@link Producer} instances.
  *
- * @param <K> the key type.
- * @param <V> the value type.
+ * @param <K> the key type of a build {@link Producer} instance
+ * @param <V> the value type of a build {@link Producer} instance
  * @author Nakul Mishra
- * @since 3.0
+ * @author Steven van Beelen
+ * @since 4.0
  */
 public interface ProducerFactory<K, V> {
 
+    /**
+     * Create a {@link Producer}.
+     *
+     * @return a {@link Producer}
+     */
     Producer<K, V> createProducer();
 
     /**
-     * What sort of producers to generate. A producer must take confirmation mode into consideration while publishing
-     * messages to Kafka.
+     * The {@link ConfirmationMode} all created {@link Producer} instances should comply to. Defaults to
+     * {@link ConfirmationMode#NONE}.
      *
-     * @return configured confirmation mode.
+     * @return the configured confirmation mode
      */
     default ConfirmationMode confirmationMode() {
         return ConfirmationMode.NONE;
     }
 
+    /**
+     * Closes all {@link Producer} instances created by this factory.
+     */
     void shutDown();
 }

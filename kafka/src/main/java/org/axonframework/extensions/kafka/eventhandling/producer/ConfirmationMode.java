@@ -17,23 +17,49 @@
 package org.axonframework.extensions.kafka.eventhandling.producer;
 
 /**
- * Modes for publishing messages from Axon to Kafka.
+ * Modes for publishing Axon Event Messages to Kafka.
  * <ul>
- * <li>Transactional: use kafka transactions while sending messages.</li>
- * <li>WAIT_FOR_ACK : send messages and wait for acknowledgment.</li>
- * <li>NONE: Fire and forget.</li>
+ * <li>TRANSACTIONAL: use Kafka transactions while sending messages</li>
+ * <li>WAIT_FOR_ACK: send messages and wait for acknowledgment</li>
+ * <li>NONE: Fire and forget</li>
  * </ul>
  *
  * @author Nakul Mishra
- * @since 3.0
+ * @since 4.0
  */
 public enum ConfirmationMode {
-    TRANSACTIONAL, WAIT_FOR_ACK, NONE;
 
+    /**
+     * Indicates a confirmation mode which uses Kafka transactions whilst sending messages.
+     */
+    TRANSACTIONAL,
+
+    /**
+     * Indicates a confirmation mode which sends messages and waits for consumption acknowledgements.
+     */
+    WAIT_FOR_ACK,
+
+    /**
+     * Indicates a confirmation mode resembling fire and forget.
+     */
+    NONE;
+
+    /**
+     * Verify whether {@code this} confirmation mode is of type {@link #TRANSACTIONAL}.
+     *
+     * @return {@code true} if {@code this} confirmation mode matches {@link #TRANSACTIONAL}, {@code false} if it
+     * doesn't
+     */
     public boolean isTransactional() {
         return this == TRANSACTIONAL;
     }
 
+    /**
+     * Verify whether {@code this} confirmation mode is of type {@link #WAIT_FOR_ACK}.
+     *
+     * @return {@code true} if {@code this} confirmation mode matches {@link #WAIT_FOR_ACK}, {@code false} if it
+     * doesn't
+     */
     public boolean isWaitForAck() {
         return this == WAIT_FOR_ACK;
     }
