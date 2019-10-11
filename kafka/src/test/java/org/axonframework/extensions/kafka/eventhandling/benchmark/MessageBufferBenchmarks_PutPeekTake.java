@@ -43,14 +43,14 @@ import static org.axonframework.eventhandling.EventUtils.asTrackedEventMessage;
 import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage;
 
 /**
- * This compares the speed of operations that can be performed on the bundled {@link SortedKafkaMessageBuffer}. Re-run this
- * benchmark when changing internals of {@link SortedKafkaMessageBuffer}.
- * <p>The {@link SortedKafkaMessageBuffer bundled buffer} aims to be efficient in terms of operations performed on the buffer. It
- * may not always be fastest, but we should try to keep it competitive.
+ * This compares the speed of operations that can be performed on the bundled {@link SortedKafkaMessageBuffer}. Re-run
+ * this benchmark when changing internals of {@link SortedKafkaMessageBuffer}. The {@link SortedKafkaMessageBuffer}
+ * bundled buffer aims to be efficient in terms of operations performed on the buffer. It may not always be fastest,
+ * but we should try to keep it competitive.
  *
  * @author Nakul Mishra
+ * @author Allard Buijze
  */
-
 @Measurement(iterations = 5, time = 1)
 @Warmup(iterations = 10, time = 1)
 @Fork(3)
@@ -59,6 +59,7 @@ import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage
 @State(Scope.Benchmark)
 public class MessageBufferBenchmarks_PutPeekTake {
 
+    @SuppressWarnings("unused")
     @Param(value = "1000000")
     private static int bufferSize;
 
@@ -84,8 +85,7 @@ public class MessageBufferBenchmarks_PutPeekTake {
     }
 
     private static KafkaEventMessage message(int partition, int offset, int timestamp) {
-        EventMessage<Object> eventMessage = asEventMessage(
-                String.valueOf(offset) + "abc" + String.valueOf(offset * 17 + 123));
+        EventMessage<Object> eventMessage = asEventMessage(offset + "abc" + (offset * 17 + 123));
         return new KafkaEventMessage(asTrackedEventMessage(eventMessage, null), partition, offset, timestamp);
     }
 

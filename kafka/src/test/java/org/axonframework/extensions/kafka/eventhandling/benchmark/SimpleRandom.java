@@ -6,7 +6,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author Pavel Tcholakov.
  * @see <a href="https://github.com/JCTools/JCTools">JCTools</a>
  */
-// Fairly fast random numbers
 final class SimpleRandom {
 
     private final static long multiplier = 0x5DEECE66DL;
@@ -20,8 +19,8 @@ final class SimpleRandom {
     }
 
     public int next() {
-        long nextseed = (seed * multiplier + addend) & mask;
-        seed = nextseed;
-        return ((int) (nextseed >>> 17)) & 0x7FFFFFFF;
+        long nextSeed = (seed * multiplier + addend) & mask;
+        seed = nextSeed;
+        return ((int) (nextSeed >>> 17)) & 0x7FFFFFFF;
     }
 }
