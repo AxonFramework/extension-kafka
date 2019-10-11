@@ -75,8 +75,8 @@ import static org.axonframework.extensions.kafka.KafkaProperties.EventProcessorM
  */
 @Configuration
 @ConditionalOnClass(KafkaPublisher.class)
-@EnableConfigurationProperties(KafkaProperties.class)
 @AutoConfigureAfter(AxonAutoConfiguration.class)
+@EnableConfigurationProperties(KafkaProperties.class)
 public class KafkaAutoConfiguration {
 
     private final KafkaProperties properties;
@@ -86,6 +86,13 @@ public class KafkaAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean
+    public KafkaMessageConverter<String, byte[]> kafkaMessageConverter(
+            @Qualifier("eventSerializer") Serializer eventSerializer) {
+        return DefaultKafkaMessageConverter.builder().serializer(eventSerializer).build();
+    }
+
+    @Bean("axonKafkaProducerFactory")
     @ConditionalOnMissingBean
     @ConditionalOnProperty("axon.kafka.producer.transaction-id-prefix")
     public ProducerFactory<String, byte[]> kafkaProducerFactory() {
@@ -101,53 +108,25 @@ public class KafkaAutoConfiguration {
                 .build();
     }
 
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnProperty("axon.kafka.consumer.group-id")
-    public ConsumerFactory<String, byte[]> kafkaConsumerFactory() {
-        return new DefaultConsumerFactory<>(properties.buildConsumerProperties());
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public KafkaMessageConverter<String, byte[]> kafkaMessageConverter(
-            @Qualifier("eventSerializer") Serializer eventSerializer) {
-        return DefaultKafkaMessageConverter.builder().serializer(eventSerializer).build();
-    }
-
     @ConditionalOnMissingBean
     @Bean(destroyMethod = "shutDown")
     @ConditionalOnBean({ProducerFactory.class, KafkaMessageConverter.class})
-    public KafkaPublisher<String, byte[]> kafkaPublisher(ProducerFactory<String, byte[]> kafkaProducerFactory,
+    public KafkaPublisher<String, byte[]> kafkaPublisher(ProducerFactory<String, byte[]> axonKafkaProducerFactory,
                                                          KafkaMessageConverter<String, byte[]> kafkaMessageConverter,
                                                          AxonConfiguration configuration) {
         return KafkaPublisher.<String, byte[]>builder()
-                .producerFactory(kafkaProducerFactory)
+                .producerFactory(axonKafkaProducerFactory)
                 .messageConverter(kafkaMessageConverter)
                 .messageMonitor(configuration.messageMonitor(KafkaPublisher.class, "kafkaPublisher"))
                 .topic(properties.getDefaultTopic())
                 .build();
     }
 
-    @ConditionalOnMissingBean
-    @Bean(destroyMethod = "shutdown")
-    @ConditionalOnBean({ConsumerFactory.class, KafkaMessageConverter.class})
-    public Fetcher kafkaFetcher(ConsumerFactory<String, byte[]> kafkaConsumerFactory,
-                                KafkaMessageConverter<String, byte[]> kafkaMessageConverter) {
-        return AsyncFetcher.<String, byte[]>builder()
-                .consumerFactory(kafkaConsumerFactory)
-                .bufferFactory(() -> new SortedKafkaMessageBuffer<>(properties.getFetcher().getBufferSize()))
-                .messageConverter(kafkaMessageConverter)
-                .topic(properties.getDefaultTopic())
-                .pollTimeout(properties.getFetcher().getPollTimeout())
-                .build();
-    }
-
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnBean(ConsumerFactory.class)
-    public KafkaMessageSource kafkaMessageSource(Fetcher kafkaFetcher) {
-        return new KafkaMessageSource(kafkaFetcher);
+    @ConditionalOnBean(KafkaPublisher.class)
+    public KafkaSendingEventHandler kafkaEventHandler(KafkaPublisher<String, byte[]> kafkaPublisher) {
+        return new KafkaSendingEventHandler(kafkaPublisher);
     }
 
     @Autowired
@@ -176,10 +155,31 @@ public class KafkaAutoConfiguration {
         );
     }
 
+    @Bean("axonKafkaConsumerFactory")
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty("axon.kafka.consumer.group-id")
+    public ConsumerFactory<String, byte[]> kafkaConsumerFactory() {
+        return new DefaultConsumerFactory<>(properties.buildConsumerProperties());
+    }
+
+    @ConditionalOnMissingBean
+    @Bean(destroyMethod = "shutdown")
+    @ConditionalOnBean({ConsumerFactory.class, KafkaMessageConverter.class})
+    public Fetcher kafkaFetcher(ConsumerFactory<String, byte[]> axonKafkaConsumerFactory,
+                                KafkaMessageConverter<String, byte[]> kafkaMessageConverter) {
+        return AsyncFetcher.<String, byte[]>builder()
+                .consumerFactory(axonKafkaConsumerFactory)
+                .bufferFactory(() -> new SortedKafkaMessageBuffer<>(properties.getFetcher().getBufferSize()))
+                .messageConverter(kafkaMessageConverter)
+                .topic(properties.getDefaultTopic())
+                .pollTimeout(properties.getFetcher().getPollTimeout())
+                .build();
+    }
+
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnBean({KafkaPublisher.class})
-    public KafkaSendingEventHandler kafkaEventHandler(KafkaPublisher<String, byte[]> kafkaPublisher) {
-        return new KafkaSendingEventHandler(kafkaPublisher);
+    @ConditionalOnBean(ConsumerFactory.class)
+    public KafkaMessageSource kafkaMessageSource(Fetcher kafkaFetcher) {
+        return new KafkaMessageSource(kafkaFetcher);
     }
 }
