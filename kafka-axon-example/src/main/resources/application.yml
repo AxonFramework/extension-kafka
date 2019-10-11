@@ -9,6 +9,8 @@ axon:
     producer:
       retries: 0
       bootstrapservers: localhost:9092
+    consumer:
+      group-id: "local.event.consumer-group"
 
     properties:
       security.protocol: PLAINTEXT

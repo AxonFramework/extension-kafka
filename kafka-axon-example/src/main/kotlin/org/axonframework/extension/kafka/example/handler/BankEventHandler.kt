@@ -17,17 +17,20 @@
 package org.axonframework.extension.kafka.example.handler
 
 import mu.KLogging
+import org.axonframework.config.ProcessingGroup
 import org.axonframework.eventhandling.EventHandler
 import org.axonframework.eventhandling.EventMessage
 import org.springframework.stereotype.Component
 
 /**
- * Collecting event handler for logging.
+ * Collecting event handler for logging, connected to a Kafka consumer with the processing group name "kafka-group".
+ * Further configured in the [org.axonframework.extension.kafka.example.KafkaAxonExampleApplication].
  */
 @Component
+@ProcessingGroup("kafka-group")
 class BankEventHandler {
 
-    companion object: KLogging()
+    companion object : KLogging()
 
     /**
      * Receive all events and log them.

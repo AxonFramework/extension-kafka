@@ -15,13 +15,16 @@
  */
 package org.axonframework.extension.kafka.example
 
+import org.axonframework.config.EventProcessingConfigurer
 import org.axonframework.eventhandling.tokenstore.inmemory.InMemoryTokenStore
 import org.axonframework.eventsourcing.eventstore.EmbeddedEventStore
 import org.axonframework.eventsourcing.eventstore.inmemory.InMemoryEventStorageEngine
 import org.axonframework.extensions.kafka.KafkaProperties
+import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaMessageSource
 import org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode
 import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducerFactory
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.context.annotation.Bean
@@ -65,4 +68,10 @@ class KafkaAxonExampleApplication {
                 .build()
     }
 
+    @Autowired
+    fun configureKafkaSourceForProcessingGroup(
+            configurer: EventProcessingConfigurer, kafkaMessageSource: KafkaMessageSource
+    ) {
+        configurer.registerTrackingEventProcessor("kafka-group") { kafkaMessageSource }
+    }
 }
