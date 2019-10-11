@@ -25,40 +25,50 @@ import java.util.Collection;
 import java.util.Collections;
 
 /**
- * Utility for {@link Consumer}.
+ * Utility class to simplify working with a {@link Consumer}. For example used to subscribe a Consumer to a topic.
  *
  * @author Nakul Mishra
- * @since 3.3
+ * @author Steven van Beelen
+ * @since 4.0
  */
-public class ConsumerUtil {
+@SuppressWarnings("WeakerAccess")
+public abstract class ConsumerUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(ConsumerUtil.class);
 
     private ConsumerUtil() {
-        //private ctor
+        // Utility class
     }
 
     /**
-     * Subscribes the {@link Consumer} to a particular {@link org.apache.kafka.common.internals.Topic} and uses {@link
-     * KafkaTrackingToken} to update the partitions whenever a re-balance happens.
+     * Subscribes the {@link Consumer} to a particular {@link org.apache.kafka.common.internals.Topic}, using a private
+     * {@link ConsumerRebalanceListener} implementation to update the (by the Consumer) used offsets of each partition
+     * present in the given {@link KafkaTrackingToken} whenever a re-balance happens.
      *
-     * @param topic    the topic.
-     * @param consumer the consumer.
-     * @param token    the token.
+     * @param topic    the topic to subscribe the given {@code consumer} to
+     * @param consumer the {@link Consumer} to subscribe to the given {@code topic} and for which the offsets should be
+     *                 adjusted upon a rebalance operation
+     * @param token    the token containing all {@code partition}/{@code offsets} pairs which should be updated for the
+     *                 configured {@code consumer} upon a Consumer rebalance operation
      */
     public static void seek(String topic, Consumer consumer, KafkaTrackingToken token) {
         consumer.subscribe(Collections.singletonList(topic), new ConsumerRebalanceListener() {
             @Override
             public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+                // Not implemented
             }
 
             @Override
             public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-                if (KafkaTrackingToken.isNotEmpty(token)) {
-                    logger.debug("Seeking consumer to {}", token);
-                    token.partitionPositions().forEach((partition, offset) -> consumer
-                            .seek(KafkaTrackingToken.partition(topic, partition), offset + 1));
+                if (KafkaTrackingToken.isEmpty(token)) {
+                    return;
                 }
+
+                logger.debug("Seeking offsets for Consumer corresponding to the partitiosn in token: [{}]", token);
+
+                token.partitionPositions().forEach(
+                        (partition, offset) -> consumer.seek(KafkaTrackingToken.partition(topic, partition), offset + 1)
+                );
             }
         });
     }

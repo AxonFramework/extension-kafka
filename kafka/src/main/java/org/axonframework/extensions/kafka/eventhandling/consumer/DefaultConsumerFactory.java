@@ -18,43 +18,50 @@ package org.axonframework.extensions.kafka.eventhandling.consumer;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.axonframework.common.Assert;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.axonframework.common.BuilderUtils.assertNonNull;
+
 /**
- * The {@link ConsumerFactory} implementation to produce a new {@link Consumer} instance.
- * On each invocation of {@link #createConsumer()} it will create a new instance based on properties supplied via
- * {@code configs}
+ * The {@link ConsumerFactory} implementation to produce a new {@link Consumer} instance. On each invocation of
+ * {@link #createConsumer()} a new instance will be created based on the supplied {@code configuration} properties.
  *
- * @param <K> the key type.
- * @param <V> the value type.
+ * @param <K> the key type of a build {@link Consumer} instance
+ * @param <V> the value type of a build {@link Consumer} instance
  * @author Nakul Mishra
- * @since 3.3
+ * @author Steven van Beelen
+ * @since 4.0
  */
 public class DefaultConsumerFactory<K, V> implements ConsumerFactory<K, V> {
 
-    private final Map<String, Object> configs;
+    private final Map<String, Object> configuration;
 
-    public DefaultConsumerFactory(Map<String, Object> configs) {
-        Assert.isTrue(configs != null, () -> "Config may not be null.");
-        this.configs = new HashMap<>(configs);
+    /**
+     * Build a default {@link ConsumerFactory} which uses the provided {@code configuration} to build it's
+     * {@link Consumer}s.
+     *
+     * @param configuration a {@link Map} containing the configuration for the {@link Consumer}s this factory builds
+     */
+    public DefaultConsumerFactory(Map<String, Object> configuration) {
+        assertNonNull(configuration, "The configuration may not be null");
+        this.configuration = new HashMap<>(configuration);
     }
 
     @Override
     public Consumer<K, V> createConsumer() {
-        return new KafkaConsumer<>(this.configs);
+        return new KafkaConsumer<>(this.configuration);
     }
 
     /**
-     * Return an unmodifiable reference to the configuration map for this factory.
-     * Useful for cloning to make a similar factory.
+     * Return an unmodifiable reference to the configuration map for this factory. Useful for cloning to make a similar
+     * factory.
      *
-     * @return the configs.
+     * @return a configuration {@link Map} used by this {@link ConsumerFactory} to build {@link Consumer}s
      */
     public Map<String, Object> configurationProperties() {
-        return Collections.unmodifiableMap(this.configs);
+        return Collections.unmodifiableMap(this.configuration);
     }
 }

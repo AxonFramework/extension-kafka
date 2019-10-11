@@ -20,18 +20,18 @@ import org.axonframework.common.stream.BlockingStream;
 import org.axonframework.eventhandling.TrackedEventMessage;
 
 /**
- * Interface describing the component responsible for reading messages from Kafka.
+ * Interface describing the component responsible for reading messages from a Kafka topic through a Consumer.
  *
  * @author Nakul Mishra
- * @since 3.3
+ * @since 4.0
  */
 public interface Fetcher {
 
     /**
      * Open a stream of messages, starting at the position indicated by the given {@code token}.
      *
-     * @param token the token representing positions of the partition to start from
-     * @return a stream providing messages from Kafka
+     * @param token the token representing positions of the partitions to start from
+     * @return a {@link BlockingStream} providing messages from Kafka
      */
     BlockingStream<TrackedEventMessage<?>> start(KafkaTrackingToken token);
 

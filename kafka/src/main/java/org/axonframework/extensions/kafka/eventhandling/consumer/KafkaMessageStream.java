@@ -16,7 +16,6 @@
 
 package org.axonframework.extensions.kafka.eventhandling.consumer;
 
-import org.axonframework.common.Assert;
 import org.axonframework.eventhandling.TrackedEventMessage;
 import org.axonframework.eventhandling.TrackingEventStream;
 import org.slf4j.Logger;
@@ -24,6 +23,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+
+import static org.axonframework.common.BuilderUtils.assertNonNull;
 
 /**
  * Create message stream from a specific kafka topic. Messages are fetch in bulk and stored in an in-memory buffer. We
@@ -34,7 +35,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Allard Buijze
  * @author Nakul Mishra
- * @since 3.0
+ * @since 4.0
  */
 public class KafkaMessageStream implements TrackingEventStream {
 
@@ -42,25 +43,33 @@ public class KafkaMessageStream implements TrackingEventStream {
 
     private final Buffer<KafkaEventMessage> buffer;
     private final Runnable closeHandler;
-    private KafkaEventMessage peekEvent;
+    private KafkaEventMessage peekedEvent;
 
+    /**
+     * Create a {@link TrackingEventStream} dedicated to {@link KafkaEventMessage}s. Uses the provided {@code buffer} to
+     * retrieve event messages from.
+     *
+     * @param buffer       the {@link KafkaEventMessage} {@link Buffer} containing the fetched messages
+     * @param closeHandler the {@link Runnable} called upon executing a {@link #close()}
+     */
+    @SuppressWarnings("WeakerAccess")
     public KafkaMessageStream(Buffer<KafkaEventMessage> buffer, Runnable closeHandler) {
-        Assert.notNull(buffer, () -> "Buffer may not be null");
-        this.closeHandler = closeHandler;
+        assertNonNull(buffer, "Buffer may not be null");
         this.buffer = buffer;
+        this.closeHandler = closeHandler;
     }
-
 
     @Override
     public Optional<TrackedEventMessage<?>> peek() {
         return Optional.ofNullable(
-                peekEvent == null && !hasNextAvailable(0, TimeUnit.NANOSECONDS) ? null : peekEvent.value());
+                peekedEvent == null && !hasNextAvailable(0, TimeUnit.NANOSECONDS) ? null : peekedEvent.value()
+        );
     }
 
     @Override
     public boolean hasNextAvailable(int timeout, TimeUnit unit) {
         try {
-            return peekEvent != null || (peekEvent = buffer.poll(timeout, unit)) != null;
+            return peekedEvent != null || (peekedEvent = buffer.poll(timeout, unit)) != null;
         } catch (InterruptedException e) {
             logger.warn("Consumer thread was interrupted. Returning thread to event processor.", e);
             Thread.currentThread().interrupt();
@@ -71,18 +80,20 @@ public class KafkaMessageStream implements TrackingEventStream {
     @Override
     public TrackedEventMessage<?> nextAvailable() {
         try {
-            return peekEvent == null ? buffer.take().value() : peekEvent.value();
+            return peekedEvent == null ? buffer.take().value() : peekedEvent.value();
         } catch (InterruptedException e) {
             logger.warn("Consumer thread was interrupted. Returning thread to event processor.", e);
             Thread.currentThread().interrupt();
             return null;
         } finally {
-            peekEvent = null;
+            peekedEvent = null;
         }
     }
 
     @Override
     public void close() {
-        closeHandler.run();
+        if (closeHandler != null) {
+            closeHandler.run();
+        }
     }
 }

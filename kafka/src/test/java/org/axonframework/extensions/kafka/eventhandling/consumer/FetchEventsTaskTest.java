@@ -19,9 +19,11 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.MockConsumer;
 import org.apache.kafka.common.TopicPartition;
+import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
 import org.junit.*;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.function.BiFunction;
@@ -36,11 +38,11 @@ import static org.axonframework.extensions.kafka.eventhandling.consumer.KafkaTra
 import static org.mockito.Mockito.*;
 
 /**
- * Tests for {@link FetchEventsTask}
+ * Tests for the {@link FetchEventsTask}.
  *
  * @author Nakul Mishra
  */
-public class FetchEventsTaskTests {
+public class FetchEventsTaskTest {
 
     private static final String SOME_TOPIC = "foo";
     private static final int NO_OF_PARTITIONS = 2;
@@ -63,12 +65,14 @@ public class FetchEventsTaskTests {
         }
     }
 
+    @SuppressWarnings("SameParameterValue")
     private static Collection<TopicPartition> partitions(int noOfPartitions) {
         return IntStream.range(0, noOfPartitions)
                         .mapToObj(x -> new TopicPartition("foo", x))
                         .collect(Collectors.toList());
     }
 
+    @SuppressWarnings("SameParameterValue")
     private static void adjustOffsets(String topic, int noOfPartitions, MockConsumer<String, ?> consumer) {
         consumer.updateBeginningOffsets(new HashMap<TopicPartition, Long>() {{
             for (int i = 0; i < noOfPartitions; i++) {
@@ -77,68 +81,83 @@ public class FetchEventsTaskTests {
         }});
     }
 
-    @Test(expected = IllegalArgumentException.class)
     @SuppressWarnings("unchecked")
-    public void testTaskConstruction_WithInvalidConsumer_ShouldThrowException() {
+    @Test(expected = IllegalArgumentException.class)
+    public void testTaskConstructionWithInvalidConsumerShouldThrowException() {
         new FetchEventsTask<>(null,
-                              mock(KafkaTrackingToken.class),
-                              mock(Buffer.class),
+                              Duration.ofMillis(0),
                               mock(KafkaMessageConverter.class),
-                              mock(BiFunction.class), 0,
-                              null);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    @SuppressWarnings("unchecked")
-    public void testTaskConstruction_WithInvalidBuffer_ShouldThrowException() {
-        new FetchEventsTask<>(mock(KafkaConsumer.class),
-                              mock(KafkaTrackingToken.class),
-                              null,
-                              mock(KafkaMessageConverter.class),
-                              mock(BiFunction.class), 0, null);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    @SuppressWarnings("unchecked")
-    public void testTaskConstruction_WithInvalidConverter_ShouldThrowException() {
-        new FetchEventsTask<>(mock(KafkaConsumer.class),
-                              mock(KafkaTrackingToken.class),
                               mock(Buffer.class),
-                              null,
-                              mock(BiFunction.class), 0, null);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    @SuppressWarnings("unchecked")
-    public void testTaskConstruction_WithInvalidCallback_ShouldThrowException() {
-        new FetchEventsTask<>(mock(KafkaConsumer.class),
-                              mock(KafkaTrackingToken.class),
-                              mock(Buffer.class),
-                              mock(KafkaMessageConverter.class),
-                              null,
-                              0, null);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    @SuppressWarnings("unchecked")
-    public void testTaskConstruction_WithNegativeTimeout_ShouldThrowException() {
-        new FetchEventsTask<>(mock(KafkaConsumer.class),
-                              mock(KafkaTrackingToken.class),
-                              mock(Buffer.class),
-                              mock(KafkaMessageConverter.class),
                               mock(BiFunction.class),
-                              -1, null);
+                              null,
+                              mock(KafkaTrackingToken.class)
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test(expected = IllegalArgumentException.class)
+    public void testTaskConstructionWithInvalidBufferShouldThrowException() {
+        new FetchEventsTask<>(mock(KafkaConsumer.class),
+                              Duration.ofMillis(0),
+                              mock(KafkaMessageConverter.class),
+                              null,
+                              mock(BiFunction.class),
+                              null,
+                              mock(KafkaTrackingToken.class)
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test(expected = IllegalArgumentException.class)
+    public void testTaskConstructionWithInvalidConverterShouldThrowException() {
+        new FetchEventsTask<>(mock(KafkaConsumer.class),
+                              Duration.ofMillis(0),
+                              null,
+                              mock(Buffer.class),
+                              mock(BiFunction.class),
+                              null,
+                              mock(KafkaTrackingToken.class)
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test(expected = IllegalArgumentException.class)
+    public void testTaskConstructionWithInvalidCallbackShouldThrowException() {
+        new FetchEventsTask<>(mock(KafkaConsumer.class),
+                              Duration.ofMillis(0),
+                              mock(KafkaMessageConverter.class),
+                              mock(Buffer.class),
+                              null,
+                              null,
+                              mock(KafkaTrackingToken.class)
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test(expected = AxonConfigurationException.class)
+    public void testTaskConstructionWithNegativeTimeoutShouldThrowException() {
+        new FetchEventsTask<>(mock(KafkaConsumer.class),
+                              Duration.ofMillis(-1),
+                              mock(KafkaMessageConverter.class),
+                              mock(Buffer.class),
+                              mock(BiFunction.class),
+                              null,
+                              mock(KafkaTrackingToken.class)
+        );
     }
 
     @Test
-    public void testTaskExecution_StartingThreadAndInterrupt_ShouldNotCauseAnyException() {
+    public void testTaskExecutionStartingThreadAndInterruptShouldNotCauseAnyException() {
         SortedKafkaMessageBuffer<KafkaEventMessage> buffer = new SortedKafkaMessageBuffer<>(TOTAL_MESSAGES);
-        KafkaMessageConverter<String, String> converter = new AsyncFetcherTests.ValueConverter();
+        KafkaMessageConverter<String, String> converter = new AsyncFetcherTest.ValueConverter();
         FetchEventsTask<String, String> testSubject = new FetchEventsTask<>(consumer(),
-                                                            emptyToken(),
-                                                            buffer,
+                                                            Duration.ofMillis(10000),
                                                             converter,
-                                                            (r, t) -> null, 10000, null);
+                                                            buffer,
+                                                            (r, t) -> null,
+                                                            null,
+                                                            emptyToken()
+        );
         Thread thread = new Thread(testSubject);
         thread.start();
         thread.interrupt();

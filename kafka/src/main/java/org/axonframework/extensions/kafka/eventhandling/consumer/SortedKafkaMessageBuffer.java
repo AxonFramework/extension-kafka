@@ -15,7 +15,6 @@
 
 package org.axonframework.extensions.kafka.eventhandling.consumer;
 
-import org.axonframework.common.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,57 +24,69 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static org.axonframework.common.Assert.isTrue;
+import static org.axonframework.common.Assert.notNull;
+
 /**
  * Thread safe buffer for storing incoming Kafka messages in sorted order defined via {@link Comparable}.
  *
- * @param <E> element type.
+ * @param <E> the type of the elements stored in this {@link Buffer} implementation
  * @author Nakul Mishra
- * @since 3.3
+ * @author Steven van Beelen
+ * @since 4.0
  */
-public class SortedKafkaMessageBuffer<E extends Comparable & KafkaMetadataProvider> implements Buffer<E> {
+public class SortedKafkaMessageBuffer<E extends Comparable & KafkaRecordMetaData> implements Buffer<E> {
 
     private static final Logger logger = LoggerFactory.getLogger(SortedKafkaMessageBuffer.class);
 
+    private static final int DEFAULT_CAPACITY = 1_000;
+
     /**
-     * Data structure
+     * Data structure used by this buffer.
      */
     private final ConcurrentSkipListSet<E> delegate;
 
     /**
-     * Main lock guarding all access
+     * Lock guarding all access to this buffer.
      */
     private final ReentrantLock lock;
 
     /**
-     * Condition for waiting takes
+     * Condition for waiting on {@link #take()}
      */
     private final Condition notEmpty;
 
     /**
-     * Condition for waiting puts
+     * Condition for waiting on {@link #put(Comparable)}
      */
     private final Condition notFull;
 
     /**
-     * Max buffer size
+     * The max buffer size.
      */
     private final int capacity;
 
     /**
-     * Number of messages in the buffer
+     * Number of messages in the buffer.
      */
     private int count;
 
 
+    /**
+     * Create a default {@link SortedKafkaMessageBuffer} with capacity of {@code 1000}.
+     */
+    @SuppressWarnings("WeakerAccess")
     public SortedKafkaMessageBuffer() {
-        this(1_000);
+        this(DEFAULT_CAPACITY);
     }
 
     /**
-     * @param capacity the capacity of this buffer.
+     * Create a {@link SortedKafkaMessageBuffer} with the given max {@code capacity}.
+     *
+     * @param capacity the capacity of this buffer
      */
     public SortedKafkaMessageBuffer(int capacity) {
-        Assert.isTrue(capacity > 0, () -> "Capacity may not be <= 0");
+        isTrue(capacity > 0, () -> "The given capacity [" + capacity + "] may not be smaller than 0");
         this.delegate = new ConcurrentSkipListSet<>();
         this.lock = new ReentrantLock();
         this.notEmpty = lock.newCondition();
@@ -83,16 +94,10 @@ public class SortedKafkaMessageBuffer<E extends Comparable & KafkaMetadataProvid
         this.capacity = capacity;
     }
 
-    /**
-     * Inserts the specified message in this buffer, waiting
-     * for space to become available if the buffer is full.
-     *
-     * @throws InterruptedException
-     * @throws NullPointerException
-     */
     @Override
     public void put(E e) throws InterruptedException {
-        Assert.notNull(e, () -> "Element may not be empty");
+        notNull(e, () -> "Element may not be null");
+
         final ReentrantLock lock = this.lock;
         lock.lockInterruptibly();
         try {
@@ -104,7 +109,8 @@ public class SortedKafkaMessageBuffer<E extends Comparable & KafkaMetadataProvid
 
     @Override
     public void putAll(Collection<E> c) throws InterruptedException {
-        Assert.notNull(c, () -> "Element may not be empty");
+        notNull(c, () -> "Element collection may not be null");
+
         final ReentrantLock lock = this.lock;
         lock.lockInterruptibly();
         try {
@@ -120,37 +126,35 @@ public class SortedKafkaMessageBuffer<E extends Comparable & KafkaMetadataProvid
         while (this.count == this.capacity) {
             this.notFull.await();
         }
+
         add(e);
         if (logger.isDebugEnabled()) {
-            logger.debug("buffer state after appending {}", e);
+            logger.debug("Buffer state after appending element [{}]", e);
             for (E message : delegate) {
-                logger.debug("partition:{}, offset:{}, timestamp:{}, payload:{}",
-                             message.partition(),
-                             message.offset(),
-                             message.timestamp(),
-                             message.value());
+                logger.debug(
+                        "Partition:{}, Offset:{}, Timestamp:{}, Payload:{}",
+                        message.partition(), message.offset(), message.timestamp(), message.value()
+                );
             }
         }
     }
 
     /**
-     * Retrieves and removes the first message of this buffer, waiting up to the
-     * specified wait time if necessary for a message to become available.
-     *
-     * @param timeout how long to wait before giving up, in units of
-     *                {@code unit}
-     * @param unit    a {@code TimeUnit} determining how to interpret the
-     *                {@code timeout} parameter
-     * @return the first message of this buffer, or {@code null} if the
-     * specified waiting time elapses before a message is available
-     *
-     * @throws InterruptedException if interrupted while waiting
+     * Inserts message, advances, and signals. This method should only be called when holding lock.
      */
+    private void add(E x) {
+        if (this.delegate.add(x)) {
+            this.count++;
+            this.notEmpty.signal();
+        }
+    }
+
     @Override
     public E poll(long timeout, TimeUnit unit) throws InterruptedException {
         long nanos = unit.toNanos(timeout);
         final ReentrantLock lock = this.lock;
         lock.lockInterruptibly();
+
         try {
             while (this.count == 0) {
                 if (nanos <= 0) {
@@ -158,15 +162,15 @@ public class SortedKafkaMessageBuffer<E extends Comparable & KafkaMetadataProvid
                 }
                 nanos = this.notEmpty.awaitNanos(nanos);
             }
+
             E removed = remove();
             if (logger.isDebugEnabled()) {
-                logger.debug("buffer state after removing {}", removed);
+                logger.debug("Buffer state after removing element [{}]", removed);
                 for (E message : delegate) {
-                    logger.debug("partition:{}, offset:{}, timestamp:{}, payload:{}",
-                                 message.partition(),
-                                 message.offset(),
-                                 message.value(),
-                                 message.timestamp());
+                    logger.debug(
+                            "Partition:{}, Offset:{}, Timestamp:{}, Payload:{}",
+                            message.partition(), message.offset(), message.value(), message.timestamp()
+                    );
                 }
             }
             return removed;
@@ -175,14 +179,6 @@ public class SortedKafkaMessageBuffer<E extends Comparable & KafkaMetadataProvid
         }
     }
 
-    /**
-     * Retrieves and removes the first messages of this buffer, waiting if necessary
-     * until a message becomes available.
-     *
-     * @return the first message of this buffer.
-     *
-     * @throws InterruptedException if interrupted while waiting
-     */
     @Override
     public E take() throws InterruptedException {
         final ReentrantLock lock = this.lock;
@@ -198,10 +194,17 @@ public class SortedKafkaMessageBuffer<E extends Comparable & KafkaMetadataProvid
     }
 
     /**
-     * Retrieves, but does not remove, the first message of this buffer, or returns null if this buffer is empty.
-     *
-     * @return the message.
+     * Extracts message and signals. This method should only be called when holding lock.
      */
+    private E remove() {
+        E x = this.delegate.pollFirst();
+        if (x != null) {
+            this.count--;
+            this.notFull.signal();
+        }
+        return x;
+    }
+
     @Override
     public E peek() {
         final ReentrantLock lock = this.lock;
@@ -213,35 +216,6 @@ public class SortedKafkaMessageBuffer<E extends Comparable & KafkaMetadataProvid
         }
     }
 
-    /**
-     * Inserts message, advances, and signals.
-     * Call only when holding lock.
-     */
-    private void add(E x) {
-        if (this.delegate.add(x)) {
-            this.count++;
-            this.notEmpty.signal();
-        }
-    }
-
-    /**
-     * Extracts message and signals.
-     * Call only when holding lock.
-     */
-    private E remove() {
-        E x = this.delegate.pollFirst();
-        if (x != null) {
-            this.count--;
-            this.notFull.signal();
-        }
-        return x;
-    }
-
-    /**
-     * Returns the number of elements in this buffer.
-     *
-     * @return the number of elements in this buffer
-     */
     @Override
     public int size() {
         final ReentrantLock lock = this.lock;
@@ -264,17 +238,6 @@ public class SortedKafkaMessageBuffer<E extends Comparable & KafkaMetadataProvid
         }
     }
 
-    /**
-     * Returns the number of additional elements that this buffer can ideally
-     * (in the absence of memory or resource constraints) accept without
-     * blocking. This is always equal to the initial capacity of this buffer
-     * less the current {@code size} of this buffer.
-     * <p>
-     * <p>Note that you <em>cannot</em> always tell if an attempt to insert
-     * an element will succeed by inspecting {@code remainingCapacity}
-     * because it may be the case that another thread is about to
-     * insert or remove an element.
-     */
     @Override
     public int remainingCapacity() {
         final ReentrantLock lock = this.lock;
@@ -286,9 +249,6 @@ public class SortedKafkaMessageBuffer<E extends Comparable & KafkaMetadataProvid
         }
     }
 
-    /**
-     * Removes all of the messages from this buffer.
-     */
     @Override
     public void clear() {
         final ReentrantLock lock = this.lock;

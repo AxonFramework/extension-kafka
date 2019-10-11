@@ -18,29 +18,38 @@ package org.axonframework.extensions.kafka.eventhandling.consumer;
 /**
  * An interface for messages originating from Kafka capable of providing information about their source.
  *
- * @param <V>.
+ * @param <V> the type of body used for this record
  * @author Nakul Mishra
- * @since 3.3
+ * @author Steven van Beelen
+ * @since 4.0
  */
-public interface KafkaMetadataProvider<V> {
+public interface KafkaRecordMetaData<V> {
 
     /**
-     * The partition from which record is received
+     * The partition from which this record is received.
+     *
+     * @return an {@code int} defining the partition from which this record is received
      */
     int partition();
 
     /**
-     * The position of record in the corresponding Kafka partition.
+     * The position of the record in the corresponding Kafka {@code partition}.
+     *
+     * @return a {@code long} defining the position of the record in the corresponding Kafka {@code partition}
      */
     long offset();
 
     /**
-     * The timestamp of record
+     * The timestamp of the record.
+     *
+     * @return a {@code long} defining the timestamp of this record
      */
     long timestamp();
 
     /**
-     * The value
+     * The value of this record.
+     *
+     * @return the value of this record of type {@code V}
      */
     V value();
 }

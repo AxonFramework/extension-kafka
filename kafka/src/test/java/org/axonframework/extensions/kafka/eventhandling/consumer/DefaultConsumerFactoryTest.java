@@ -19,13 +19,14 @@ package org.axonframework.extensions.kafka.eventhandling.consumer;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
 import org.junit.*;
 import org.junit.runner.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
-import org.springframework.kafka.test.rule.KafkaEmbedded;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -33,35 +34,37 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.axonframework.extensions.kafka.eventhandling.ConsumerConfigUtil.minimal;
-import static org.axonframework.extensions.kafka.eventhandling.ProducerConfigUtil.producerFactory;
+import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.minimal;
+import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.producerFactory;
 
 /**
- * Tests for {@link DefaultProducerFactory}
+ * Tests for the {@link DefaultProducerFactory}.
  *
  * @author Nakul Mishra
+ * @author Steven van Beelen
  */
 @RunWith(SpringRunner.class)
 @DirtiesContext
 @EmbeddedKafka(topics = {"testCreatedConsumer_ValidConfig_CanCommunicateToKafka"}, partitions = 1)
-public class DefaultConsumerFactoryTests {
+public class DefaultConsumerFactoryTest {
 
+    @SuppressWarnings("SpringJavaAutowiredMembersInspection")
     @Autowired
-    private KafkaEmbedded kafka;
+    private EmbeddedKafkaBroker kafkaBroker;
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testCreateConsumer_InvalidConfig() {
+    @Test(expected = AxonConfigurationException.class)
+    public void testCreateConsumerInvalidConfig() {
         new DefaultConsumerFactory<>(null);
     }
 
     @Test
-    public void testCreatedConsumer_ValidConfig_CanCommunicateToKafka() {
+    public void testCreatedConsumerValidConfigCanCommunicateToKafka() {
         String topic = "testCreatedConsumer_ValidConfig_CanCommunicateToKafka";
-        ProducerFactory<String, String> pf = producerFactory(kafka);
+        ProducerFactory<String, String> pf = producerFactory(kafkaBroker);
         Producer<String, String> producer = pf.createProducer();
         producer.send(new ProducerRecord<>(topic, 0, null, null, "foo"));
         producer.flush();
-        DefaultConsumerFactory<Object, Object> testSubject = new DefaultConsumerFactory<>(minimal(kafka, topic));
+        DefaultConsumerFactory<Object, Object> testSubject = new DefaultConsumerFactory<>(minimal(kafkaBroker, topic));
         Consumer<Object, Object> consumer = testSubject.createConsumer();
         consumer.subscribe(Collections.singleton(topic));
 

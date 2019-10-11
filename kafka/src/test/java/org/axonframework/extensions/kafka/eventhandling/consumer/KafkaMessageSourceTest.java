@@ -16,9 +16,8 @@
 
 package org.axonframework.extensions.kafka.eventhandling.consumer;
 
+import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.eventhandling.TrackingToken;
-import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
-import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaMessageSource;
 import org.junit.*;
 
 import static org.axonframework.extensions.kafka.eventhandling.consumer.KafkaTrackingToken.emptyToken;
@@ -28,22 +27,23 @@ import static org.mockito.Mockito.*;
  * Tests for {@link KafkaMessageSource}.
  *
  * @author Nakul Mishra
+ * @author Steven van Beelen
  */
-public class KafkaMessageSourceTests {
+public class KafkaMessageSourceTest {
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testCreatingMessageSource_UsingInvalidFetcher_ShouldThrowException() {
+    @Test(expected = AxonConfigurationException.class)
+    public void testCreatingMessageSourceUsingInvalidFetcherShouldThrowException() {
         new KafkaMessageSource(null);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testOpeningMessageStream_WithInvalidTypeOfTrackingToken_ShouldThrowException() {
+    public void testOpeningMessageStreamWithInvalidTypeOfTrackingTokenShouldThrowException() {
         KafkaMessageSource testSubject = new KafkaMessageSource(fetcher());
         testSubject.openStream(incompatibleTokenType());
     }
 
     @Test
-    public void testOpeningMessageStream_WithNullToken_ShouldInvokeFetcher() {
+    public void testOpeningMessageStreamWithNullTokenShouldInvokeFetcher() {
         Fetcher fetcher = fetcher();
         KafkaMessageSource testSubject = new KafkaMessageSource(fetcher);
         testSubject.openStream(null);
@@ -52,7 +52,7 @@ public class KafkaMessageSourceTests {
     }
 
     @Test
-    public void testOpeningMessageStream_WithValidToken_ShouldStartTheFetcher() {
+    public void testOpeningMessageStreamWithValidTokenShouldStartTheFetcher() {
         Fetcher fetcher = fetcher();
         KafkaMessageSource testSubject = new KafkaMessageSource(fetcher);
         testSubject.openStream(emptyToken());
@@ -79,7 +79,6 @@ public class KafkaMessageSourceTests {
         };
     }
 
-    @SuppressWarnings("unchecked")
     private static Fetcher fetcher() {
         return mock(Fetcher.class);
     }

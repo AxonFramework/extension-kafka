@@ -19,7 +19,6 @@ package org.axonframework.extensions.kafka.eventhandling.consumer;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.kafka.common.TopicPartition;
-import org.axonframework.common.Assert;
 import org.axonframework.eventhandling.TrackingToken;
 
 import java.io.Serializable;
@@ -32,22 +31,40 @@ import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
+import static org.axonframework.common.Assert.isTrue;
+
 /**
- * Use to track messages consumed &amp committed from Kafka to Axon.
+ * A {@link TrackingToken} implementation dedicated to tracking all consumed Kafka records which have been committed by
+ * another Axon Kafka Publisher.
  *
  * @author Nakul Mishra
- * @since 3.0
+ * @author Steven van Beelen
+ * @since 4.0
  */
 public class KafkaTrackingToken implements TrackingToken, Serializable {
 
     private final Map<Integer, Long> partitionPositions;
 
+    /**
+     * Returns a new {@link KafkaTrackingToken} instance based on the given {@code partitionPositions}.
+     *
+     * @param partitionPositions a {@link Map} from {@link Integer} to {@link Long}, specifying the offset of every
+     *                           partition
+     * @return a new tracking token based on the given {@code partitionPositions}
+     */
     @JsonCreator
+    @SuppressWarnings("WeakerAccess")
     public static KafkaTrackingToken newInstance(
             @JsonProperty("partitionPositions") Map<Integer, Long> partitionPositions) {
         return new KafkaTrackingToken(partitionPositions);
     }
 
+    /**
+     * Create an empty {@link KafkaTrackingToken} instance.
+     *
+     * @return an empty {@link KafkaTrackingToken} instance
+     */
+    @SuppressWarnings("WeakerAccess")
     public static KafkaTrackingToken emptyToken() {
         return newInstance(new HashMap<>());
     }
@@ -56,62 +73,131 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
         this.partitionPositions = Collections.unmodifiableMap(new HashMap<>(partitionPositions));
     }
 
+    /**
+     * Retrieve the {@link Map} stored in this {@link TrackingToken} containing partition-offset pairs corresponding the
+     * actual offsets per partition a Consumer is fetching records from.
+     *
+     * @return the {@link Map} stored in this {@link TrackingToken} containing partition-offset pairs corresponding the
+     * actual offsets per partition a Consumer is fetching records from
+     */
+    @SuppressWarnings("WeakerAccess")
     public Map<Integer, Long> partitionPositions() {
         return partitionPositions;
     }
 
+    /**
+     * Creates a {@link Collection} of {@link TopicPartition}s for each {@code partition} present in {@code this} token.
+     * Uses the given {@code topic} to finalize the TopicPartitions
+     *
+     * @param topic the topic for which {@link TopicPartition} instances should be created
+     * @return a {@link Collection} of {@link TopicPartition}s for each {@code partition} present in {@code this} token
+     */
     public Collection<TopicPartition> partitions(String topic) {
         return partitionPositions.keySet()
                                  .stream()
-                                 .map(i -> new TopicPartition(topic, i))
+                                 .map(partition -> partition(topic, partition))
                                  .collect(Collectors.toList());
     }
 
+    /**
+     * Create a {@link TopicPartition} based on the given {@code topic} and {@code partitionNumber}.
+     *
+     * @param topic           the topic for which a {@link TopicPartition} should be created
+     * @param partitionNumber the partition number for which a {@link TopicPartition} should be created
+     * @return a {@link TopicPartition} based on the given {@code topic} and {@code partitionNumber}
+     */
     public static TopicPartition partition(String topic, int partitionNumber) {
         return new TopicPartition(topic, partitionNumber);
     }
 
+    /**
+     * Advance {@code this} token's partition-offset pairs. If the given {@code partition} already exists, the current
+     * entry's {@code offset} is replaced for the given {@code offset}. Returns a new {@link KafkaTrackingToken}
+     * instance.
+     *
+     * @param partition the partition number for which the {@code offset} should be advanced
+     * @param offset    the offset corresponding to the given {@code partition} to advance
+     * @return a new and advanced {@link KafkaTrackingToken} instance
+     */
+    @SuppressWarnings("WeakerAccess")
     public KafkaTrackingToken advancedTo(int partition, long offset) {
-        Assert.isTrue(partition >= 0, () -> "Partition may not be negative");
-        Assert.isTrue(offset >= 0, () -> "Offset may not be negative");
-        Map<Integer, Long> newPositions = new HashMap<>(partitionPositions);
-        newPositions.put(partition, offset);
-        return new KafkaTrackingToken(newPositions);
+        isTrue(partition >= 0, () -> "Partition may not be negative");
+        isTrue(offset >= 0, () -> "Offset may not be negative");
+
+        Map<Integer, Long> updatedPartitionPositions = new HashMap<>(partitionPositions);
+        updatedPartitionPositions.put(partition, offset);
+        return new KafkaTrackingToken(updatedPartitionPositions);
     }
 
+    @SuppressWarnings("ConstantConditions") // Verified TrackingToken type through `Assert.isTrue` operation
     @Override
     public TrackingToken lowerBound(TrackingToken other) {
-        Assert.isTrue(other instanceof KafkaTrackingToken, () -> "Incompatible token type provided.");
-        KafkaTrackingToken otherToken = (KafkaTrackingToken) other;
-        Map<Integer, Long> partitionsWithLowerBound = bounds(otherToken, Math::min);
-        return new KafkaTrackingToken(partitionsWithLowerBound);
+        isTrue(other instanceof KafkaTrackingToken, () -> "Incompatible token type provided.");
+
+        return new KafkaTrackingToken(bounds((KafkaTrackingToken) other, Math::min));
     }
 
+    @SuppressWarnings("ConstantConditions") // Verified TrackingToken type through `Assert.isTrue` operation
     @Override
     public TrackingToken upperBound(TrackingToken other) {
-        Assert.isTrue(other instanceof KafkaTrackingToken, () -> "Incompatible token type provided.");
-        KafkaTrackingToken otherToken = (KafkaTrackingToken) other;
-        Map<Integer, Long> partitionsWithUpperBound = bounds(otherToken, Math::max);
-        return new KafkaTrackingToken(partitionsWithUpperBound);
+        isTrue(other instanceof KafkaTrackingToken, () -> "Incompatible token type provided.");
+
+        return new KafkaTrackingToken(bounds((KafkaTrackingToken) other, Math::max));
     }
 
+    private Map<Integer, Long> bounds(KafkaTrackingToken token, BiFunction<Long, Long, Long> boundsFunction) {
+        Map<Integer, Long> intersection = new HashMap<>(this.partitionPositions);
+        token.partitionPositions().forEach(intersection::putIfAbsent);
+
+        intersection.keySet()
+                    .forEach(partitionNumber -> intersection.put(partitionNumber, boundsFunction.apply(
+                            this.partitionPositions().getOrDefault(partitionNumber, 0L),
+                            token.partitionPositions().getOrDefault(partitionNumber, 0L))
+
+                    ));
+        return intersection;
+    }
+
+    @SuppressWarnings("ConstantConditions") // Verified TrackingToken type through `Assert.isTrue` operation
     @Override
     public boolean covers(TrackingToken other) {
-        Assert.isTrue(other instanceof KafkaTrackingToken, () -> "Incompatible token type provided.");
+        isTrue(other instanceof KafkaTrackingToken, () -> "Incompatible token type provided.");
         KafkaTrackingToken otherToken = (KafkaTrackingToken) other;
 
-        long oldest = this.partitionPositions.values().stream().min(Comparator.naturalOrder()).orElse(0L);
-        return otherToken.partitionPositions.keySet().stream()
-                                            .allMatch(k -> this.partitionPositions.containsKey(k) ||
-                                                    otherToken.partitionPositions.get(k) < oldest);
+        long oldestPartition = this.partitionPositions()
+                                   .values()
+                                   .stream()
+                                   .min(Comparator.naturalOrder())
+                                   .orElse(0L);
+
+        return otherToken.partitionPositions()
+                         .keySet()
+                         .stream()
+                         .allMatch(
+                                 partitionNumber -> this.partitionPositions().containsKey(partitionNumber)
+                                         || otherToken.partitionPositions().get(partitionNumber) < oldestPartition
+                         );
     }
 
-    public static boolean isEmpty(KafkaTrackingToken token) {
-        return token == null || token.partitionPositions.isEmpty();
-    }
-
+    /**
+     * Verify whether the given {@code token} is not empty, thus whether it contains partition-offset pairs.
+     *
+     * @param token the {@link KafkaTrackingToken} to verify for not being empty
+     * @return {@code true} if the given {@code token} contains partition-offset pairs and {@code false} if it doesn't
+     */
+    @SuppressWarnings("WeakerAccess")
     public static boolean isNotEmpty(KafkaTrackingToken token) {
         return !isEmpty(token);
+    }
+
+    /**
+     * Verify whether the given {@code token} is {@code null} or contains zero partition-offset pairs.
+     *
+     * @param token the {@link KafkaTrackingToken} to verify for being empty
+     * @return {@code true} if the given {@code token} is {@code null} or empty and {@code false} if it isn't
+     */
+    public static boolean isEmpty(KafkaTrackingToken token) {
+        return token == null || token.partitionPositions.isEmpty();
     }
 
     @Override
@@ -136,17 +222,5 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
         return "KafkaTrackingToken{" +
                 "partitionPositions=" + partitionPositions +
                 '}';
-    }
-
-    private Map<Integer, Long> bounds(KafkaTrackingToken otherToken, BiFunction<Long, Long, Long> fxn) {
-        Map<Integer, Long> intersection = new HashMap<>(this.partitionPositions);
-        otherToken.partitionPositions.forEach(intersection::putIfAbsent);
-        intersection.keySet()
-                    .forEach(k -> intersection.put(k, fxn.apply(
-                            partitionPositions.getOrDefault(k, 0L),
-                            otherToken.partitionPositions.getOrDefault(k, 0L))
-
-                    ));
-        return intersection;
     }
 }

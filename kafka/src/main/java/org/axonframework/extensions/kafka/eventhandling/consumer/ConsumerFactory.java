@@ -19,18 +19,21 @@ package org.axonframework.extensions.kafka.eventhandling.consumer;
 import org.apache.kafka.clients.consumer.Consumer;
 
 /**
- * The strategy to produce a {@link org.apache.kafka.clients.consumer.Consumer} instance(s).
+ * A functional interface towards building {@link Consumer} instances.
  *
+ * @param <K> the key type of a build {@link Consumer} instance
+ * @param <V> the value type of a build {@link Consumer} instance
  * @author Nakul Mishra
- * @since 3.0
+ * @author Steven van Beelen
+ * @since 4.0
  */
 @FunctionalInterface
 public interface ConsumerFactory<K, V> {
 
     /**
-     * Create a consumer with the settings supplied in configuration properties.
+     * Create a {@link Consumer}.
      *
-     * @return the consumer.
+     * @return a {@link Consumer}
      */
     Consumer<K, V> createConsumer();
 }

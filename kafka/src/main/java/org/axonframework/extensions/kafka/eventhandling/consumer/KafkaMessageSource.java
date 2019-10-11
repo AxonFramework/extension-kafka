@@ -16,35 +16,43 @@
 
 package org.axonframework.extensions.kafka.eventhandling.consumer;
 
-import org.axonframework.common.Assert;
 import org.axonframework.common.stream.BlockingStream;
 import org.axonframework.eventhandling.TrackedEventMessage;
 import org.axonframework.eventhandling.TrackingToken;
 import org.axonframework.messaging.StreamableMessageSource;
 
+import static org.axonframework.common.Assert.isTrue;
+import static org.axonframework.common.BuilderUtils.assertNonNull;
+
 /**
- * MessageSource implementation that reads messages from a Kafka topic.
+ * Implementation of the {@link StreamableMessageSource} that reads messages from a Kafka topic using the provided
+ * {@link Fetcher}.
  *
  * @author Nakul Mishra
- * @since 3.0
+ * @author Steven van Beelen
+ * @since 4.0
  */
 public class KafkaMessageSource implements StreamableMessageSource<TrackedEventMessage<?>> {
 
     private final Fetcher fetcher;
 
     /**
-     * Initialize the source using the given {@code fetcher} to retrieve messages from the Kafka topic
+     * Initialize the source using the given {@code fetcher} to retrieve messages from a Kafka topic.
      *
-     * @param fetcher The fetcher to retrieve messages from Kafka
+     * @param fetcher the {@link Fetcher} used to retrieve messages from a Kafka topic
      */
     public KafkaMessageSource(Fetcher fetcher) {
-        Assert.notNull(fetcher, () -> "Kafka message fetcher may not be null");
+        assertNonNull(fetcher, "Kafka message fetcher may not be null");
         this.fetcher = fetcher;
     }
 
+    @SuppressWarnings("ConstantConditions") // Verified TrackingToken type through `Assert.isTrue` operation
     @Override
     public BlockingStream<TrackedEventMessage<?>> openStream(TrackingToken trackingToken) {
-        Assert.isTrue(trackingToken == null || trackingToken instanceof KafkaTrackingToken, () -> "Invalid token type");
+        isTrue(
+                trackingToken == null || trackingToken instanceof KafkaTrackingToken,
+                () -> "Incompatible token type provided."
+        );
         return fetcher.start((KafkaTrackingToken) trackingToken);
     }
 }
