@@ -330,7 +330,7 @@ public class KafkaPublisherTest {
                 DefaultKafkaMessageConverter.builder()
                                             .serializer(XStreamSerializer.builder().build())
                                             .build();
-        KafkaPublisher<String, byte[]> testSubject = KafkaPublisher.<String, byte[]>builder()
+        KafkaPublisher<String, byte[]> kafkaPublisher = KafkaPublisher.<String, byte[]>builder()
                 .producerFactory(testProducerFactory)
                 .messageConverter(messageConverter)
                 .messageMonitor(monitor)
@@ -353,12 +353,12 @@ public class KafkaPublisherTest {
                     }
             );
             eventProcessingConfigurer.registerEventHandler(
-                    c -> KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(testSubject).build()
+                    c -> KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(kafkaPublisher).build()
             );
         });
         configurer.start();
 
-        return testSubject;
+        return kafkaPublisher;
     }
 
     private Consumer<?, ?> buildConsumer(String topic) {
