@@ -186,7 +186,7 @@ public class DefaultKafkaMessageConverterTest {
         assertEquals(actual.getPayloadType(), (expected.getPayloadType()));
         assertThat(actual.getMetaData()).isEqualTo(expected.getMetaData());
         assertThat(actual.getPayload()).isEqualTo(expected.getPayload());
-        assertThat(actual.getTimestamp()).isEqualTo(expected.getTimestamp());
+        assertThat(actual.getTimestamp().toEpochMilli()).isEqualTo(expected.getTimestamp().toEpochMilli());
     }
 
     private static EventMessage<Object> eventMessage() {
