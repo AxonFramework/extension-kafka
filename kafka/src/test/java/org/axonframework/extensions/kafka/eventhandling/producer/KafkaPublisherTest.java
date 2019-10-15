@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2019. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package org.axonframework.extensions.kafka.eventhandling.producer;
 
 import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.errors.ProducerFencedException;
@@ -26,6 +25,7 @@ import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.axonframework.config.Configurer;
 import org.axonframework.config.DefaultConfigurer;
 import org.axonframework.eventhandling.GenericDomainEventMessage;
+import org.axonframework.eventhandling.PropagatingErrorHandler;
 import org.axonframework.eventhandling.SimpleEventBus;
 import org.axonframework.extensions.kafka.eventhandling.DefaultKafkaMessageConverter;
 import org.axonframework.messaging.EventPublicationFailedException;
@@ -57,6 +57,7 @@ import java.util.stream.IntStream;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher.DEFAULT_PROCESSING_GROUP;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.transactionalConsumerFactory;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.ackProducerFactory;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.transactionalProducerFactory;
@@ -98,7 +99,7 @@ public class KafkaPublisherTest {
 
     private ProducerFactory<String, byte[]> testProducerFactory;
     private Consumer<?, ?> testConsumer = mock(Consumer.class);
-    private KafkaPublisher<?, ?> testSubject;
+    private KafkaPublisher<String, byte[]> testSubject;
 
     @Before
     public void setUp() {
@@ -326,38 +327,40 @@ public class KafkaPublisherTest {
         return producerFactory;
     }
 
-    private KafkaPublisher<?, ?> buildPublisher(String topic) {
+    private KafkaPublisher<String, byte[]> buildPublisher(String topic) {
         DefaultKafkaMessageConverter messageConverter =
                 DefaultKafkaMessageConverter.builder()
                                             .serializer(XStreamSerializer.builder().build())
                                             .build();
-        KafkaPublisher<?, ?> testSubject = KafkaPublisher.<String, byte[]>builder()
+        KafkaPublisher<String, byte[]> kafkaPublisher = KafkaPublisher.<String, byte[]>builder()
                 .producerFactory(testProducerFactory)
                 .messageConverter(messageConverter)
                 .messageMonitor(monitor)
                 .topic(topic)
                 .publisherAckTimeout(1000)
                 .build();
-
+        KafkaEventPublisher kafkaEventPublisher =
+                KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(kafkaPublisher).build();
         /*
          * Simulate configuration.
-         * - use event subscribing for simplicity
-         * - use kafka sending event handler
-         * - since it uses a processor, it will catch exceptions, so register the corresponding
+         * - Use SubscribingEventProcessor for simplicity
+         * - Use KafkaEventPublisher
+         * - Since it uses a processor, it will catch exceptions, so register the corresponding
          */
-        configurer.eventProcessing(eventProcessingConfigurer -> {
-            eventProcessingConfigurer.registerSubscribingEventProcessor(KafkaSendingEventHandler.GROUP);
-            eventProcessingConfigurer.registerListenerInvocationErrorHandler(
-                    KafkaSendingEventHandler.GROUP,
-                    configuration -> (exception, event, eventHandler) -> {
-                        throw exception;
-                    }
-            );
-            eventProcessingConfigurer.registerEventHandler(c -> new KafkaSendingEventHandler(testSubject));
-        });
-        configurer.start();
+        configurer.eventProcessing(eventProcessingConfigurer -> eventProcessingConfigurer
+                .registerEventHandler(config -> kafkaEventPublisher)
 
-        return testSubject;
+                .registerListenerInvocationErrorHandler(
+                        DEFAULT_PROCESSING_GROUP, config -> PropagatingErrorHandler.instance()
+                )
+                .registerSubscribingEventProcessor(DEFAULT_PROCESSING_GROUP)
+                .assignHandlerInstancesMatching(
+                        DEFAULT_PROCESSING_GROUP,
+                        eventHandler -> eventHandler.getClass().equals(KafkaEventPublisher.class)
+                )
+        ).start();
+
+        return kafkaPublisher;
     }
 
     private Consumer<?, ?> buildConsumer(String topic) {

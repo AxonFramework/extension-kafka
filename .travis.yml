@@ -2,17 +2,15 @@ language: java
 
 sudo: required
 
-services:
-  - docker
-
 jdk:
-  - oraclejdk8
+  - openjdk8
+  - openjdk11
 
 install: true
 
 cache:
   directories:
-  - $HOME/.m2
+    - $HOME/.m2
 
 script:
   - mvn clean verify -B

@@ -29,7 +29,7 @@ import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumer
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
 import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaMessageSource;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaPublisher;
-import org.axonframework.extensions.kafka.eventhandling.producer.KafkaSendingEventHandler;
+import org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil;
 import org.junit.*;
@@ -75,7 +75,7 @@ public class KafkaIntegrationTest {
                 .producerFactory(producerFactory)
                 .topic("integration")
                 .build();
-        KafkaSendingEventHandler sender = new KafkaSendingEventHandler(publisher);
+        KafkaEventPublisher sender = KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(publisher).build();
         configurer.eventProcessing(
                 eventProcessingConfigurer -> eventProcessingConfigurer.registerEventHandler(c -> sender)
         );
