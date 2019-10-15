@@ -25,6 +25,7 @@ import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.axonframework.config.Configurer;
 import org.axonframework.config.DefaultConfigurer;
 import org.axonframework.eventhandling.GenericDomainEventMessage;
+import org.axonframework.eventhandling.PropagatingErrorHandler;
 import org.axonframework.eventhandling.SimpleEventBus;
 import org.axonframework.extensions.kafka.eventhandling.DefaultKafkaMessageConverter;
 import org.axonframework.messaging.EventPublicationFailedException;
@@ -56,6 +57,7 @@ import java.util.stream.IntStream;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher.DEFAULT_PROCESSING_GROUP;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.transactionalConsumerFactory;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.ackProducerFactory;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.transactionalProducerFactory;
@@ -337,26 +339,26 @@ public class KafkaPublisherTest {
                 .topic(topic)
                 .publisherAckTimeout(1000)
                 .build();
-
+        KafkaEventPublisher kafkaEventPublisher =
+                KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(kafkaPublisher).build();
         /*
          * Simulate configuration.
-         * - use event subscribing for simplicity
-         * - use kafka sending event handler
-         * - since it uses a processor, it will catch exceptions, so register the corresponding
+         * - Use SubscribingEventProcessor for simplicity
+         * - Use KafkaEventPublisher
+         * - Since it uses a processor, it will catch exceptions, so register the corresponding
          */
-        configurer.eventProcessing(eventProcessingConfigurer -> {
-            eventProcessingConfigurer.registerSubscribingEventProcessor(KafkaEventPublisher.DEFAULT_PROCESSING_GROUP);
-            eventProcessingConfigurer.registerListenerInvocationErrorHandler(
-                    KafkaEventPublisher.DEFAULT_PROCESSING_GROUP,
-                    configuration -> (exception, event, eventHandler) -> {
-                        throw exception;
-                    }
-            );
-            eventProcessingConfigurer.registerEventHandler(
-                    c -> KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(kafkaPublisher).build()
-            );
-        });
-        configurer.start();
+        configurer.eventProcessing(eventProcessingConfigurer -> eventProcessingConfigurer
+                .registerEventHandler(config -> kafkaEventPublisher)
+
+                .registerListenerInvocationErrorHandler(
+                        DEFAULT_PROCESSING_GROUP, config -> PropagatingErrorHandler.instance()
+                )
+                .registerSubscribingEventProcessor(DEFAULT_PROCESSING_GROUP)
+                .assignHandlerInstancesMatching(
+                        DEFAULT_PROCESSING_GROUP,
+                        eventHandler -> eventHandler.getClass().equals(KafkaEventPublisher.class)
+                )
+        ).start();
 
         return kafkaPublisher;
     }

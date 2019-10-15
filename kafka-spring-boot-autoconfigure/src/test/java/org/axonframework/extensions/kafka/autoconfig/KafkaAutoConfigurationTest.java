@@ -268,7 +268,7 @@ public class KafkaAutoConfigurationTest {
             verify(eventProcessingConfigurer).registerEventHandler(any());
             verify(eventProcessingConfigurer)
                     .registerListenerInvocationErrorHandler(eq(DEFAULT_PROCESSING_GROUP), any());
-            verify(eventProcessingConfigurer).assignHandlerTypesMatching(eq(DEFAULT_PROCESSING_GROUP), any());
+            verify(eventProcessingConfigurer).assignHandlerInstancesMatching(eq(DEFAULT_PROCESSING_GROUP), any());
             verify(eventProcessingConfigurer).registerTrackingEventProcessor(DEFAULT_PROCESSING_GROUP);
         });
     }
@@ -295,7 +295,7 @@ public class KafkaAutoConfigurationTest {
             verify(eventProcessingConfigurer).registerEventHandler(any());
             verify(eventProcessingConfigurer)
                     .registerListenerInvocationErrorHandler(eq(DEFAULT_PROCESSING_GROUP), any());
-            verify(eventProcessingConfigurer).assignHandlerTypesMatching(eq(DEFAULT_PROCESSING_GROUP), any());
+            verify(eventProcessingConfigurer).assignHandlerInstancesMatching(eq(DEFAULT_PROCESSING_GROUP), any());
             verify(eventProcessingConfigurer).registerSubscribingEventProcessor(DEFAULT_PROCESSING_GROUP);
         });
     }

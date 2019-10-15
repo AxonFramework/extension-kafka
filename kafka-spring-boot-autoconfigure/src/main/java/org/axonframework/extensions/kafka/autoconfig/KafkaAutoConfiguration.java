@@ -48,6 +48,8 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.Map;
 
+import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher.DEFAULT_PROCESSING_GROUP;
+
 /**
  * Auto configuration for the Axon Kafka Extension as an Event Message distribution solution.
  *
@@ -121,19 +123,18 @@ public class KafkaAutoConfiguration {
          */
         eventProcessingConfigurer.registerEventHandler(configuration -> kafkaEventPublisher)
                                  .registerListenerInvocationErrorHandler(
-                                         KafkaEventPublisher.DEFAULT_PROCESSING_GROUP,
-                                         configuration -> PropagatingErrorHandler.instance()
+                                         DEFAULT_PROCESSING_GROUP, configuration -> PropagatingErrorHandler.instance()
                                  )
-                                 .assignHandlerTypesMatching(
-                                         KafkaEventPublisher.DEFAULT_PROCESSING_GROUP,
-                                         clazz -> clazz.isInstance(KafkaEventPublisher.class)
+                                 .assignHandlerInstancesMatching(
+                                         DEFAULT_PROCESSING_GROUP,
+                                         eventHandler -> eventHandler.getClass().equals(KafkaEventPublisher.class)
                                  );
 
         KafkaProperties.EventProcessorMode processorMode = kafkaProperties.getEventProcessorMode();
         if (processorMode == KafkaProperties.EventProcessorMode.SUBSCRIBING) {
-            eventProcessingConfigurer.registerSubscribingEventProcessor(KafkaEventPublisher.DEFAULT_PROCESSING_GROUP);
+            eventProcessingConfigurer.registerSubscribingEventProcessor(DEFAULT_PROCESSING_GROUP);
         } else if (processorMode == KafkaProperties.EventProcessorMode.TRACKING) {
-            eventProcessingConfigurer.registerTrackingEventProcessor(KafkaEventPublisher.DEFAULT_PROCESSING_GROUP);
+            eventProcessingConfigurer.registerTrackingEventProcessor(DEFAULT_PROCESSING_GROUP);
         } else {
             throw new AxonConfigurationException("Unknown Event Processor Mode [" + processorMode + "] detected");
         }
