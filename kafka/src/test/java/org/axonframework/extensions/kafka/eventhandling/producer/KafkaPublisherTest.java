@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2019. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -345,9 +345,9 @@ public class KafkaPublisherTest {
          * - since it uses a processor, it will catch exceptions, so register the corresponding
          */
         configurer.eventProcessing(eventProcessingConfigurer -> {
-            eventProcessingConfigurer.registerSubscribingEventProcessor(KafkaEventPublisher.PROCESSING_GROUP);
+            eventProcessingConfigurer.registerSubscribingEventProcessor(KafkaEventPublisher.DEFAULT_PROCESSING_GROUP);
             eventProcessingConfigurer.registerListenerInvocationErrorHandler(
-                    KafkaEventPublisher.PROCESSING_GROUP,
+                    KafkaEventPublisher.DEFAULT_PROCESSING_GROUP,
                     configuration -> (exception, event, eventHandler) -> {
                         throw exception;
                     }

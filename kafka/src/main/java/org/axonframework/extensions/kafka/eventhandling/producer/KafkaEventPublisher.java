@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2019. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,7 +17,6 @@
 package org.axonframework.extensions.kafka.eventhandling.producer;
 
 import org.axonframework.common.AxonConfigurationException;
-import org.axonframework.config.ProcessingGroup;
 import org.axonframework.eventhandling.EventMessage;
 import org.axonframework.eventhandling.EventMessageHandler;
 
@@ -27,8 +26,8 @@ import static org.axonframework.common.BuilderUtils.assertNonNull;
  * An {@link EventMessageHandler} implementation responsible for sending {@link EventMessage} instances  to Kafka using
  * the provided {@link KafkaPublisher}.
  * <p>
- * For correct usage add this implementation to an {@link org.axonframework.eventhandling.EventProcessor} implementation
- * using the {@link KafkaEventPublisher#PROCESSING_GROUP} constant as the processing group name.
+ * For correct usage add this class to an {@link org.axonframework.eventhandling.EventProcessor} implementation using
+ * the {@link KafkaEventPublisher#DEFAULT_PROCESSING_GROUP} constant as the processor and processing group name.
  *
  * @param <K> a generic type for the key of the {@link KafkaPublisher}
  * @param <V> a generic type for the value of the {@link KafkaPublisher}
@@ -36,14 +35,13 @@ import static org.axonframework.common.BuilderUtils.assertNonNull;
  * @author Steven van Beelen
  * @since 4.0
  */
-@ProcessingGroup(KafkaEventPublisher.PROCESSING_GROUP)
 public class KafkaEventPublisher<K, V> implements EventMessageHandler {
 
     /**
-     * Kafka Event Handler processing group.
+     * The default Kafka Event Handler processing group.
      * Not intended to be used by other Event Handling Components than {@link KafkaEventPublisher}.
      */
-    public static final String PROCESSING_GROUP = "__axon-kafka-event-publishing-group";
+    public static final String DEFAULT_PROCESSING_GROUP = "__axon-kafka-event-publishing-group";
     private static final boolean DOES_NOT_SUPPORT_RESET = false;
 
     private final KafkaPublisher<K, V> kafkaPublisher;

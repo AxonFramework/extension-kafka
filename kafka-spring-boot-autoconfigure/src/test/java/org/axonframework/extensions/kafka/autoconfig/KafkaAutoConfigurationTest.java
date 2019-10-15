@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2019. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,23 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-/*
- * Copyright 2012-2018 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 
 package org.axonframework.extensions.kafka.autoconfig;
 
@@ -45,6 +28,7 @@ import org.apache.kafka.common.serialization.LongSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.axonframework.config.EventProcessingConfigurer;
+import org.axonframework.config.EventProcessingModule;
 import org.axonframework.eventhandling.EventBus;
 import org.axonframework.extensions.kafka.KafkaProperties;
 import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
@@ -54,6 +38,7 @@ import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
 import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaMessageSource;
 import org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode;
 import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducerFactory;
+import org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
 import org.axonframework.monitoring.MessageMonitor;
@@ -62,7 +47,6 @@ import org.axonframework.serialization.Serializer;
 import org.axonframework.serialization.xml.XStreamSerializer;
 import org.axonframework.spring.config.AxonConfiguration;
 import org.junit.*;
-import org.mockito.invocation.*;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -73,6 +57,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher.DEFAULT_PROCESSING_GROUP;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -275,6 +260,16 @@ public class KafkaAutoConfigurationTest {
                           ).run(context -> {
             KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
             assertThat(kafkaProperties.getEventProcessorMode()).isEqualTo(KafkaProperties.EventProcessorMode.TRACKING);
+
+            KafkaEventPublisher kafkaEventPublisher = context.getBean(KafkaEventPublisher.class);
+            assertThat(kafkaEventPublisher).isNotNull();
+
+            EventProcessingConfigurer eventProcessingConfigurer = context.getBean(EventProcessingConfigurer.class);
+            verify(eventProcessingConfigurer).registerEventHandler(any());
+            verify(eventProcessingConfigurer)
+                    .registerListenerInvocationErrorHandler(eq(DEFAULT_PROCESSING_GROUP), any());
+            verify(eventProcessingConfigurer).assignHandlerTypesMatching(eq(DEFAULT_PROCESSING_GROUP), any());
+            verify(eventProcessingConfigurer).registerTrackingEventProcessor(DEFAULT_PROCESSING_GROUP);
         });
     }
 
@@ -292,6 +287,16 @@ public class KafkaAutoConfigurationTest {
             KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
             assertThat(kafkaProperties.getEventProcessorMode())
                     .isEqualTo(KafkaProperties.EventProcessorMode.SUBSCRIBING);
+
+            KafkaEventPublisher kafkaEventPublisher = context.getBean(KafkaEventPublisher.class);
+            assertThat(kafkaEventPublisher).isNotNull();
+
+            EventProcessingConfigurer eventProcessingConfigurer = context.getBean(EventProcessingConfigurer.class);
+            verify(eventProcessingConfigurer).registerEventHandler(any());
+            verify(eventProcessingConfigurer)
+                    .registerListenerInvocationErrorHandler(eq(DEFAULT_PROCESSING_GROUP), any());
+            verify(eventProcessingConfigurer).assignHandlerTypesMatching(eq(DEFAULT_PROCESSING_GROUP), any());
+            verify(eventProcessingConfigurer).registerSubscribingEventProcessor(DEFAULT_PROCESSING_GROUP);
         });
     }
 
@@ -318,9 +323,7 @@ public class KafkaAutoConfigurationTest {
 
         @Bean
         public EventProcessingConfigurer eventProcessingConfigurer() {
-            EventProcessingConfigurer eventProcessingConfigurer = mock(EventProcessingConfigurer.class);
-            when(eventProcessingConfigurer.registerEventHandler(any())).thenAnswer(InvocationOnMock::getMock);
-            return eventProcessingConfigurer;
+            return spy(new EventProcessingModule());
         }
     }
 }

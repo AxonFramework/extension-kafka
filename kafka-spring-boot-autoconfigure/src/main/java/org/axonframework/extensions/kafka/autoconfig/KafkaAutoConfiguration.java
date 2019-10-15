@@ -1,27 +1,11 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2019. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
  *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-/*
- * Copyright 2012-2018 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -123,9 +107,9 @@ public class KafkaAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnBean({KafkaPublisher.class})
-    public KafkaEventPublisher kafkaEventHandler(KafkaPublisher<String, byte[]> kafkaPublisher,
-                                                 KafkaProperties kafkaProperties,
-                                                 EventProcessingConfigurer eventProcessingConfigurer) {
+    public KafkaEventPublisher kafkaEventPublisher(KafkaPublisher<String, byte[]> kafkaPublisher,
+                                                   KafkaProperties kafkaProperties,
+                                                   EventProcessingConfigurer eventProcessingConfigurer) {
         KafkaEventPublisher kafkaEventPublisher =
                 KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(kafkaPublisher).build();
 
@@ -137,15 +121,19 @@ public class KafkaAutoConfiguration {
          */
         eventProcessingConfigurer.registerEventHandler(configuration -> kafkaEventPublisher)
                                  .registerListenerInvocationErrorHandler(
-                                         KafkaEventPublisher.PROCESSING_GROUP,
+                                         KafkaEventPublisher.DEFAULT_PROCESSING_GROUP,
                                          configuration -> PropagatingErrorHandler.instance()
+                                 )
+                                 .assignHandlerTypesMatching(
+                                         KafkaEventPublisher.DEFAULT_PROCESSING_GROUP,
+                                         clazz -> clazz.isInstance(KafkaEventPublisher.class)
                                  );
 
         KafkaProperties.EventProcessorMode processorMode = kafkaProperties.getEventProcessorMode();
         if (processorMode == KafkaProperties.EventProcessorMode.SUBSCRIBING) {
-            eventProcessingConfigurer.registerSubscribingEventProcessor(KafkaEventPublisher.PROCESSING_GROUP);
+            eventProcessingConfigurer.registerSubscribingEventProcessor(KafkaEventPublisher.DEFAULT_PROCESSING_GROUP);
         } else if (processorMode == KafkaProperties.EventProcessorMode.TRACKING) {
-            eventProcessingConfigurer.registerTrackingEventProcessor(KafkaEventPublisher.PROCESSING_GROUP);
+            eventProcessingConfigurer.registerTrackingEventProcessor(KafkaEventPublisher.DEFAULT_PROCESSING_GROUP);
         } else {
             throw new AxonConfigurationException("Unknown Event Processor Mode [" + processorMode + "] detected");
         }
