@@ -13,7 +13,7 @@ There are different ways in which you can contribute to the framework:
      fit it in the framework. Please make sure code is properly documented using javadoc. This helps us to understand
      what is going on.
   1. If you know of any other way you think you can help us, do not hesitate to send a message to the
-     [Axon Framework mailing list](axonframework@googlegroups.com).
+     [Axon Framework mailing list](https://groups.google.com/forum/#!forum/axonframework).
 
 ## Code contributions
 
@@ -33,8 +33,7 @@ We're trying very hard to maintain a consistent style of coding throughout the c
 indenting using 4 spaces, putting opening brackets (the '{') on the same line and putting proper Javadoc on all
 non-private members.
 
-If you're using IntelliJ IDEA, you can download the code style definition from
-http://www.axonframework.org/axon_code_style.xml. Simply copy the file to ~/.IntelliJIdea13/config/codestyles. After
-(re)starting IntelliJ, you can pick this code style from the project settings.
-
-
+If you're using IntelliJ IDEA, you can retrieve the code style definition 
+[here](https://github.com/AxonFramework/AxonFramework/blob/master/axon_code_style.xml). 
+Simply copy the file to `~/.IntelliJIdea{insert-version}/config/codestyles` or import it through IntelliJ IDEA's Settings. 
+After (re)starting IntelliJ, you can pick this code style from the project settings.
