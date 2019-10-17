@@ -18,13 +18,9 @@ package org.axonframework.extensions.kafka.eventhandling.consumer;
 
 import org.apache.kafka.common.TopicPartition;
 import org.assertj.core.util.Lists;
-import org.junit.*;
+import org.junit.Test;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toSet;
@@ -194,12 +190,46 @@ public class KafkaTrackingTokenTest {
         assertThat(first.lowerBound(second)).isEqualTo(expected);
     }
 
+    @Test
+    public void testCoversRegression() {
+        KafkaTrackingToken first = KafkaTrackingToken.newInstance(Collections.singletonMap(1, 2L));
+        KafkaTrackingToken second = KafkaTrackingToken.newInstance(Collections.singletonMap(0, 1L));
+
+        assertThat(first.covers(second)).isFalse();
+    }
+
+    @Test
+    public void testRelationOfCoversAndUpperBounds() {
+        Random random = new Random();
+        for (int i = 0; i <= 10; i++) {
+            Map<Integer, Long> firstPartitionPositions = new HashMap<>();
+            firstPartitionPositions.put(random.nextInt(2), (long) random.nextInt(4) + 1);
+            firstPartitionPositions.put(random.nextInt(2), (long) random.nextInt(4) + 1);
+            KafkaTrackingToken first = KafkaTrackingToken.newInstance(firstPartitionPositions);
+
+            Map<Integer, Long> secondPartitionPositions = new HashMap<>();
+            secondPartitionPositions.put(random.nextInt(2), (long) random.nextInt(4) + 1);
+            secondPartitionPositions.put(random.nextInt(2), (long) random.nextInt(4) + 1);
+            KafkaTrackingToken second = KafkaTrackingToken.newInstance(secondPartitionPositions);
+
+            if (first.upperBound(second).equals(first)) {
+                assertThat(first.covers(second))
+                        .withFailMessage("The upper bound of first(%s) and second(%s) is not first, so first shouldn't cover second", first, second)
+                        .isTrue();
+            } else {
+                assertThat(first.covers(second))
+                        .withFailMessage("The upper bound of first(%s) and second(%s) is not first, so first shouldn't cover second", first, second)
+                        .isFalse();
+            }
+        }
+    }
+
     private static KafkaTrackingToken nonEmptyToken() {
         return KafkaTrackingToken.newInstance(Collections.singletonMap(0, 0L));
     }
 
     private static void assertKnownEventIds(KafkaTrackingToken token, Integer... expectedKnownIds) {
         assertEquals(Stream.of(expectedKnownIds).collect(toSet()),
-                     new HashSet<>(token.partitionPositions().keySet()));
+                new HashSet<>(token.partitionPositions().keySet()));
     }
 }

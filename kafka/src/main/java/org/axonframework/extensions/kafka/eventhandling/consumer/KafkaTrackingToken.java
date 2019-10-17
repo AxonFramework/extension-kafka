@@ -24,7 +24,6 @@ import org.axonframework.eventhandling.TrackingToken;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -164,19 +163,9 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
         isTrue(other instanceof KafkaTrackingToken, () -> "Incompatible token type provided.");
         KafkaTrackingToken otherToken = (KafkaTrackingToken) other;
 
-        long oldestPartition = this.partitionPositions()
-                                   .values()
-                                   .stream()
-                                   .min(Comparator.naturalOrder())
-                                   .orElse(0L);
-
-        return otherToken.partitionPositions()
-                         .keySet()
-                         .stream()
-                         .allMatch(
-                                 partitionNumber -> this.partitionPositions().containsKey(partitionNumber)
-                                         || otherToken.partitionPositions().get(partitionNumber) < oldestPartition
-                         );
+        return otherToken.partitionPositions
+                         .entrySet().stream()
+                         .allMatch(position -> position.getValue() <= this.partitionPositions.getOrDefault(position.getKey(), -1L));
     }
 
     /**
