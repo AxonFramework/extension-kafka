@@ -64,14 +64,14 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
     private static final Logger logger = LoggerFactory.getLogger(DefaultProducerFactory.class);
 
     private final Duration closeTimeout;
-    private final BlockingQueue<CloseLazyProducer<K, V>> cache;
+    private final BlockingQueue<PoolableProducer<K, V>> cache;
     private final Map<String, Object> configuration;
     private final ConfirmationMode confirmationMode;
     private final String transactionIdPrefix;
 
     private final AtomicInteger transactionIdSuffix;
 
-    private volatile CloseLazyProducer<K, V> producer;
+    private volatile ShareableProducer<K, V> nonTransactionalProducer;
 
     /**
      * Instantiate a {@link DefaultProducerFactory} based on the fields contained in the {@link Builder}.
@@ -114,15 +114,15 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
             return createTransactionalProducer();
         }
 
-        if (this.producer == null) {
+        if (this.nonTransactionalProducer == null) {
             synchronized (this) {
-                if (this.producer == null) {
-                    this.producer = new CloseLazyProducer<>(createKafkaProducer(configuration), cache, closeTimeout);
+                if (this.nonTransactionalProducer == null) {
+                    this.nonTransactionalProducer = new ShareableProducer<>(createKafkaProducer(configuration));
                 }
             }
         }
 
-        return this.producer;
+        return this.nonTransactionalProducer;
     }
 
     @Override
@@ -151,8 +151,8 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
 
     @Override
     public void shutDown() {
-        CloseLazyProducer<K, V> producer = this.producer;
-        this.producer = null;
+        ProducerDecorator<K, V> producer = this.nonTransactionalProducer;
+        this.nonTransactionalProducer = null;
         if (producer != null) {
             producer.delegate.close(this.closeTimeout);
         }
@@ -175,7 +175,7 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
         Map<String, Object> configs = new HashMap<>(this.configuration);
         configs.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG,
                     this.transactionIdPrefix + this.transactionIdSuffix.getAndIncrement());
-        producer = new CloseLazyProducer<>(createKafkaProducer(configs), cache, closeTimeout);
+        producer = new PoolableProducer<>(createKafkaProducer(configs), cache, closeTimeout);
         producer.initTransactions();
         return producer;
     }
@@ -184,18 +184,19 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
         return new KafkaProducer<>(configs);
     }
 
-    private static final class CloseLazyProducer<K, V> implements Producer<K, V> {
+    /**
+     * Abstract base class to apply the decorator pattern to a Kafka {@link Producer}. Implements all methods in the {@link Producer} interface by calling the
+     * wrapped delegate. Subclasses can override any of the methods to add their specific behaviour.
+     *
+     * @param <K> record key type
+     * @param <V> record value type
+     */
+    private abstract static class ProducerDecorator<K, V> implements Producer<K, V> {
 
         private final Producer<K, V> delegate;
-        private final BlockingQueue<CloseLazyProducer<K, V>> cache;
-        private final Duration closeTimeout;
 
-        CloseLazyProducer(Producer<K, V> delegate,
-                          BlockingQueue<CloseLazyProducer<K, V>> cache,
-                          Duration closeTimeout) {
+        ProducerDecorator(Producer<K, V> delegate) {
             this.delegate = delegate;
-            this.cache = cache;
-            this.closeTimeout = closeTimeout;
         }
 
         @Override
@@ -251,20 +252,74 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
 
         @Override
         public void close() {
-            close(closeTimeout);
+            this.delegate.close();
         }
 
         @Override
-        public void close(Duration duration) {
-            boolean isAdded = this.cache.offer(this);
-            if (!isAdded) {
-                this.delegate.close(duration);
-            }
+        public void close(Duration timeout) {
+            this.delegate.close(timeout);
         }
 
         @Override
         public String toString() {
-            return "CloseLazyProducer [delegate=" + this.delegate + "]";
+            return this.getClass().getSimpleName() + " [delegate=" + this.delegate + "]";
+        }
+    }
+
+    /**
+     * A decorator for a Kafka {@link Producer} that returns itself to an instance pool when {@link #close()} is called instead of actually closing the wrapped
+     * {@link Producer}. If the pool is already full (i.e. has the configured amount of idle producers), the wrapped producer is closed instead.
+     *
+     * @param <K> record key type
+     * @param <V> record value type
+     */
+    private static final class PoolableProducer<K, V> extends ProducerDecorator<K, V> {
+
+        private final BlockingQueue<PoolableProducer<K, V>> pool;
+        private final Duration closeTimeout;
+
+        PoolableProducer(Producer<K, V> delegate,
+                         BlockingQueue<PoolableProducer<K, V>> pool,
+                         Duration closeTimeout) {
+            super(delegate);
+            this.pool = pool;
+            this.closeTimeout = closeTimeout;
+        }
+
+        @Override
+        public void close() {
+            close(closeTimeout);
+        }
+
+        @Override
+        public void close(Duration timeout) {
+            boolean isAdded = this.pool.offer(this);
+            if (!isAdded) {
+                super.close(timeout);
+            }
+        }
+    }
+
+    /**
+     * A decorator for a Kafka {@link Producer} that ignores any calls to {@link #close()} so it can be reused and closed by any number of clients.
+     *
+     * @param <K> record key type
+     * @param <V> record value type
+     */
+    private static final class ShareableProducer<K, V> extends ProducerDecorator<K, V> {
+
+        ShareableProducer(Producer<K, V> delegate) {
+            super(delegate);
+        }
+
+        @Override
+        public void close() {
+            // Do nothing
+        }
+
+        @Override
+        public void close(Duration timeout) {
+            // Do nothing
         }
     }
 

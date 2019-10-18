@@ -135,9 +135,12 @@ public class DefaultProducerFactoryTest {
         String testTopic = "testSendingMessagesUsingMultipleProducers";
 
         List<Future<RecordMetadata>> results = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
+        // The reason we are looping 12 times is a bug we used to have where the (producerCacheSize + 2)-th send failed because the producer was closed.
+        // To avoid regression, we keep the test like this.
+        for (int i = 0; i < 12; i++) {
             Producer<String, String> producer = producerFactory.createProducer();
             results.add(send(producer, testTopic, "foo" + i));
+            producer.close();
             testProducers.add(producer);
         }
         assertOffsets(results);
