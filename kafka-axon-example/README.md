@@ -12,7 +12,7 @@ You will need `docker` and `docker-compose` to run this example.
 Please run:
 
 ```bash 
-docker-compose -f ./kafka-axon-example/docker-compose.yaml up
+docker-compose -f ./kafka-axon-example/docker-compose.yaml up -d
 ```
 
 This will start Kafka, Zookeeper,
