@@ -20,7 +20,6 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.axonframework.common.AxonConfigurationException;
-import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
 import org.junit.*;
 import org.junit.runner.*;
@@ -34,11 +33,13 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.minimal;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.producerFactory;
+import static org.mockito.Mockito.*;
 
 /**
- * Tests for the {@link DefaultProducerFactory}.
+ * Tests for the {@link DefaultConsumerFactory}, asserting construction and utilization of the class.
  *
  * @author Nakul Mishra
  * @author Steven van Beelen
@@ -52,6 +53,21 @@ public class DefaultConsumerFactoryTest {
     @Autowired
     private EmbeddedKafkaBroker kafkaBroker;
 
+    private ProducerFactory<String, String> producerFactory;
+    private Consumer<?, ?> testConsumer;
+
+    @Before
+    public void setUp() {
+        producerFactory = producerFactory(kafkaBroker);
+        testConsumer = mock(Consumer.class);
+    }
+
+    @After
+    public void tearDown() {
+        producerFactory.shutDown();
+        testConsumer.close();
+    }
+
     @Test(expected = AxonConfigurationException.class)
     public void testCreateConsumerInvalidConfig() {
         new DefaultConsumerFactory<>(null);
@@ -59,18 +75,16 @@ public class DefaultConsumerFactoryTest {
 
     @Test
     public void testCreatedConsumerValidConfigCanCommunicateToKafka() {
-        String topic = "testCreatedConsumer_ValidConfig_CanCommunicateToKafka";
-        ProducerFactory<String, String> pf = producerFactory(kafkaBroker);
-        Producer<String, String> producer = pf.createProducer();
-        producer.send(new ProducerRecord<>(topic, 0, null, null, "foo"));
-        producer.flush();
-        DefaultConsumerFactory<Object, Object> testSubject = new DefaultConsumerFactory<>(minimal(kafkaBroker, topic));
-        Consumer<Object, Object> consumer = testSubject.createConsumer();
-        consumer.subscribe(Collections.singleton(topic));
+        String testTopic = "testCreatedConsumer_ValidConfig_CanCommunicateToKafka";
 
-        assertThat(KafkaTestUtils.getRecords(consumer).count()).isOne();
+        Producer<String, String> testProducer = producerFactory.createProducer();
+        testProducer.send(new ProducerRecord<>(testTopic, 0, null, null, "foo"));
+        testProducer.flush();
 
-        consumer.close();
-        pf.shutDown();
+        ConsumerFactory<?, ?> testSubject = new DefaultConsumerFactory<>(minimal(kafkaBroker));
+        testConsumer = testSubject.createConsumer(DEFAULT_GROUP_ID);
+        testConsumer.subscribe(Collections.singleton(testTopic));
+
+        assertThat(KafkaTestUtils.getRecords(testConsumer).count()).isOne();
     }
 }

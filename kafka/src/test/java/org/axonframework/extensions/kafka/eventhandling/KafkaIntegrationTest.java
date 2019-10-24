@@ -82,7 +82,7 @@ public class KafkaIntegrationTest {
         );
 
         ConsumerFactory<String, byte[]> consumerFactory =
-                new DefaultConsumerFactory<>(minimal(kafkaBroker, "consumer1", ByteArrayDeserializer.class));
+                new DefaultConsumerFactory<>(minimal(kafkaBroker, ByteArrayDeserializer.class));
 
         fetcher = AsyncFetcher.<String, byte[]>builder()
                 .consumerFactory(consumerFactory)

@@ -72,7 +72,7 @@ public class AsyncFetcherTest {
     private static ConsumerFactory<String, String> mockConsumerFactory(String topic) {
         ConsumerFactory<String, String> consumerFactory = mock(ConsumerFactory.class);
         Consumer<String, String> consumer = mock(Consumer.class);
-        when(consumerFactory.createConsumer()).thenReturn(consumer);
+        when(consumerFactory.createConsumer(DEFAULT_GROUP_ID)).thenReturn(consumer);
 
         int partition = 0;
         Map<TopicPartition, List<ConsumerRecord<String, String>>> record = new HashMap<>();
