@@ -25,38 +25,38 @@ import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConf
 import static org.mockito.Mockito.*;
 
 /**
- * Tests for {@link KafkaMessageSource}, asserting construction and utilization of the class.
+ * Tests for {@link StreamableKafkaMessageSource}, asserting construction and utilization of the class.
  *
  * @author Nakul Mishra
  * @author Steven van Beelen
  */
-public class KafkaMessageSourceTest {
+public class StreamableKafkaMessageSourceTest {
 
     private Fetcher fetcher = mock(Fetcher.class);
 
-    private KafkaMessageSource testSubject;
+    private StreamableKafkaMessageSource testSubject;
 
     @Before
     public void setUp() {
-        testSubject = KafkaMessageSource.builder()
-                                        .fetcher(fetcher)
-                                        .groupId(DEFAULT_GROUP_ID)
-                                        .build();
+        testSubject = StreamableKafkaMessageSource.builder()
+                                                  .fetcher(fetcher)
+                                                  .groupId(DEFAULT_GROUP_ID)
+                                                  .build();
     }
 
     @Test(expected = AxonConfigurationException.class)
     public void testBuildingStreamableKafkaMessageSourceMissingRequiredFieldsShouldThrowAxonConfigurationException() {
-        KafkaMessageSource.builder().build();
+        StreamableKafkaMessageSource.builder().build();
     }
 
     @Test(expected = AxonConfigurationException.class)
     public void testBuildingStreamableKafkaMessageSourceUsingInvalidFetcherShouldThrowAxonConfigurationException() {
-        KafkaMessageSource.builder().fetcher(null);
+        StreamableKafkaMessageSource.builder().fetcher(null);
     }
 
     @Test(expected = AxonConfigurationException.class)
     public void testBuildingStreamableKafkaMessageSourceUsingInvalidGroupIdShouldThrowAxonConfigurationException() {
-        KafkaMessageSource.builder().groupId(null);
+        StreamableKafkaMessageSource.builder().groupId(null);
     }
 
     @Test(expected = IllegalArgumentException.class)

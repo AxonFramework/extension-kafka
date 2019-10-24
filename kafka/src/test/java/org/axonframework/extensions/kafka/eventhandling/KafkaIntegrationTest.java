@@ -27,7 +27,7 @@ import org.axonframework.extensions.kafka.eventhandling.consumer.AsyncFetcher;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
-import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaMessageSource;
+import org.axonframework.extensions.kafka.eventhandling.consumer.StreamableKafkaMessageSource;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
@@ -105,10 +105,10 @@ public class KafkaIntegrationTest {
 
     @Test
     public void testPublishAndReadMessages() throws Exception {
-        KafkaMessageSource messageSource = KafkaMessageSource.builder()
-                                                             .fetcher(fetcher)
-                                                             .groupId(DEFAULT_GROUP_ID)
-                                                             .build();
+        StreamableKafkaMessageSource messageSource = StreamableKafkaMessageSource.builder()
+                                                                                 .fetcher(fetcher)
+                                                                                 .groupId(DEFAULT_GROUP_ID)
+                                                                                 .build();
         BlockingStream<TrackedEventMessage<?>> stream1 = messageSource.openStream(null);
         stream1.close();
         BlockingStream<TrackedEventMessage<?>> stream2 = messageSource.openStream(null);

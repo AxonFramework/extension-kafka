@@ -36,32 +36,32 @@ import static org.axonframework.common.BuilderUtils.assertThat;
  * @author Steven van Beelen
  * @since 4.0
  */
-public class KafkaMessageSource implements StreamableMessageSource<TrackedEventMessage<?>> {
+public class StreamableKafkaMessageSource implements StreamableMessageSource<TrackedEventMessage<?>> {
 
     private final Fetcher fetcher;
     private final String groupId;
 
     /**
-     * Instantiate a Builder to be able to create a {@link KafkaMessageSource}.
+     * Instantiate a Builder to be able to create a {@link StreamableKafkaMessageSource}.
      * <p>
      * The {@link Fetcher} and {@code groupId} are <b>hard requirements</b> and as such should be provided.
      *
-     * @return a Builder to be able to create an {@link KafkaMessageSource}
+     * @return a Builder to be able to create an {@link StreamableKafkaMessageSource}
      */
     public static Builder builder() {
         return new Builder();
     }
 
     /**
-     * Instantiate a {@link KafkaMessageSource} based on the fields contained in the {@link Builder}.
+     * Instantiate a {@link StreamableKafkaMessageSource} based on the fields contained in the {@link Builder}.
      * <p>
      * Will assert that the {@link Fetcher} is not {@code null} and that the {@code groupId} is a non-empty {@link
      * String}. An {@link AxonConfigurationException} is thrown if either of both is not the case.
      *
-     * @param builder the {@link Builder} used to instantiate a {@link KafkaMessageSource} instance
+     * @param builder the {@link Builder} used to instantiate a {@link StreamableKafkaMessageSource} instance
      */
     @SuppressWarnings("WeakerAccess")
-    protected KafkaMessageSource(Builder builder) {
+    protected StreamableKafkaMessageSource(Builder builder) {
         builder.validate();
         this.fetcher = builder.fetcher;
         this.groupId = builder.groupId;
@@ -79,7 +79,7 @@ public class KafkaMessageSource implements StreamableMessageSource<TrackedEventM
     }
 
     /**
-     * Builder class to instantiate a {@link KafkaMessageSource}.
+     * Builder class to instantiate a {@link StreamableKafkaMessageSource}.
      * <p>
      * The {@link Fetcher} and {@code groupId} are <b>hard requirements</b> and as such should be provided.
      */
@@ -118,12 +118,12 @@ public class KafkaMessageSource implements StreamableMessageSource<TrackedEventM
         }
 
         /**
-         * Initializes a {@link KafkaMessageSource} as specified through this Builder.
+         * Initializes a {@link StreamableKafkaMessageSource} as specified through this Builder.
          *
-         * @return a {@link KafkaMessageSource} as specified through this Builder
+         * @return a {@link StreamableKafkaMessageSource} as specified through this Builder
          */
-        public KafkaMessageSource build() {
-            return new KafkaMessageSource(this);
+        public StreamableKafkaMessageSource build() {
+            return new StreamableKafkaMessageSource(this);
         }
 
         /**
