@@ -21,43 +21,61 @@ import org.axonframework.eventhandling.TrackingToken;
 import org.junit.*;
 
 import static org.axonframework.extensions.kafka.eventhandling.consumer.KafkaTrackingToken.emptyToken;
+import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.mockito.Mockito.*;
 
 /**
- * Tests for {@link KafkaMessageSource}.
+ * Tests for {@link KafkaMessageSource}, asserting construction and utilization of the class.
  *
  * @author Nakul Mishra
  * @author Steven van Beelen
  */
 public class KafkaMessageSourceTest {
 
+    private Fetcher fetcher = mock(Fetcher.class);
+
+    private KafkaMessageSource testSubject;
+
+    @Before
+    public void setUp() {
+        testSubject = KafkaMessageSource.builder()
+                                        .fetcher(fetcher)
+                                        .groupId(DEFAULT_GROUP_ID)
+                                        .build();
+    }
+
     @Test(expected = AxonConfigurationException.class)
-    public void testCreatingMessageSourceUsingInvalidFetcherShouldThrowException() {
-        new KafkaMessageSource(null);
+    public void testBuildingStreamableKafkaMessageSourceMissingRequiredFieldsShouldThrowAxonConfigurationException() {
+        KafkaMessageSource.builder().build();
+    }
+
+    @Test(expected = AxonConfigurationException.class)
+    public void testBuildingStreamableKafkaMessageSourceUsingInvalidFetcherShouldThrowAxonConfigurationException() {
+        KafkaMessageSource.builder().fetcher(null);
+    }
+
+    @Test(expected = AxonConfigurationException.class)
+    public void testBuildingStreamableKafkaMessageSourceUsingInvalidGroupIdShouldThrowAxonConfigurationException() {
+        KafkaMessageSource.builder().groupId(null);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testOpeningMessageStreamWithInvalidTypeOfTrackingTokenShouldThrowException() {
-        KafkaMessageSource testSubject = new KafkaMessageSource(fetcher());
         testSubject.openStream(incompatibleTokenType());
     }
 
     @Test
     public void testOpeningMessageStreamWithNullTokenShouldInvokeFetcher() {
-        Fetcher fetcher = fetcher();
-        KafkaMessageSource testSubject = new KafkaMessageSource(fetcher);
         testSubject.openStream(null);
 
-        verify(fetcher, times(1)).start(any());
+        verify(fetcher, times(1)).start(any(), eq(DEFAULT_GROUP_ID));
     }
 
     @Test
     public void testOpeningMessageStreamWithValidTokenShouldStartTheFetcher() {
-        Fetcher fetcher = fetcher();
-        KafkaMessageSource testSubject = new KafkaMessageSource(fetcher);
         testSubject.openStream(emptyToken());
 
-        verify(fetcher, times(1)).start(any());
+        verify(fetcher, times(1)).start(any(), eq(DEFAULT_GROUP_ID));
     }
 
     private static TrackingToken incompatibleTokenType() {
@@ -77,9 +95,5 @@ public class KafkaMessageSourceTest {
                 return false;
             }
         };
-    }
-
-    private static Fetcher fetcher() {
-        return mock(Fetcher.class);
     }
 }

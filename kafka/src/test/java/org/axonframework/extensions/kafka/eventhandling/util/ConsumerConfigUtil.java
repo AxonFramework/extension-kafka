@@ -32,7 +32,12 @@ import java.util.Map;
  */
 public abstract class ConsumerConfigUtil {
 
-    public ConsumerConfigUtil() {
+    /**
+     *
+     */
+    public static final String DEFAULT_GROUP_ID = "groupId";
+
+    private ConsumerConfigUtil() {
         // Utility class
     }
 
