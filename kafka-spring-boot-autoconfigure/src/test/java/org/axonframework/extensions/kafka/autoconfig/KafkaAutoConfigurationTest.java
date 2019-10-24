@@ -35,7 +35,6 @@ import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
-import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaMessageSource;
 import org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode;
 import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher;
@@ -78,8 +77,7 @@ public class KafkaAutoConfigurationTest {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
                           .withPropertyValues(
                                   "axon.kafka.default-topic=testTopic",
-                                  "axon.kafka.producer.transaction-id-prefix=foo",
-                                  "axon.kafka.consumer.group-id=bar"
+                                  "axon.kafka.producer.transaction-id-prefix=foo"
                           ).run(context -> {
             // Required bean assertions
             assertThat(context.getBeanNamesForType(ProducerFactory.class)).hasSize(1);
@@ -132,7 +130,6 @@ public class KafkaAutoConfigurationTest {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
                           .withPropertyValues(
                                   "axon.kafka.default-topic=testTopic",
-                                  "axon.kafka.consumer.group-id=bar",
                                   // Overrides 'axon.kafka.bootstrap-servers'
                                   "axon.kafka.bootstrap-servers=foo:1234",
                                   "axon.kafka.properties.foo=bar",
@@ -181,7 +178,6 @@ public class KafkaAutoConfigurationTest {
             assertThat(configs.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)).isEqualTo("earliest");
             assertThat(configs.get(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG)).isEqualTo(456);
             assertThat(configs.get(ConsumerConfig.FETCH_MIN_BYTES_CONFIG)).isEqualTo(789);
-            assertThat(configs.get(ConsumerConfig.GROUP_ID_CONFIG)).isEqualTo("bar");
             assertThat(configs.get(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG)).isEqualTo(234);
             assertThat(configs.get(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG)).isEqualTo(LongDeserializer.class);
             assertThat(configs.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG))
@@ -251,7 +247,6 @@ public class KafkaAutoConfigurationTest {
                                   // Minimal Required Properties
                                   "axon.kafka.default-topic=testTopic",
                                   "axon.kafka.producer.transaction-id-prefix=foo",
-                                  "axon.kafka.consumer.group-id=bar",
                                   // Event Handling Mode
                                   "axon.kafka.event-processor-mode=TRACKING"
                           ).run(context -> {
@@ -277,7 +272,6 @@ public class KafkaAutoConfigurationTest {
                                   // Minimal Required Properties
                                   "axon.kafka.default-topic=testTopic",
                                   "axon.kafka.producer.transaction-id-prefix=foo",
-                                  "axon.kafka.consumer.group-id=bar",
                                   // Event Handling Mode
                                   "axon.kafka.event-processor-mode=SUBSCRIBING"
                           ).run(context -> {

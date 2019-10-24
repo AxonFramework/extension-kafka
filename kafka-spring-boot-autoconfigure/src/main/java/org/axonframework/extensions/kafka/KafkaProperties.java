@@ -70,8 +70,7 @@ import java.util.Map;
 public class KafkaProperties {
 
     /**
-     * Comma-delimited list of host:port pairs to use for establishing the initial
-     * connection to the Kafka cluster.
+     * Comma-delimited list of host:port pairs to use for establishing the initial connection to the Kafka cluster.
      */
     private List<String> bootstrapServers = new ArrayList<>(Collections.singletonList("localhost:9092"));
 
@@ -88,8 +87,7 @@ public class KafkaProperties {
     /**
      * Controls the mode of event processor responsible for sending messages to Kafka.
      * <p>
-     * Depending on this, different error handling behaviours are taken in case of
-     * any errors during Kafka publishing.
+     * Depending on this, different error handling behaviours are taken in case of any errors during Kafka publishing.
      * </p>
      * <p>
      * Possible values are "SUBSCRIBING" (default) and "TRACKING".
@@ -248,7 +246,8 @@ public class KafkaProperties {
         private final Ssl ssl = new Ssl();
 
         /**
-         * Frequency in milliseconds that the consumer offsets are auto-committed to Kafka if 'enable.auto.commit' true.
+         * Frequency in milliseconds that the consumer offsets are auto-committed to Kafka if 'enable.auto.commit'
+         * true.
          */
         private Integer autoCommitInterval;
 
@@ -283,11 +282,6 @@ public class KafkaProperties {
          * Minimum amount of data the server should return for a fetch request in bytes.
          */
         private Integer fetchMinSize;
-
-        /**
-         * Unique string that identifies the consumer group this consumer belongs to.
-         */
-        private String groupId;
 
         /**
          * Expected time in milliseconds between heartbeats to the consumer coordinator.
@@ -374,14 +368,6 @@ public class KafkaProperties {
             this.fetchMinSize = fetchMinSize;
         }
 
-        public String getGroupId() {
-            return this.groupId;
-        }
-
-        public void setGroupId(String groupId) {
-            this.groupId = groupId;
-        }
-
         public Integer getHeartbeatInterval() {
             return this.heartbeatInterval;
         }
@@ -442,9 +428,6 @@ public class KafkaProperties {
             if (this.fetchMinSize != null) {
                 properties.put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, this.fetchMinSize);
             }
-            if (this.groupId != null) {
-                properties.put(ConsumerConfig.GROUP_ID_CONFIG, this.groupId);
-            }
             if (this.heartbeatInterval != null) {
                 properties.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, this.heartbeatInterval);
             }
@@ -503,9 +486,9 @@ public class KafkaProperties {
     public static class Fetcher {
 
         /**
-         * The time, in milliseconds, spent waiting in poll if data is not available in the buffer.
-         * If 0, returns immediately with any records that are available currently in the buffer, else returns empty.
-         * Must not be negative.
+         * The time, in milliseconds, spent waiting in poll if data is not available in the buffer. If 0, returns
+         * immediately with any records that are available currently in the buffer, else returns empty. Must not be
+         * negative.
          *
          * @see KafkaConsumer#poll(Duration)
          */
