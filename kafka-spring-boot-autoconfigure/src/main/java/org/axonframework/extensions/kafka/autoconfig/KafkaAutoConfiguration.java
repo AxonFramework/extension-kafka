@@ -26,7 +26,6 @@ import org.axonframework.extensions.kafka.eventhandling.consumer.AsyncFetcher;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
-import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaMessageSource;
 import org.axonframework.extensions.kafka.eventhandling.consumer.SortedKafkaMessageBuffer;
 import org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode;
 import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducerFactory;
@@ -144,7 +143,6 @@ public class KafkaAutoConfiguration {
 
     @Bean("axonKafkaConsumerFactory")
     @ConditionalOnMissingBean
-    @ConditionalOnProperty("axon.kafka.consumer.group-id")
     public ConsumerFactory<String, byte[]> kafkaConsumerFactory() {
         return new DefaultConsumerFactory<>(properties.buildConsumerProperties());
     }
@@ -161,12 +159,5 @@ public class KafkaAutoConfiguration {
                 .topic(properties.getDefaultTopic())
                 .pollTimeout(properties.getFetcher().getPollTimeout())
                 .build();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnBean(ConsumerFactory.class)
-    public KafkaMessageSource kafkaMessageSource(Fetcher kafkaFetcher) {
-        return new KafkaMessageSource(kafkaFetcher);
     }
 }

@@ -86,7 +86,6 @@ public class KafkaAutoConfigurationTest {
             assertThat(context.getBeanNamesForType(ConsumerFactory.class)).hasSize(1);
             assertThat(context.getBeanNamesForType(KafkaPublisher.class)).hasSize(1);
             assertThat(context.getBeanNamesForType(Fetcher.class)).hasSize(1);
-            assertThat(context.getBeanNamesForType(KafkaMessageSource.class)).hasSize(1);
             assertThat(context.getBeanNamesForType(KafkaMessageConverter.class)).hasSize(1);
 
             // Producer assertions
@@ -120,7 +119,6 @@ public class KafkaAutoConfigurationTest {
             assertThat(consumerConfigs.get(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG)).isNull();
             assertThat(consumerConfigs.get(ConsumerConfig.FETCH_MIN_BYTES_CONFIG)).isNull();
             assertThat(consumerConfigs.get(ConsumerConfig.MAX_POLL_RECORDS_CONFIG)).isNull();
-            assertThat(consumerConfigs.get(ConsumerConfig.GROUP_ID_CONFIG)).isEqualTo("bar");
             assertThat(consumerConfigs.get(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG)).isNull();
             assertThat(consumerConfigs.get(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG))
                     .isEqualTo(StringDeserializer.class);
@@ -162,7 +160,6 @@ public class KafkaAutoConfigurationTest {
             // Required bean assertions
             assertThat(context.getBeanNamesForType(ConsumerFactory.class)).hasSize(1);
             assertThat(context.getBeanNamesForType(Fetcher.class)).hasSize(1);
-            assertThat(context.getBeanNamesForType(KafkaMessageSource.class)).hasSize(1);
             assertThat(context.getBeanNamesForType(KafkaMessageConverter.class)).hasSize(1);
 
             // Consumer assertions
