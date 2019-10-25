@@ -33,7 +33,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import static org.axonframework.common.BuilderUtils.assertNonNull;
@@ -42,8 +41,8 @@ import static org.axonframework.common.BuilderUtils.assertThat;
 /**
  * Async implementation of the {@link Fetcher} that uses an in-memory buffer factory.
  *
- * @param <K> the key of the Kafka entries
- * @param <V> the value type of Kafka entries
+ * @param <K> the key of the Kafka {@link org.apache.kafka.clients.consumer.ConsumerRecords}
+ * @param <V> the value type of Kafka {@link org.apache.kafka.clients.consumer.ConsumerRecords}
  * @author Nakul Mishra
  * @author Steven van Beelen
  * @since 4.0
@@ -55,7 +54,6 @@ public class AsyncFetcher<K, V> implements Fetcher {
     private final Supplier<Buffer<KafkaEventMessage>> bufferFactory;
     private final Duration pollTimeout;
     private final KafkaMessageConverter<K, V> messageConverter;
-    private final BiFunction<ConsumerRecord<K, V>, KafkaTrackingToken, Void> consumerRecordCallback;
     private final ExecutorService executorService;
     private final boolean requirePoolShutdown;
 
@@ -66,9 +64,9 @@ public class AsyncFetcher<K, V> implements Fetcher {
      * <p>
      * The {@code bufferFactory} is defaulted to an {@link SortedKafkaMessageBuffer}, the {@link ExecutorService} to an
      * {@link Executors#newCachedThreadPool()} using an {@link AxonThreadFactory}, the {@link KafkaMessageConverter} to
-     * a {@link DefaultKafkaMessageConverter}, the {@code topic} to {@code "Axon.Events"}, the {@code
-     * consumerRecordCallback} to a no-op function and the {@code pollTimeout} to a {@link Duration} of {@code 5000}
-     * milliseconds. The {@link ConsumerFactory} is a <b>hard requirement</b> and as such should be provided.
+     * a {@link DefaultKafkaMessageConverter}, the {@code topic} to {@code "Axon.Events"} and the {@code pollTimeout} to
+     * a {@link Duration} of {@code 5000} milliseconds. The {@link ConsumerFactory} is a <b>hard requirement</b> and as
+     * such should be provided.
      *
      * @param <K> a generic type for the key of the {@link ConsumerFactory}, {@link ConsumerRecord} and {@link
      *            KafkaMessageConverter}
@@ -96,7 +94,6 @@ public class AsyncFetcher<K, V> implements Fetcher {
         this.bufferFactory = builder.bufferFactory;
         this.pollTimeout = builder.pollTimeout;
         this.messageConverter = builder.messageConverter;
-        this.consumerRecordCallback = builder.consumerRecordCallback;
         this.executorService = builder.executorService;
         this.requirePoolShutdown = builder.requirePoolShutdown;
     }
@@ -111,9 +108,8 @@ public class AsyncFetcher<K, V> implements Fetcher {
         }
 
         Buffer<KafkaEventMessage> buffer = bufferFactory.get();
-        FetchEventsTask<K, V> fetcherTask = new FetchEventsTask<>(
-                consumer, pollTimeout, messageConverter, buffer, consumerRecordCallback, activeFetchers::remove, token
-        );
+        FetchEventsTask<K, V> fetcherTask =
+                new FetchEventsTask<>(consumer, pollTimeout, messageConverter, buffer, activeFetchers::remove, token);
         activeFetchers.add(fetcherTask);
         executorService.execute(fetcherTask);
 
@@ -133,9 +129,9 @@ public class AsyncFetcher<K, V> implements Fetcher {
      * <p>
      * The {@code bufferFactory} is defaulted to an {@link SortedKafkaMessageBuffer}, the {@link ExecutorService} to an
      * {@link Executors#newCachedThreadPool()} using an {@link AxonThreadFactory}, the {@link KafkaMessageConverter} to
-     * a {@link DefaultKafkaMessageConverter}, the {@code topic} to {@code "Axon.Events"}, the {@code
-     * consumerRecordCallback} to a no-op function and the {@code pollTimeout} to a {@link Duration} of {@code 5000}
-     * milliseconds. The {@link ConsumerFactory} is a <b>hard requirement</b> and as such should be provided.
+     * a {@link DefaultKafkaMessageConverter}, the {@code topic} to {@code "Axon.Events"} and the {@code pollTimeout} to
+     * a {@link Duration} of {@code 5000} milliseconds. The {@link ConsumerFactory} is a <b>hard requirement</b> and as
+     * such should be provided.
      *
      * @param <K> a generic type for the key of the {@link ConsumerFactory}, {@link ConsumerRecord} and {@link
      *            KafkaMessageConverter}
@@ -153,7 +149,6 @@ public class AsyncFetcher<K, V> implements Fetcher {
                 (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder().serializer(
                         XStreamSerializer.builder().build()
                 ).build();
-        private BiFunction<ConsumerRecord<K, V>, KafkaTrackingToken, Void> consumerRecordCallback = (r, t) -> null;
         private ExecutorService executorService =
                 Executors.newCachedThreadPool(new AxonThreadFactory("AsyncFetcher-pool-thread"));
         private boolean requirePoolShutdown = true;
@@ -245,22 +240,6 @@ public class AsyncFetcher<K, V> implements Fetcher {
         public Builder<K, V> messageConverter(KafkaMessageConverter<K, V> messageConverter) {
             assertNonNull(messageConverter, "MessageConverter may not be null");
             this.messageConverter = messageConverter;
-            return this;
-        }
-
-        /**
-         * Sets the {@code consumerRecordCallback} {@link BiFunction} used to invoke once a {@link ConsumerRecord} is
-         * inserted into the {@link Buffer}. Defaults to a no-op function.
-         *
-         * @param consumerRecordCallback a {@code consumerRecordCallback} {@link BiFunction} used to invoke once a
-         *                               {@link ConsumerRecord} is inserted into the {@link Buffer}
-         * @return the current Builder instance, for fluent interfacing
-         */
-        @SuppressWarnings("WeakerAccess")
-        public Builder<K, V> consumerRecordCallback(
-                BiFunction<ConsumerRecord<K, V>, KafkaTrackingToken, Void> consumerRecordCallback) {
-            assertNonNull(consumerRecordCallback, "The ConsumerRecord callback may not be null");
-            this.consumerRecordCallback = consumerRecordCallback;
             return this;
         }
 

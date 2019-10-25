@@ -22,8 +22,6 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.axonframework.common.AxonConfigurationException;
-import org.axonframework.eventhandling.EventMessage;
-import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
 import org.junit.*;
 import org.junit.runner.*;
@@ -34,17 +32,15 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
-import java.util.function.BiFunction;
 
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage;
 import static org.axonframework.extensions.kafka.eventhandling.consumer.AsyncFetcher.builder;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.consumerFactory;
@@ -66,25 +62,6 @@ public class AsyncFetcherTest {
     @Autowired
     private EmbeddedKafkaBroker kafkaBroker;
 
-    private volatile KafkaTrackingToken currentToken;
-
-    @SuppressWarnings("unchecked")
-    private static ConsumerFactory<String, String> mockConsumerFactory(String topic) {
-        ConsumerFactory<String, String> consumerFactory = mock(ConsumerFactory.class);
-        Consumer<String, String> consumer = mock(Consumer.class);
-        when(consumerFactory.createConsumer(DEFAULT_GROUP_ID)).thenReturn(consumer);
-
-        int partition = 0;
-        Map<TopicPartition, List<ConsumerRecord<String, String>>> record = new HashMap<>();
-        record.put(new TopicPartition(topic, partition), Collections.singletonList(new ConsumerRecord<>(
-                topic, partition, 0, null, "hello"
-        )));
-        ConsumerRecords<String, String> records = new ConsumerRecords<>(record);
-        when(consumer.poll(any(Duration.class))).thenReturn(records);
-
-        return consumerFactory;
-    }
-
     @Test(expected = AxonConfigurationException.class)
     public void testBuilderCreationInvalidTopic() {
         builder().consumerFactory(new HashMap<>()).topic(null).build();
@@ -105,44 +82,53 @@ public class AsyncFetcherTest {
         builder().consumerFactory(new HashMap<>()).bufferFactory(null);
     }
 
-    @Test
+    @Test(timeout = 2500)
     public void testStartFetcherWithNullTokenShouldStartFromBeginning() throws InterruptedException {
-        KafkaTrackingToken expectedToken = KafkaTrackingToken.newInstance(Collections.singletonMap(0, 0L));
-        CountDownLatch messageCounter = new CountDownLatch(1);
+        int expectedNumberOfMessages = 1;
+        CountDownLatch messageCounter = new CountDownLatch(expectedNumberOfMessages);
 
-        SortedKafkaMessageBuffer<KafkaEventMessage> testBuffer = new SortedKafkaMessageBuffer<>(1);
+        SortedKafkaMessageBuffer<KafkaEventMessage> testBuffer =
+                new LatchedSortedKafkaMessageBuffer<>(expectedNumberOfMessages, messageCounter);
+
         String testTopic = "foo";
         Fetcher testSubject = AsyncFetcher.<String, String>builder()
                 .consumerFactory(mockConsumerFactory(testTopic))
                 .bufferFactory(() -> testBuffer)
                 .executorService(newSingleThreadExecutor())
-                .messageConverter(new ValueConverter())
+                .messageConverter(new ConsumerRecordConverter())
                 .topic(testTopic)
-                .consumerRecordCallback(countMessage(messageCounter))
-                .pollTimeout(3000)
                 .build();
 
         testSubject.start(null, DEFAULT_GROUP_ID);
 
         messageCounter.await();
 
-        assertThat(testBuffer.size()).isOne();
-        assertThat(currentToken).isEqualTo(expectedToken);
+        assertThat(testBuffer.size()).isEqualTo(expectedNumberOfMessages);
 
         testSubject.shutdown();
     }
 
-    @Test
+    @SuppressWarnings("unchecked")
+    private static ConsumerFactory<String, String> mockConsumerFactory(String topic) {
+        ConsumerFactory<String, String> consumerFactory = mock(ConsumerFactory.class);
+        Consumer<String, String> consumer = mock(Consumer.class);
+        when(consumerFactory.createConsumer(DEFAULT_GROUP_ID)).thenReturn(consumer);
+
+        int partition = 0;
+        Map<TopicPartition, List<ConsumerRecord<String, String>>> record = new HashMap<>();
+        record.put(new TopicPartition(topic, partition), Collections.singletonList(new ConsumerRecord<>(
+                topic, partition, 0, null, "hello"
+        )));
+        ConsumerRecords<String, String> records = new ConsumerRecords<>(record);
+        when(consumer.poll(any(Duration.class))).thenReturn(records);
+
+        return consumerFactory;
+    }
+
+    @Test(timeout = 5000)
     public void testStartFetcherWithExistingTokenShouldStartAtSpecificPositions() throws InterruptedException {
-        int expectedMessages = 26;
-        Map<Integer, Long> expectedPartitionPositions = new HashMap<>();
-        expectedPartitionPositions.put(0, 9L);
-        expectedPartitionPositions.put(1, 9L);
-        expectedPartitionPositions.put(2, 9L);
-        expectedPartitionPositions.put(3, 9L);
-        expectedPartitionPositions.put(4, 9L);
-        KafkaTrackingToken expectedToken = KafkaTrackingToken.newInstance(expectedPartitionPositions);
-        CountDownLatch messageCounter = new CountDownLatch(expectedMessages);
+        int expectedNumberOfMessages = 26;
+        CountDownLatch messageCounter = new CountDownLatch(expectedNumberOfMessages);
 
         String testTopic = "testStartFetcherWith_ExistingToken_ShouldStartAtSpecificPositions";
         int p0 = 0;
@@ -151,14 +137,13 @@ public class AsyncFetcherTest {
         int p3 = 3;
         int p4 = 4;
         ProducerFactory<String, String> producerFactory = publishRecords(testTopic, p0, p1, p2, p3, p4);
-        SortedKafkaMessageBuffer<KafkaEventMessage> testBuffer = new SortedKafkaMessageBuffer<>(expectedMessages);
+        SortedKafkaMessageBuffer<KafkaEventMessage> testBuffer =
+                new LatchedSortedKafkaMessageBuffer<>(expectedNumberOfMessages, messageCounter);
         Fetcher testSubject = AsyncFetcher.<String, String>builder()
                 .consumerFactory(consumerFactory(kafkaBroker))
                 .bufferFactory(() -> testBuffer)
-                .messageConverter(new ValueConverter())
+                .messageConverter(new ConsumerRecordConverter())
                 .topic(testTopic)
-                .consumerRecordCallback(countMessage(messageCounter))
-                .pollTimeout(3000)
                 .build();
 
         Map<Integer, Long> testPartitionPositions = new HashMap<>();
@@ -171,10 +156,8 @@ public class AsyncFetcherTest {
         testSubject.start(testStartToken, DEFAULT_GROUP_ID);
 
         messageCounter.await();
-
-        assertThat(testBuffer.size()).isEqualTo(expectedMessages);
-        assertThat(currentToken).isEqualTo(expectedToken);
-        assertMessagesCountPerPartition(expectedMessages, p0, p1, p2, p3, p4, testBuffer);
+        assertThat(testBuffer.size()).isEqualTo(expectedNumberOfMessages);
+        assertMessagesCountPerPartition(expectedNumberOfMessages, p0, p1, p2, p3, p4, testBuffer);
 
         producerFactory.shutDown();
         testSubject.shutdown();
@@ -199,14 +182,6 @@ public class AsyncFetcherTest {
         return pf;
     }
 
-    private BiFunction<ConsumerRecord<String, String>, KafkaTrackingToken, Void> countMessage(CountDownLatch counter) {
-        return (r, t) -> {
-            currentToken = t;
-            counter.countDown();
-            return null;
-        };
-    }
-
     private static void assertMessagesCountPerPartition(int expectedMessages,
                                                         int partitionZero,
                                                         int partitionOne,
@@ -228,16 +203,32 @@ public class AsyncFetcherTest {
         assertThat(received.get(partitionFour)).isEqualTo(9);
     }
 
-    static class ValueConverter implements KafkaMessageConverter<String, String> {
+    /**
+     * A {@link SortedKafkaMessageBuffer} extension intended to count down until the expected number of elements have
+     * been added.
+     *
+     * @param <E> the type of the elements stored in this {@link Buffer} implementation
+     */
+    private static class LatchedSortedKafkaMessageBuffer<E extends Comparable & KafkaRecordMetaData>
+            extends SortedKafkaMessageBuffer<E> {
 
-        @Override
-        public ProducerRecord<String, String> createKafkaMessage(EventMessage<?> eventMessage, String topic) {
-            throw new UnsupportedOperationException("unimplemented");
+        private final CountDownLatch bufferedMessageLatch;
+
+        private LatchedSortedKafkaMessageBuffer(int capacity, CountDownLatch bufferedMessageLatch) {
+            super(capacity);
+            this.bufferedMessageLatch = bufferedMessageLatch;
         }
 
         @Override
-        public Optional<EventMessage<?>> readKafkaMessage(ConsumerRecord<String, String> consumerRecord) {
-            return Optional.of(asEventMessage(consumerRecord.value()));
+        public void put(E comparable) throws InterruptedException {
+            super.put(comparable);
+            bufferedMessageLatch.countDown();
+        }
+
+        @Override
+        public void putAll(Collection<E> c) throws InterruptedException {
+            super.putAll(c);
+            c.forEach(element -> bufferedMessageLatch.countDown());
         }
     }
 }

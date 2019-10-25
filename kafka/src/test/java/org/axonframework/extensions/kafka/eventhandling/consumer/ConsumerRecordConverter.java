@@ -1,0 +1,28 @@
+package org.axonframework.extensions.kafka.eventhandling.consumer;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.axonframework.eventhandling.EventMessage;
+import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
+
+import java.util.Optional;
+
+import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage;
+
+/**
+ * A {@link KafkaMessageConverter} implementation solely intended to test message consumption.
+ *
+ * @author Steven van Beelen
+ */
+class ConsumerRecordConverter implements KafkaMessageConverter<String, String> {
+
+    @Override
+    public ProducerRecord<String, String> createKafkaMessage(EventMessage<?> eventMessage, String topic) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Optional<EventMessage<?>> readKafkaMessage(ConsumerRecord<String, String> consumerRecord) {
+        return Optional.of(asEventMessage(consumerRecord.value()));
+    }
+}
