@@ -27,9 +27,9 @@ import org.axonframework.extensions.kafka.eventhandling.consumer.AsyncFetcher;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
-import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaMessageSource;
-import org.axonframework.extensions.kafka.eventhandling.producer.KafkaPublisher;
+import org.axonframework.extensions.kafka.eventhandling.consumer.StreamableKafkaMessageSource;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher;
+import org.axonframework.extensions.kafka.eventhandling.producer.KafkaPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil;
 import org.junit.*;
@@ -43,6 +43,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.util.concurrent.TimeUnit;
 
 import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage;
+import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.minimal;
 import static org.junit.Assert.*;
 
@@ -81,7 +82,7 @@ public class KafkaIntegrationTest {
         );
 
         ConsumerFactory<String, byte[]> consumerFactory =
-                new DefaultConsumerFactory<>(minimal(kafkaBroker, "consumer1", ByteArrayDeserializer.class));
+                new DefaultConsumerFactory<>(minimal(kafkaBroker, ByteArrayDeserializer.class));
 
         fetcher = AsyncFetcher.<String, byte[]>builder()
                 .consumerFactory(consumerFactory)
@@ -104,7 +105,10 @@ public class KafkaIntegrationTest {
 
     @Test
     public void testPublishAndReadMessages() throws Exception {
-        KafkaMessageSource messageSource = new KafkaMessageSource(fetcher);
+        StreamableKafkaMessageSource messageSource = StreamableKafkaMessageSource.builder()
+                                                                                 .fetcher(fetcher)
+                                                                                 .groupId(DEFAULT_GROUP_ID)
+                                                                                 .build();
         BlockingStream<TrackedEventMessage<?>> stream1 = messageSource.openStream(null);
         stream1.close();
         BlockingStream<TrackedEventMessage<?>> stream2 = messageSource.openStream(null);

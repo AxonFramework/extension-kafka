@@ -30,10 +30,11 @@ public interface Fetcher {
     /**
      * Open a stream of messages, starting at the position indicated by the given {@code token}.
      *
-     * @param token the token representing positions of the partitions to start from
+     * @param token   the token representing positions of the partitions to start from
+     * @param groupId a {@link String} defining the Consumer Group id the fetcher should start Consumer instances in
      * @return a {@link BlockingStream} providing messages from Kafka
      */
-    BlockingStream<TrackedEventMessage<?>> start(KafkaTrackingToken token);
+    BlockingStream<TrackedEventMessage<?>> start(KafkaTrackingToken token, String groupId);
 
     /**
      * Shuts the fetcher down, closing any resources used by this fetcher.

@@ -20,7 +20,8 @@ import org.axonframework.eventhandling.tokenstore.inmemory.InMemoryTokenStore
 import org.axonframework.eventsourcing.eventstore.EmbeddedEventStore
 import org.axonframework.eventsourcing.eventstore.inmemory.InMemoryEventStorageEngine
 import org.axonframework.extensions.kafka.KafkaProperties
-import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaMessageSource
+import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher
+import org.axonframework.extensions.kafka.eventhandling.consumer.StreamableKafkaMessageSource
 import org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode
 import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducerFactory
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory
@@ -69,9 +70,11 @@ class KafkaAxonExampleApplication {
     }
 
     @Autowired
-    fun configureKafkaSourceForProcessingGroup(
-            configurer: EventProcessingConfigurer, kafkaMessageSource: KafkaMessageSource
-    ) {
-        configurer.registerTrackingEventProcessor("kafka-group") { kafkaMessageSource }
+    fun configureKafkaSourceForProcessingGroup(configurer: EventProcessingConfigurer, fetcher: Fetcher) {
+        val streamableKafkaMessageSource = StreamableKafkaMessageSource.builder()
+                .fetcher(fetcher)
+                .groupId("kafka-group")
+                .build()
+        configurer.registerTrackingEventProcessor("kafka-group") { streamableKafkaMessageSource }
     }
 }

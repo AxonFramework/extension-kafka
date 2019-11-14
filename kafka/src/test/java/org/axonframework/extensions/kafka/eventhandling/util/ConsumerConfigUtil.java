@@ -25,48 +25,83 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Test utility for generating a {@link ConsumerConfig}.
+ * Test utility for generating a {@link org.apache.kafka.clients.consumer.Consumer} configuration map to be used in
+ * tests or an entire {@link ConsumerFactory} at once.
  *
  * @author Nakul Mishra
  * @author Steven van Beelen
  */
 public abstract class ConsumerConfigUtil {
 
-    public ConsumerConfigUtil() {
+    /**
+     * A default Consumer Group group id used for testing.
+     */
+    public static final String DEFAULT_GROUP_ID = "groupId";
+
+    private ConsumerConfigUtil() {
         // Utility class
     }
 
+    /**
+     * Build a minimal, transactional {@link ConsumerFactory} to be used during testing only.
+     *
+     * @param kafkaBroker       the {@link EmbeddedKafkaBroker} used in the test case
+     * @param valueDeserializer a {@link Class} defining the type of value deserializer to be used
+     * @return a {@link ConsumerFactory} configured with the minimal properties based on the given {@code kafkaBroker}
+     * and {@code valueDeserializer}
+     */
     public static ConsumerFactory<String, Object> transactionalConsumerFactory(EmbeddedKafkaBroker kafkaBroker,
-                                                                               String groupName,
                                                                                Class valueDeserializer) {
-        return new DefaultConsumerFactory<>(minimalTransactional(kafkaBroker, groupName, valueDeserializer));
+        return new DefaultConsumerFactory<>(minimalTransactional(kafkaBroker, valueDeserializer));
     }
 
-    public static ConsumerFactory<String, String> consumerFactory(EmbeddedKafkaBroker kafkaBroker, String groupName) {
-        return new DefaultConsumerFactory<>(minimal(kafkaBroker, groupName));
-    }
-
-    public static Map<String, Object> minimalTransactional(EmbeddedKafkaBroker kafkaBroker,
-                                                           String groupName,
-                                                           Class valueDeserializer) {
-        Map<String, Object> configs = minimal(kafkaBroker, groupName, valueDeserializer);
+    /**
+     * Build a minimal, transactional, {@link org.apache.kafka.clients.consumer.Consumer} configuration {@link Map}
+     *
+     * @param kafkaBroker       the {@link EmbeddedKafkaBroker} used in the test case
+     * @param valueDeserializer a {@link Class} defining the type of value deserializer to be used
+     * @return a minimal, transactional, {@link org.apache.kafka.clients.consumer.Consumer} configuration {@link Map}
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static Map<String, Object> minimalTransactional(EmbeddedKafkaBroker kafkaBroker, Class valueDeserializer) {
+        Map<String, Object> configs = minimal(kafkaBroker, valueDeserializer);
         configs.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
         return configs;
     }
 
-    public static Map<String, Object> minimal(EmbeddedKafkaBroker kafkaBroker, String groupName) {
-        return minimal(kafkaBroker, groupName, StringDeserializer.class);
+    /**
+     * Build a minimal {@link ConsumerFactory} to be used during testing only.
+     *
+     * @param kafkaBroker the {@link EmbeddedKafkaBroker} used in the test case
+     * @return a {@link ConsumerFactory} configured with the minimal properties based on the given {@code kafkaBroker}
+     */
+    public static ConsumerFactory<String, String> consumerFactory(EmbeddedKafkaBroker kafkaBroker) {
+        return new DefaultConsumerFactory<>(minimal(kafkaBroker));
     }
 
-    public static Map<String, Object> minimal(EmbeddedKafkaBroker kafkaBroker,
-                                              String groupName,
-                                              Class valueDeserializer) {
+    /**
+     * Build a minimal {@link org.apache.kafka.clients.consumer.Consumer} configuration {@link Map}
+     *
+     * @param kafkaBroker the {@link EmbeddedKafkaBroker} used in the test case
+     * @return a minimal {@link org.apache.kafka.clients.consumer.Consumer} configuration {@link Map}
+     */
+    public static Map<String, Object> minimal(EmbeddedKafkaBroker kafkaBroker) {
+        return minimal(kafkaBroker, StringDeserializer.class);
+    }
+
+    /**
+     * Build a minimal {@link org.apache.kafka.clients.consumer.Consumer} configuration {@link Map}
+     *
+     * @param kafkaBroker       the {@link EmbeddedKafkaBroker} used in the test case
+     * @param valueDeserializer a {@link Class} defining the type of value deserializer to be used
+     * @return a minimal {@link org.apache.kafka.clients.consumer.Consumer} configuration {@link Map}
+     */
+    public static Map<String, Object> minimal(EmbeddedKafkaBroker kafkaBroker, Class valueDeserializer) {
         Map<String, Object> config = new HashMap<>();
         config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBroker.getBrokersAsString());
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDeserializer);
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        config.put(ConsumerConfig.GROUP_ID_CONFIG, groupName);
         return config;
     }
 }

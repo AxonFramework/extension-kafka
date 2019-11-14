@@ -39,12 +39,13 @@ import static java.util.Collections.emptyMap;
 import static kafka.utils.TestUtils.pollUntilAtLeastNumRecords;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerUtil.seek;
+import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.consumerFactory;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.producerFactory;
 import static org.springframework.kafka.test.utils.KafkaTestUtils.getRecords;
 
 /***
- * Tests for the {@link ConsumerUtil} class.
+ * Tests for the {@link ConsumerUtil} class asserting utilization of the class.
  *
  * @author Nakul Mishra
  * @author Steven van Beelen
@@ -69,10 +70,12 @@ public class ConsumerUtilTest {
     @Autowired
     private EmbeddedKafkaBroker kafkaBroker;
     private ProducerFactory<String, String> producerFactory;
+    private ConsumerFactory<String, String> consumerFactory;
 
     @Before
     public void setUp() {
         producerFactory = producerFactory(kafkaBroker);
+        consumerFactory = consumerFactory(kafkaBroker);
     }
 
     @After
@@ -92,7 +95,7 @@ public class ConsumerUtilTest {
         AtomicInteger recordCounter = new AtomicInteger();
         KafkaTrackingToken testToken = null;
 
-        Consumer<?, ?> testSubject = consumerFactory(kafkaBroker, topic).createConsumer();
+        Consumer<?, ?> testSubject = consumerFactory.createConsumer(DEFAULT_GROUP_ID);
         seek(topic, testSubject, testToken);
 
         getRecords(testSubject).forEach(record -> {
@@ -115,7 +118,7 @@ public class ConsumerUtilTest {
         AtomicInteger recordCounter = new AtomicInteger();
         KafkaTrackingToken testToken = KafkaTrackingToken.newInstance(emptyMap());
 
-        Consumer<?, ?> testSubject = consumerFactory(kafkaBroker, topic).createConsumer();
+        Consumer<?, ?> testSubject = consumerFactory.createConsumer(DEFAULT_GROUP_ID);
         seek(topic, testSubject, testToken);
 
         getRecords(testSubject).forEach(record -> {
@@ -147,7 +150,7 @@ public class ConsumerUtilTest {
         //  their offsets will increase given the published number of `recordsPerPartitions`
         int numberOfRecordsToConsume = 26;
 
-        Consumer<?, ?> testSubject = consumerFactory(kafkaBroker, topic).createConsumer();
+        Consumer<?, ?> testSubject = consumerFactory.createConsumer(DEFAULT_GROUP_ID);
         seek(topic, testSubject, testToken);
 
         Seq<ConsumerRecord<byte[], byte[]>> resultRecords =
@@ -180,7 +183,7 @@ public class ConsumerUtilTest {
         //  their offsets will increase given the published number of `recordsPerPartitions`
         int numberOfRecordsToConsume = 26;
 
-        Consumer<?, ?> testSubject = consumerFactory(kafkaBroker, topic).createConsumer();
+        Consumer<?, ?> testSubject = consumerFactory.createConsumer(DEFAULT_GROUP_ID);
         seek(topic, testSubject, testToken);
 
         Seq<ConsumerRecord<byte[], byte[]>> resultRecords =

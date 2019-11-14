@@ -28,6 +28,7 @@ import org.axonframework.eventhandling.GenericDomainEventMessage;
 import org.axonframework.eventhandling.PropagatingErrorHandler;
 import org.axonframework.eventhandling.SimpleEventBus;
 import org.axonframework.extensions.kafka.eventhandling.DefaultKafkaMessageConverter;
+import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.messaging.EventPublicationFailedException;
 import org.axonframework.messaging.Message;
 import org.axonframework.messaging.MetaData;
@@ -58,6 +59,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher.DEFAULT_PROCESSING_GROUP;
+import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.transactionalConsumerFactory;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.ackProducerFactory;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.transactionalProducerFactory;
@@ -66,7 +68,7 @@ import static org.junit.Assume.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Tests for {@link KafkaPublisher}.
+ * Tests for {@link KafkaPublisher} asserting utilization of the class.
  *
  * @author Nakul Mishra
  * @author Steven van Beelen
@@ -96,9 +98,10 @@ public class KafkaPublisherTest {
     private Configurer configurer;
     private SimpleEventBus eventBus;
     private MessageCollector monitor;
+    private ConsumerFactory<String, Object> consumerFactory;
+    private Consumer<?, ?> testConsumer;
 
     private ProducerFactory<String, byte[]> testProducerFactory;
-    private Consumer<?, ?> testConsumer = mock(Consumer.class);
     private KafkaPublisher<String, byte[]> testSubject;
 
     @Before
@@ -107,6 +110,8 @@ public class KafkaPublisherTest {
         this.eventBus = SimpleEventBus.builder().build();
         this.monitor = new MessageCollector();
         this.configurer.configureEventBus(configuration -> eventBus);
+        this.consumerFactory = transactionalConsumerFactory(kafkaBroker, ByteArrayDeserializer.class);
+        this.testConsumer = mock(Consumer.class);
     }
 
     @After
@@ -364,8 +369,7 @@ public class KafkaPublisherTest {
     }
 
     private Consumer<?, ?> buildConsumer(String topic) {
-        Consumer<?, ?> consumer =
-                transactionalConsumerFactory(kafkaBroker, topic, ByteArrayDeserializer.class).createConsumer();
+        Consumer<?, ?> consumer = consumerFactory.createConsumer(DEFAULT_GROUP_ID);
         consumer.subscribe(Collections.singleton(topic));
         return consumer;
     }

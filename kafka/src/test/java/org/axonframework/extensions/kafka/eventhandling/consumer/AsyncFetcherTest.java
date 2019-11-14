@@ -46,12 +46,13 @@ import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage;
 import static org.axonframework.extensions.kafka.eventhandling.consumer.AsyncFetcher.builder;
+import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.consumerFactory;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.producerFactory;
 import static org.mockito.Mockito.*;
 
 /**
- * Tests for {@link AsyncFetcher}.
+ * Tests for {@link AsyncFetcher}, asserting construction and utilization of the class.
  *
  * @author Nakul Mishra
  * @author Steven van Beelen
@@ -71,7 +72,7 @@ public class AsyncFetcherTest {
     private static ConsumerFactory<String, String> mockConsumerFactory(String topic) {
         ConsumerFactory<String, String> consumerFactory = mock(ConsumerFactory.class);
         Consumer<String, String> consumer = mock(Consumer.class);
-        when(consumerFactory.createConsumer()).thenReturn(consumer);
+        when(consumerFactory.createConsumer(DEFAULT_GROUP_ID)).thenReturn(consumer);
 
         int partition = 0;
         Map<TopicPartition, List<ConsumerRecord<String, String>>> record = new HashMap<>();
@@ -121,7 +122,7 @@ public class AsyncFetcherTest {
                 .pollTimeout(3000)
                 .build();
 
-        testSubject.start(null);
+        testSubject.start(null, DEFAULT_GROUP_ID);
 
         messageCounter.await();
 
@@ -152,7 +153,7 @@ public class AsyncFetcherTest {
         ProducerFactory<String, String> producerFactory = publishRecords(testTopic, p0, p1, p2, p3, p4);
         SortedKafkaMessageBuffer<KafkaEventMessage> testBuffer = new SortedKafkaMessageBuffer<>(expectedMessages);
         Fetcher testSubject = AsyncFetcher.<String, String>builder()
-                .consumerFactory(consumerFactory(kafkaBroker, testTopic))
+                .consumerFactory(consumerFactory(kafkaBroker))
                 .bufferFactory(() -> testBuffer)
                 .messageConverter(new ValueConverter())
                 .topic(testTopic)
@@ -167,7 +168,7 @@ public class AsyncFetcherTest {
         testPartitionPositions.put(3, 4L);
         testPartitionPositions.put(4, 0L);
         KafkaTrackingToken testStartToken = KafkaTrackingToken.newInstance(testPartitionPositions);
-        testSubject.start(testStartToken);
+        testSubject.start(testStartToken, DEFAULT_GROUP_ID);
 
         messageCounter.await();
 
