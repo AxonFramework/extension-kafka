@@ -26,7 +26,6 @@ import org.axonframework.extensions.kafka.eventhandling.consumer.AsyncFetcher;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
-import org.axonframework.extensions.kafka.eventhandling.consumer.SortedKafkaMessageBuffer;
 import org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode;
 import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher;
@@ -149,14 +148,8 @@ public class KafkaAutoConfiguration {
 
     @ConditionalOnMissingBean
     @Bean(destroyMethod = "shutdown")
-    @ConditionalOnBean({ConsumerFactory.class, KafkaMessageConverter.class})
-    public Fetcher kafkaFetcher(ConsumerFactory<String, byte[]> axonKafkaConsumerFactory,
-                                KafkaMessageConverter<String, byte[]> kafkaMessageConverter) {
+    public Fetcher kafkaFetcher() {
         return AsyncFetcher.<String, byte[]>builder()
-                .consumerFactory(axonKafkaConsumerFactory)
-                .bufferFactory(() -> new SortedKafkaMessageBuffer<>(properties.getFetcher().getBufferSize()))
-                .messageConverter(kafkaMessageConverter)
-                .topic(properties.getDefaultTopic())
                 .pollTimeout(properties.getFetcher().getPollTimeout())
                 .build();
     }
