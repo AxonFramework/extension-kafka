@@ -48,6 +48,7 @@ import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConf
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.producerFactory;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+
 /**
  * Tests for {@link AsyncFetcher}, asserting construction and utilization of the class.
  *

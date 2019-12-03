@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.axonframework.common.Assert.nonNull;
+
 /**
  * {@link RecordConverter} instances which keeps track of the converted {@link ConsumerRecords} through a {@link
  * KafkaTrackingToken}. Consequently it converts the ConsumerRecords in to {@link KafkaEventMessage} instances.

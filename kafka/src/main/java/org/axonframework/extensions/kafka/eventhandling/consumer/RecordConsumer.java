@@ -17,6 +17,7 @@
 package org.axonframework.extensions.kafka.eventhandling.consumer;
 
 import java.util.List;
+
 /**
  * A functional interface towards consuming a {@link List} of records of type {@code E}. Provides added functionality
  * over the regular {@link java.util.function.Consumer} functional interface by specifying that it might throw an {@link

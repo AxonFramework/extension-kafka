@@ -24,6 +24,7 @@ import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
 import java.util.Optional;
 
 import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage;
+
 /**
  * A {@link KafkaMessageConverter} implementation solely intended to test message consumption.
  *

@@ -27,6 +27,7 @@ import java.util.concurrent.Executors;
 
 import static org.axonframework.common.BuilderUtils.assertNonNull;
 import static org.axonframework.common.BuilderUtils.assertThat;
+
 /**
  * Async implementation of the {@link Fetcher} using an {@link ExecutorService} to schedule {@link FetchEventsTask}s to
  * poll {@link org.apache.kafka.clients.consumer.ConsumerRecords}.

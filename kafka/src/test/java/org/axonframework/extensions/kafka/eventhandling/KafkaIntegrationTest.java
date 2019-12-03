@@ -47,6 +47,7 @@ import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.minimal;
 import static org.junit.jupiter.api.Assertions.*;
+
 /**
  * Kafka Integration tests asserting a message can be published through a Producer on a Kafka topic and received through
  * a Consumer.

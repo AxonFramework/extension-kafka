@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.axonframework.extensions.kafka.eventhandling.util.AssertUtils.assertWithin;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+
 /**
  * Tests for the {@link FetchEventsTask}, asserting construction and utilization of the class.
  *

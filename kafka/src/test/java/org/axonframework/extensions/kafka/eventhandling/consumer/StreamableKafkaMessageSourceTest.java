@@ -28,6 +28,7 @@ import static org.axonframework.extensions.kafka.eventhandling.consumer.KafkaTra
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+
 /**
  * Tests for {@link StreamableKafkaMessageSource}, asserting construction and utilization of the class.
  *

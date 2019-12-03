@@ -17,6 +17,7 @@
 package org.axonframework.extensions.kafka.eventhandling.util;
 
 import java.time.Duration;
+
 /**
  * Utility class for special assertions.
  */

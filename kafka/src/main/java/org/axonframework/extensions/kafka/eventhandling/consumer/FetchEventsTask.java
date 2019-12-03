@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.axonframework.common.Assert.nonNull;
 import static org.axonframework.common.BuilderUtils.assertThat;
 import static org.axonframework.common.ObjectUtils.getOrDefault;
+
 /**
  * Polls {@link ConsumerRecords} with a {@link Consumer}. These ConsumerRecords will be converted by a {@link
  * RecordConverter} and afterwards consumed by a {@link RecordConsumer}.

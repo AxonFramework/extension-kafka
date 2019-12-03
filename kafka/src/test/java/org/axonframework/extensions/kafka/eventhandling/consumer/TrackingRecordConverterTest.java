@@ -32,6 +32,7 @@ import java.util.Optional;
 import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+
 /**
  * Test cases to verify the {@link TrackingRecordConverter} uses the provided {@link KafkaMessageConverter} upon the
  * {@link TrackingRecordConverter#convert(ConsumerRecords)} call and that the entries track progress in the {@link

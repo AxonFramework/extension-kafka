@@ -19,11 +19,13 @@ package org.axonframework.extensions.kafka.eventhandling.consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 
 import java.util.List;
+
 /**
  * A functional interface towards converting the {@link org.apache.kafka.clients.consumer.ConsumerRecord} instances in
  * to a {@link List} of {@code E}.
  *
- * @param <E> the element type each {@link org.apache.kafka.clients.consumer.ConsumerRecord} instance is converted in to
+ * @param <E> the element type each {@link org.apache.kafka.clients.consumer.ConsumerRecord} instance is converted in
+ *            to
  * @param <K> the key of the {@link ConsumerRecords}
  * @param <V> the value type of {@link ConsumerRecords}
  * @author Steven van Beelen

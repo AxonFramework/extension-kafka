@@ -34,6 +34,7 @@ import java.util.function.Supplier;
 import static org.axonframework.common.Assert.isTrue;
 import static org.axonframework.common.BuilderUtils.assertNonNull;
 import static org.axonframework.common.BuilderUtils.assertThat;
+
 /**
  * Implementation of the {@link StreamableMessageSource} that reads messages from a Kafka topic using the provided
  * {@link Fetcher}.

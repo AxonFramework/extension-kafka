@@ -17,6 +17,7 @@
 package org.axonframework.extensions.kafka.eventhandling.consumer;
 
 import org.apache.kafka.clients.consumer.Consumer;
+
 /**
  * Interface describing the component responsible for fetching messages from a Kafka topic through a {@link Consumer}.
  *
