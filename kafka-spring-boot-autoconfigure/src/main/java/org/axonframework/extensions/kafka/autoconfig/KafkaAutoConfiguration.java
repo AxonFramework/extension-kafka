@@ -149,7 +149,7 @@ public class KafkaAutoConfiguration {
     @ConditionalOnMissingBean
     @Bean(destroyMethod = "shutdown")
     public Fetcher kafkaFetcher() {
-        return AsyncFetcher.<String, byte[]>builder()
+        return AsyncFetcher.builder()
                 .pollTimeout(properties.getFetcher().getPollTimeout())
                 .build();
     }
