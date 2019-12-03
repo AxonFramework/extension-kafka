@@ -57,8 +57,10 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
     /**
      * Instantiate a Builder to be able to create a {@link StreamableKafkaMessageSource}.
      * <p>
-     * The {@code groupId}, {@link ConsumerFactory} and {@link Fetcher} are <b>hard requirements</b> and as such should
-     * be provided.
+     * The {@code topic} is defaulted to {@code "Axon.Events"}, the {@link KafkaMessageConverter} to a {@link
+     * DefaultKafkaMessageConverter} using the {@link XStreamSerializer} and the {@code bufferFactory} the {@link
+     * SortedKafkaMessageBuffer} constructor. The {@code groupId}, {@link ConsumerFactory} and {@link Fetcher} are
+     * <b>hard requirements</b> and as such should be provided.
      *
      * @return a Builder to be able to create an {@link StreamableKafkaMessageSource}
      */
@@ -116,8 +118,10 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
     /**
      * Builder class to instantiate a {@link StreamableKafkaMessageSource}.
      * <p>
-     * The {@code groupId}, {@link ConsumerFactory} and {@link Fetcher} are <b>hard requirements</b> and as such should
-     * be provided.
+     * The {@code topic} is defaulted to {@code "Axon.Events"}, the {@link KafkaMessageConverter} to a {@link
+     * DefaultKafkaMessageConverter} using the {@link XStreamSerializer} and the {@code bufferFactory} the {@link
+     * SortedKafkaMessageBuffer} constructor. The {@code groupId}, {@link ConsumerFactory} and {@link Fetcher} are
+     * <b>hard requirements</b> and as such should be provided.
      *
      * @param <K> the key of the {@link ConsumerRecords} to consume, fetch and convert
      * @param <V> the value type of {@link ConsumerRecords} to consume, fetch and convert
