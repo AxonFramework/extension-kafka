@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2019. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,6 @@ import java.util.function.Supplier;
 import static org.axonframework.common.Assert.isTrue;
 import static org.axonframework.common.BuilderUtils.assertNonNull;
 import static org.axonframework.common.BuilderUtils.assertThat;
-
 /**
  * Implementation of the {@link StreamableMessageSource} that reads messages from a Kafka topic using the provided
  * {@link Fetcher}.

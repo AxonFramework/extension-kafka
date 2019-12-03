@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2019. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +47,6 @@ import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.minimal;
 import static org.junit.jupiter.api.Assertions.*;
-
 /**
  * Kafka Integration tests asserting a message can be published through a Producer on a Kafka topic and received through
  * a Consumer.

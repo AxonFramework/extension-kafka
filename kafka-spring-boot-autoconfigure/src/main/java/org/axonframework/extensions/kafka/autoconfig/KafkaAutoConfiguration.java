@@ -47,7 +47,6 @@ import org.springframework.context.annotation.Configuration;
 import java.util.Map;
 
 import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher.DEFAULT_PROCESSING_GROUP;
-
 /**
  * Auto configuration for the Axon Kafka Extension as an Event Message distribution solution.
  *
