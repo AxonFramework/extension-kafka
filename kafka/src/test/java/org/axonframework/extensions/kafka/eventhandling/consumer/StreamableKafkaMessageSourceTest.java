@@ -21,6 +21,7 @@ import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.common.stream.BlockingStream;
 import org.axonframework.eventhandling.TrackingToken;
 import org.junit.jupiter.api.*;
+import org.mockito.*;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -37,6 +38,9 @@ import static org.mockito.Mockito.*;
  */
 class StreamableKafkaMessageSourceTest {
 
+    private static final String GROUP_ID_PREFIX = DEFAULT_GROUP_ID + "-";
+    private static final String GROUP_ID_SUFFIX = "WithSuffix";
+
     private ConsumerFactory<String, String> consumerFactory;
     private Fetcher<KafkaEventMessage, String, String> fetcher;
 
@@ -49,11 +53,12 @@ class StreamableKafkaMessageSourceTest {
     void setUp() {
         consumerFactory = mock(ConsumerFactory.class);
         mockConsumer = mock(Consumer.class);
-        when(consumerFactory.createConsumer(DEFAULT_GROUP_ID)).thenReturn(mockConsumer);
+        when(consumerFactory.createConsumer(GROUP_ID_PREFIX + GROUP_ID_SUFFIX)).thenReturn(mockConsumer);
         fetcher = mock(Fetcher.class);
 
         testSubject = StreamableKafkaMessageSource.<String, String>builder()
-                .groupId(DEFAULT_GROUP_ID)
+                .groupIdPrefix(GROUP_ID_PREFIX)
+                .groupIdSuffixFactory(() -> GROUP_ID_SUFFIX)
                 .consumerFactory(consumerFactory)
                 .fetcher(fetcher)
                 .build();
@@ -65,8 +70,19 @@ class StreamableKafkaMessageSourceTest {
     }
 
     @Test
-    void testBuildingWithInvalidGroupIdShouldThrowAxonConfigurationException() {
-        assertThrows(AxonConfigurationException.class, () -> StreamableKafkaMessageSource.builder().groupId(null));
+    void testBuildingWithInvalidGroupIdPrefixShouldThrowAxonConfigurationException() {
+        assertThrows(
+                AxonConfigurationException.class,
+                () -> StreamableKafkaMessageSource.builder().groupIdPrefix(null)
+        );
+    }
+
+    @Test
+    void testBuildingWithInvalidGroupIdSuffixFactoryShouldThrowAxonConfigurationException() {
+        assertThrows(
+                AxonConfigurationException.class,
+                () -> StreamableKafkaMessageSource.builder().groupIdSuffixFactory(null)
+        );
     }
 
     @Test
@@ -108,13 +124,38 @@ class StreamableKafkaMessageSourceTest {
     }
 
     @Test
+    void testOpeningMessageStreamCreatesGroupIdBasedOnPrefixAndSuffixFactory() {
+        String testPrefix = "group-id-prefix";
+        String testSuffix = "group-id-suffix";
+        when(consumerFactory.createConsumer(testPrefix + testSuffix)).thenReturn(mockConsumer);
+
+        //noinspection unchecked
+        StreamableKafkaMessageSource<String, byte[]> testSubject = StreamableKafkaMessageSource.<String, String>builder()
+                .groupIdPrefix(testPrefix)
+                .groupIdSuffixFactory(() -> testSuffix)
+                .consumerFactory(consumerFactory)
+                .fetcher(fetcher)
+                .build();
+
+        testSubject.openStream(null).close();
+
+        ArgumentCaptor<String> groupIdCaptor = ArgumentCaptor.forClass(String.class);
+        verify(consumerFactory).createConsumer(groupIdCaptor.capture());
+
+        String resultGroupId = groupIdCaptor.getValue();
+
+        assertTrue(resultGroupId.contains(testPrefix));
+        assertTrue(resultGroupId.contains(testSuffix));
+    }
+
+    @Test
     void testOpeningMessageStreamWithNullTokenShouldInvokeFetcher() {
         AtomicBoolean closed = new AtomicBoolean(false);
         when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(() -> closed.set(true));
 
         BlockingStream result = testSubject.openStream(null);
 
-        verify(consumerFactory).createConsumer(DEFAULT_GROUP_ID);
+        verify(consumerFactory).createConsumer(GROUP_ID_PREFIX + GROUP_ID_SUFFIX);
         verify(fetcher).poll(eq(mockConsumer), any(), any());
 
         result.close();
@@ -128,7 +169,7 @@ class StreamableKafkaMessageSourceTest {
 
         BlockingStream result = testSubject.openStream(emptyToken());
 
-        verify(consumerFactory).createConsumer(DEFAULT_GROUP_ID);
+        verify(consumerFactory).createConsumer(GROUP_ID_PREFIX + GROUP_ID_SUFFIX);
         verify(fetcher).poll(eq(mockConsumer), any(), any());
 
         result.close();
