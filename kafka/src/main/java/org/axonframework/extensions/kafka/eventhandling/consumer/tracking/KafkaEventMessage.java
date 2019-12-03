@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2019. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.axonframework.extensions.kafka.eventhandling.consumer;
+package org.axonframework.extensions.kafka.eventhandling.consumer.tracking;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.axonframework.eventhandling.EventMessage;
@@ -64,10 +64,9 @@ public class KafkaEventMessage implements KafkaRecordMetaData<TrackedEventMessag
     }
 
     /**
-     * Construct a {@link KafkaEventMessage} based on the deserialized body, the {@code eventMessage}, of a
-     * {@link ConsumerRecord} retrieved from a Kafka topic. The {@code trackingToken} is used to change the {@code
-     * eventMessage}
-     * in an {@link TrackedEventMessage}.
+     * Construct a {@link KafkaEventMessage} based on the deserialized body, the {@code eventMessage}, of a {@link
+     * ConsumerRecord} retrieved from a Kafka topic. The {@code trackingToken} is used to change the {@code
+     * eventMessage} in an {@link TrackedEventMessage}.
      *
      * @param eventMessage   the {@link EventMessage} to wrap
      * @param consumerRecord the {@link ConsumerRecord} which the given {@code eventMessage} was the body of
@@ -105,7 +104,8 @@ public class KafkaEventMessage implements KafkaRecordMetaData<TrackedEventMessag
     }
 
     /**
-     * Compares {@link ConsumerRecord} based on timestamp. If two records are published at the same time and belongs to:
+     * Compares {@link ConsumerRecord} based on timestamp. If two records are published at the same time and belongs
+     * to:
      * <ul>
      * <li>a). The same partition; than return the one with smaller offset.</li>
      * <li>b). Different partitions; than return any.</li>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2019. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.axonframework.extensions.kafka.eventhandling.consumer;
+package org.axonframework.extensions.kafka.eventhandling.consumer.tracking;
 
 import org.axonframework.eventhandling.TrackedEventMessage;
 import org.axonframework.eventhandling.TrackingEventStream;
@@ -28,8 +28,8 @@ import static org.axonframework.common.BuilderUtils.assertNonNull;
 
 /**
  * Create message stream from a specific kafka topic. Messages are fetch in bulk and stored in an in-memory buffer. We
- * try to introduce some sort and stored them in a local buffer. Consumer position is tracked via
- * {@link KafkaTrackingToken}. Records are fetched from kafka and stored in-memory buffer.
+ * try to introduce some sort and stored them in a local buffer. Consumer position is tracked via {@link
+ * KafkaTrackingToken}. Records are fetched from kafka and stored in-memory buffer.
  * <p>
  * This is not thread safe.
  *

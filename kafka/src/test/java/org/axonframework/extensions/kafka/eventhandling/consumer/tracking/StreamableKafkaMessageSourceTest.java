@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2019. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,20 @@
  * limitations under the License.
  */
 
-package org.axonframework.extensions.kafka.eventhandling.consumer;
+package org.axonframework.extensions.kafka.eventhandling.consumer.tracking;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.common.stream.BlockingStream;
 import org.axonframework.eventhandling.TrackingToken;
+import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
+import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
 import org.junit.jupiter.api.*;
 import org.mockito.*;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.axonframework.extensions.kafka.eventhandling.consumer.KafkaTrackingToken.emptyToken;
+import static org.axonframework.extensions.kafka.eventhandling.consumer.tracking.KafkaTrackingToken.emptyToken;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;

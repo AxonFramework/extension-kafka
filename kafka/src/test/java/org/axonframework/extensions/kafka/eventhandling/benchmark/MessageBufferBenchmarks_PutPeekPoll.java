@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2019. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@
 package org.axonframework.extensions.kafka.eventhandling.benchmark;
 
 import org.axonframework.eventhandling.EventMessage;
-import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaEventMessage;
-import org.axonframework.extensions.kafka.eventhandling.consumer.SortedKafkaMessageBuffer;
+import org.axonframework.extensions.kafka.eventhandling.consumer.tracking.KafkaEventMessage;
+import org.axonframework.extensions.kafka.eventhandling.consumer.tracking.SortedKafkaMessageBuffer;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2019. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.axonframework.extensions.kafka.eventhandling.consumer;
+package org.axonframework.extensions.kafka.eventhandling.consumer.tracking;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -24,6 +24,9 @@ import org.axonframework.eventhandling.TrackedEventMessage;
 import org.axonframework.eventhandling.TrackingToken;
 import org.axonframework.extensions.kafka.eventhandling.DefaultKafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
+import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
+import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
+import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
 import org.axonframework.messaging.StreamableMessageSource;
 import org.axonframework.serialization.xml.XStreamSerializer;
 import org.slf4j.Logger;
@@ -176,6 +179,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
          *                      Consumer} should retrieve records from
          * @return the current Builder instance, for fluent interfacing
          */
+        @SuppressWarnings("WeakerAccess")
         public Builder groupIdPrefix(String groupIdPrefix) {
             assertThat(groupIdPrefix, name -> Objects.nonNull(name) && !"".equals(name),
                        "The groupIdPrefix may not be null or empty");

@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2018 the original author or authors.
+ * Copyright (c) 2010-2019. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,20 +14,25 @@
  * limitations under the License.
  */
 
-package org.axonframework.extensions.kafka.eventhandling.consumer;
+package org.axonframework.extensions.kafka.eventhandling.consumer.tracking;
 
 import org.apache.kafka.common.TopicPartition;
 import org.assertj.core.util.Lists;
-import org.junit.Test;
+import org.junit.*;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Random;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toSet;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertNotSame;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.axonframework.extensions.kafka.eventhandling.consumer.KafkaTrackingToken.*;
+import static org.axonframework.extensions.kafka.eventhandling.consumer.tracking.KafkaTrackingToken.*;
 
 /**
  * Tests for the {@link KafkaTrackingToken}.
@@ -214,11 +219,17 @@ public class KafkaTrackingTokenTest {
 
             if (first.upperBound(second).equals(first)) {
                 assertThat(first.covers(second))
-                        .withFailMessage("The upper bound of first(%s) and second(%s) is not first, so first shouldn't cover second", first, second)
+                        .withFailMessage(
+                                "The upper bound of first(%s) and second(%s) is not first, so first shouldn't cover second",
+                                first,
+                                second)
                         .isTrue();
             } else {
                 assertThat(first.covers(second))
-                        .withFailMessage("The upper bound of first(%s) and second(%s) is not first, so first shouldn't cover second", first, second)
+                        .withFailMessage(
+                                "The upper bound of first(%s) and second(%s) is not first, so first shouldn't cover second",
+                                first,
+                                second)
                         .isFalse();
             }
         }
@@ -230,6 +241,6 @@ public class KafkaTrackingTokenTest {
 
     private static void assertKnownEventIds(KafkaTrackingToken token, Integer... expectedKnownIds) {
         assertEquals(Stream.of(expectedKnownIds).collect(toSet()),
-                new HashSet<>(token.partitionPositions().keySet()));
+                     new HashSet<>(token.partitionPositions().keySet()));
     }
 }
