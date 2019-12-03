@@ -35,6 +35,7 @@ import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
+import org.axonframework.extensions.kafka.eventhandling.consumer.StreamableKafkaMessageSource;
 import org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode;
 import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher;
@@ -45,7 +46,7 @@ import org.axonframework.monitoring.NoOpMessageMonitor;
 import org.axonframework.serialization.Serializer;
 import org.axonframework.serialization.xml.XStreamSerializer;
 import org.axonframework.spring.config.AxonConfiguration;
-import org.junit.*;
+import org.junit.jupiter.api.*;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -55,8 +56,8 @@ import java.io.File;
 import java.util.Collections;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher.DEFAULT_PROCESSING_GROUP;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -67,24 +68,26 @@ import static org.mockito.Mockito.*;
  * @author Nakul Mishra
  * @author Steven van Beelen
  */
-public class KafkaAutoConfigurationTest {
+class KafkaAutoConfigurationTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(KafkaAutoConfiguration.class));
 
     @Test
-    public void testAutoConfigurationWithMinimalRequiredProperties() {
+    void testAutoConfigurationWithMinimalRequiredProperties() {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
                           .withPropertyValues(
                                   "axon.kafka.default-topic=testTopic",
                                   "axon.kafka.producer.transaction-id-prefix=foo"
                           ).run(context -> {
             // Required bean assertions
-            assertThat(context.getBeanNamesForType(ProducerFactory.class)).hasSize(1);
-            assertThat(context.getBeanNamesForType(ConsumerFactory.class)).hasSize(1);
-            assertThat(context.getBeanNamesForType(KafkaPublisher.class)).hasSize(1);
-            assertThat(context.getBeanNamesForType(Fetcher.class)).hasSize(1);
-            assertThat(context.getBeanNamesForType(KafkaMessageConverter.class)).hasSize(1);
+            assertNotNull(context.getBeanNamesForType(KafkaMessageConverter.class));
+            assertNotNull(context.getBeanNamesForType(ProducerFactory.class));
+            assertNotNull(context.getBeanNamesForType(KafkaPublisher.class));
+            assertNotNull(context.getBeanNamesForType(KafkaEventPublisher.class));
+            assertNotNull(context.getBeanNamesForType(ConsumerFactory.class));
+            assertNotNull(context.getBeanNamesForType(Fetcher.class));
+            assertNotNull(context.getBeanNamesForType(StreamableKafkaMessageSource.class));
 
             // Producer assertions
             DefaultProducerFactory producerFactory =
@@ -94,39 +97,40 @@ public class KafkaAutoConfigurationTest {
                             .configurationProperties();
             KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
 
-            assertThat(producerFactory.confirmationMode()).isEqualTo(ConfirmationMode.TRANSACTIONAL);
-            assertThat(producerFactory.transactionIdPrefix()).isEqualTo("foo");
-            assertThat(producerConfigs.get(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG))
-                    .isEqualTo(StringSerializer.class);
-            assertThat(producerConfigs.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG))
-                    .isEqualTo(ByteArraySerializer.class);
-            assertThat(kafkaProperties.getEventProcessorMode())
-                    .isEqualTo(KafkaProperties.EventProcessorMode.SUBSCRIBING);
+            assertEquals(ConfirmationMode.TRANSACTIONAL, producerFactory.confirmationMode());
+            assertEquals("foo", producerFactory.transactionIdPrefix());
+            assertEquals(StringSerializer.class, producerConfigs.get(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG));
+            assertEquals(ByteArraySerializer.class, producerConfigs.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG));
+            assertEquals(KafkaProperties.EventProcessorMode.SUBSCRIBING, kafkaProperties.getEventProcessorMode());
 
             // Consumer assertions
             Map<String, Object> consumerConfigs =
                     ((DefaultConsumerFactory<?, ?>) context.getBean(DefaultConsumerFactory.class))
                             .configurationProperties();
 
-            assertThat(consumerConfigs.get(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG))
-                    .isEqualTo(Collections.singletonList("localhost:9092"));
-            assertThat(consumerConfigs.get(ConsumerConfig.CLIENT_ID_CONFIG)).isNull();
-            assertThat(consumerConfigs.get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG)).isNull();
-            assertThat(consumerConfigs.get(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG)).isNull();
-            assertThat(consumerConfigs.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)).isNull();
-            assertThat(consumerConfigs.get(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG)).isNull();
-            assertThat(consumerConfigs.get(ConsumerConfig.FETCH_MIN_BYTES_CONFIG)).isNull();
-            assertThat(consumerConfigs.get(ConsumerConfig.MAX_POLL_RECORDS_CONFIG)).isNull();
-            assertThat(consumerConfigs.get(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG)).isNull();
-            assertThat(consumerConfigs.get(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG))
-                    .isEqualTo(StringDeserializer.class);
-            assertThat(consumerConfigs.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG))
-                    .isEqualTo(ByteArrayDeserializer.class);
+            assertEquals(
+                    Collections.singletonList("localhost:9092"),
+                    consumerConfigs.get(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG)
+            );
+            assertNull(consumerConfigs.get(ConsumerConfig.CLIENT_ID_CONFIG));
+            assertNull(consumerConfigs.get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG));
+            assertNull(consumerConfigs.get(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG));
+            assertNull(consumerConfigs.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
+            assertNull(consumerConfigs.get(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG));
+            assertNull(consumerConfigs.get(ConsumerConfig.FETCH_MIN_BYTES_CONFIG));
+            assertNull(consumerConfigs.get(ConsumerConfig.MAX_POLL_RECORDS_CONFIG));
+            assertNull(consumerConfigs.get(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG));
+            assertEquals(
+                    StringDeserializer.class, consumerConfigs.get(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG)
+            );
+            assertEquals(
+                    ByteArrayDeserializer.class, consumerConfigs.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG)
+            );
         });
     }
 
     @Test
-    public void testConsumerPropertiesAreAdjustedAsExpected() {
+    void testConsumerPropertiesAreAdjustedAsExpected() {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
                           .withPropertyValues(
                                   "axon.kafka.default-topic=testTopic",
@@ -155,43 +159,47 @@ public class KafkaAutoConfigurationTest {
                                   "axon.kafka.consumer.value-deserializer = org.apache.kafka.common.serialization.IntegerDeserializer"
                           ).run(context -> {
             // Required bean assertions
-            assertThat(context.getBeanNamesForType(ConsumerFactory.class)).hasSize(1);
-            assertThat(context.getBeanNamesForType(Fetcher.class)).hasSize(1);
-            assertThat(context.getBeanNamesForType(KafkaMessageConverter.class)).hasSize(1);
+            assertNotNull(context.getBeanNamesForType(KafkaMessageConverter.class));
+            assertNotNull(context.getBeanNamesForType(ConsumerFactory.class));
+            assertNotNull(context.getBeanNamesForType(Fetcher.class));
+            assertNotNull(context.getBeanNamesForType(StreamableKafkaMessageSource.class));
 
             // Consumer assertions
             DefaultConsumerFactory<?, ?> consumerFactory = context.getBean(DefaultConsumerFactory.class);
             Map<String, Object> configs = consumerFactory.configurationProperties();
 
-            assertThat(configs.get(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG))
-                    .isEqualTo(Collections.singletonList("foo:1234")); // Assert override
-            assertThat(configs.get(SslConfigs.SSL_KEY_PASSWORD_CONFIG)).isEqualTo("p1");
-            assertThat((String) configs.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG))
-                    .endsWith(File.separator + "ksLoc");
-            assertThat(configs.get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)).isEqualTo("p2");
-            assertThat((String) configs.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG))
-                    .endsWith(File.separator + "tsLoc");
-            assertThat(configs.get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG)).isEqualTo("p3");
-            assertThat(configs.get(ConsumerConfig.CLIENT_ID_CONFIG)).isEqualTo("some-client-id");
-            assertThat(configs.get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG)).isEqualTo(Boolean.FALSE);
-            assertThat(configs.get(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG)).isEqualTo(123);
-            assertThat(configs.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)).isEqualTo("earliest");
-            assertThat(configs.get(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG)).isEqualTo(456);
-            assertThat(configs.get(ConsumerConfig.FETCH_MIN_BYTES_CONFIG)).isEqualTo(789);
-            assertThat(configs.get(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG)).isEqualTo(234);
-            assertThat(configs.get(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG)).isEqualTo(LongDeserializer.class);
-            assertThat(configs.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG))
-                    .isEqualTo(IntegerDeserializer.class);
-            assertThat(configs.get(ConsumerConfig.MAX_POLL_RECORDS_CONFIG)).isEqualTo(42);
-            assertThat(configs.get("foo")).isEqualTo("bar");
-            assertThat(configs.get("baz")).isEqualTo("qux");
-            assertThat(configs.get("foo.bar.baz")).isEqualTo("qux.fiz.buz");
-            assertThat(configs.get("fiz.buz")).isEqualTo("fix.fox");
+            assertEquals(
+                    Collections.singletonList("foo:1234"),
+                    configs.get(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG)
+            ); // Assert override
+            assertEquals("p1", configs.get(SslConfigs.SSL_KEY_PASSWORD_CONFIG));
+            assertTrue(
+                    ((String) configs.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG)).contains(File.separator + "ksLoc")
+            );
+            assertEquals("p2", configs.get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG));
+            assertTrue(
+                    ((String) configs.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG)).contains(File.separator + "tsLoc")
+            );
+            assertEquals("p3", configs.get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG));
+            assertEquals("some-client-id", configs.get(ConsumerConfig.CLIENT_ID_CONFIG));
+            assertEquals(Boolean.FALSE, configs.get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG));
+            assertEquals(123, configs.get(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG));
+            assertEquals("earliest", configs.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
+            assertEquals(456, configs.get(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG));
+            assertEquals(789, configs.get(ConsumerConfig.FETCH_MIN_BYTES_CONFIG));
+            assertEquals(234, configs.get(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG));
+            assertEquals(LongDeserializer.class, configs.get(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG));
+            assertEquals(IntegerDeserializer.class, configs.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG));
+            assertEquals(42, configs.get(ConsumerConfig.MAX_POLL_RECORDS_CONFIG));
+            assertEquals("bar", configs.get("foo"));
+            assertEquals("qux", configs.get("baz"));
+            assertEquals("qux.fiz.buz", configs.get("foo.bar.baz"));
+            assertEquals("fix.fox", configs.get("fiz.buz"));
         });
     }
 
     @Test
-    public void testProducerPropertiesAreAdjustedAsExpected() {
+    void testProducerPropertiesAreAdjustedAsExpected() {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
                           .withPropertyValues(
                                   "axon.kafka.clientId=cid",
@@ -218,30 +226,35 @@ public class KafkaAutoConfigurationTest {
             Map<String, Object> configs = producerFactory.configurationProperties();
 
             // Producer assertions
-            assertThat(configs.get(ProducerConfig.CLIENT_ID_CONFIG)).isEqualTo("cid");
-            assertThat(configs.get(ProducerConfig.ACKS_CONFIG)).isEqualTo("all");
-            assertThat(configs.get(ProducerConfig.BATCH_SIZE_CONFIG)).isEqualTo(20);
-            assertThat(configs.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG))
-                    .isEqualTo(Collections.singletonList("bar:1234")); // Assert override
-            assertThat(configs.get(ProducerConfig.BUFFER_MEMORY_CONFIG)).isEqualTo(12345L);
-            assertThat(configs.get(ProducerConfig.COMPRESSION_TYPE_CONFIG)).isEqualTo("gzip");
-            assertThat(configs.get(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG)).isEqualTo(LongSerializer.class);
-            assertThat(configs.get(SslConfigs.SSL_KEY_PASSWORD_CONFIG)).isEqualTo("p4");
-            assertThat((String) configs.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG))
-                    .endsWith(File.separator + "ksLocP");
-            assertThat(configs.get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)).isEqualTo("p5");
-            assertThat((String) configs.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG))
-                    .endsWith(File.separator + "tsLocP");
-            assertThat(configs.get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG)).isEqualTo("p6");
-            assertThat(configs.get(ProducerConfig.RETRIES_CONFIG)).isEqualTo(2);
-            assertThat(configs.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG)).isEqualTo(IntegerSerializer.class);
-            assertThat(configs.get("foo.bar.baz")).isEqualTo("qux.fiz.buz");
-            assertThat(configs.get("fiz.buz")).isEqualTo("fix.fox");
+            assertEquals("cid", configs.get(ProducerConfig.CLIENT_ID_CONFIG));
+            assertEquals("all", configs.get(ProducerConfig.ACKS_CONFIG));
+            assertEquals(20, configs.get(ProducerConfig.BATCH_SIZE_CONFIG));
+            assertEquals(
+                    Collections.singletonList("bar:1234"),
+                    configs.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)
+            ); // Assert override
+            assertEquals(12345L, configs.get(ProducerConfig.BUFFER_MEMORY_CONFIG));
+            assertEquals("gzip", configs.get(ProducerConfig.COMPRESSION_TYPE_CONFIG));
+            assertEquals(LongSerializer.class, configs.get(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG));
+            assertEquals("p4", configs.get(SslConfigs.SSL_KEY_PASSWORD_CONFIG));
+            assertTrue(
+                    ((String) configs.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG)).contains(File.separator + "ksLocP")
+            );
+            assertEquals("p5", configs.get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG));
+            assertTrue(
+                    ((String) configs.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG))
+                            .contains(File.separator + "tsLocP")
+            );
+            assertEquals("p6", configs.get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG));
+            assertEquals(2, configs.get(ProducerConfig.RETRIES_CONFIG));
+            assertEquals(IntegerSerializer.class, configs.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG));
+            assertEquals("qux.fiz.buz", configs.get("foo.bar.baz"));
+            assertEquals("fix.fox", configs.get("fiz.buz"));
         });
     }
 
     @Test
-    public void testKafkaPropertiesTrackingMode() {
+    void testKafkaPropertiesTrackingProducerMode() {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
                           .withPropertyValues(
                                   // Minimal Required Properties
@@ -251,10 +264,8 @@ public class KafkaAutoConfigurationTest {
                                   "axon.kafka.event-processor-mode=TRACKING"
                           ).run(context -> {
             KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
-            assertThat(kafkaProperties.getEventProcessorMode()).isEqualTo(KafkaProperties.EventProcessorMode.TRACKING);
-
-            KafkaEventPublisher kafkaEventPublisher = context.getBean(KafkaEventPublisher.class);
-            assertThat(kafkaEventPublisher).isNotNull();
+            assertEquals(KafkaProperties.EventProcessorMode.TRACKING, kafkaProperties.getEventProcessorMode());
+            assertNotNull(context.getBean(KafkaEventPublisher.class));
 
             EventProcessingConfigurer eventProcessingConfigurer = context.getBean(EventProcessingConfigurer.class);
             verify(eventProcessingConfigurer).registerEventHandler(any());
@@ -266,7 +277,7 @@ public class KafkaAutoConfigurationTest {
     }
 
     @Test
-    public void testKafkaPropertiesSubscribingMode() {
+    void testKafkaPropertiesSubscribingProducerMode() {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
                           .withPropertyValues(
                                   // Minimal Required Properties
@@ -276,11 +287,8 @@ public class KafkaAutoConfigurationTest {
                                   "axon.kafka.event-processor-mode=SUBSCRIBING"
                           ).run(context -> {
             KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
-            assertThat(kafkaProperties.getEventProcessorMode())
-                    .isEqualTo(KafkaProperties.EventProcessorMode.SUBSCRIBING);
-
-            KafkaEventPublisher kafkaEventPublisher = context.getBean(KafkaEventPublisher.class);
-            assertThat(kafkaEventPublisher).isNotNull();
+            assertEquals(KafkaProperties.EventProcessorMode.SUBSCRIBING, kafkaProperties.getEventProcessorMode());
+            assertNotNull(context.getBean(KafkaEventPublisher.class));
 
             EventProcessingConfigurer eventProcessingConfigurer = context.getBean(EventProcessingConfigurer.class);
             verify(eventProcessingConfigurer).registerEventHandler(any());
