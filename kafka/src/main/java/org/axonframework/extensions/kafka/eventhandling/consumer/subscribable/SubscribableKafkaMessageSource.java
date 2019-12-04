@@ -32,7 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -74,7 +74,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
     private final KafkaMessageConverter<K, V> messageConverter;
 
     private final Set<java.util.function.Consumer<List<? extends EventMessage<?>>>> eventProcessors = new CopyOnWriteArraySet<>();
-    private final Set<Runnable> consumerCloserHandlers = new HashSet<>();
+    private final Map<java.util.function.Consumer<List<? extends EventMessage<?>>>, Runnable> consumerCloseHandlers = new HashMap<>();
 
     /**
      * Instantiate a Builder to be able to create a {@link SubscribableKafkaMessageSource}.
@@ -124,6 +124,11 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
 
         return () -> {
             if (eventProcessors.remove(eventProcessor)) {
+                Runnable consumerCloser = consumerCloseHandlers.remove(eventProcessor);
+                if (consumerCloser != null) {
+                    consumerCloser.run();
+                }
+
                 logger.debug("Event Processor [{}] unsubscribed successfully", eventProcessor);
                 return true;
             } else {
@@ -161,7 +166,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
                                                     .collect(Collectors.toList()),
                     eventProcessor::accept
             );
-            consumerCloserHandlers.add(closeConsumer);
+            consumerCloseHandlers.put(eventProcessor, closeConsumer);
         });
     }
 
@@ -171,11 +176,11 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
      * Processor are closed.
      */
     public void close() {
-        if (consumerCloserHandlers.isEmpty()) {
+        if (consumerCloseHandlers.isEmpty()) {
             logger.debug("No Event Processors have been subscribed who's Consumers should be closed");
             return;
         }
-        consumerCloserHandlers.forEach(Runnable::run);
+        consumerCloseHandlers.values().forEach(Runnable::run);
     }
 
     /**
