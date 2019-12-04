@@ -131,7 +131,7 @@ public class KafkaAutoConfiguration {
                                          eventHandler -> eventHandler.getClass().equals(KafkaEventPublisher.class)
                                  );
 
-        KafkaProperties.EventProcessorMode processorMode = kafkaProperties.getEventProcessorMode();
+        KafkaProperties.EventProcessorMode processorMode = kafkaProperties.getProducer().getEventProcessorMode();
         if (processorMode == KafkaProperties.EventProcessorMode.SUBSCRIBING) {
             eventProcessingConfigurer.registerSubscribingEventProcessor(DEFAULT_PROCESSING_GROUP);
         } else if (processorMode == KafkaProperties.EventProcessorMode.TRACKING) {

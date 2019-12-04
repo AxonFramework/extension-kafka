@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2019. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,6 @@
  * limitations under the License.
  */
 
-/*
- * Copyright 2012-2018 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.axonframework.extensions.kafka;
 
 import org.apache.kafka.clients.CommonClientConfigs;
@@ -83,17 +68,6 @@ public class KafkaProperties {
      * Default topic to which messages will be sent.
      */
     private String defaultTopic;
-
-    /**
-     * Controls the mode of event processor responsible for sending messages to Kafka.
-     * <p>
-     * Depending on this, different error handling behaviours are taken in case of any errors during Kafka publishing.
-     * </p>
-     * <p>
-     * Possible values are "SUBSCRIBING" (default) and "TRACKING".
-     * </p>
-     */
-    private EventProcessorMode eventProcessorMode = EventProcessorMode.SUBSCRIBING;
 
     /**
      * Additional properties, common to producers and consumers, used to configure the client.
@@ -154,14 +128,6 @@ public class KafkaProperties {
 
     public Ssl getSsl() {
         return this.ssl;
-    }
-
-    public EventProcessorMode getEventProcessorMode() {
-        return eventProcessorMode;
-    }
-
-    public void setEventProcessorMode(EventProcessorMode eventProcessorMode) {
-        this.eventProcessorMode = eventProcessorMode;
     }
 
     @SuppressWarnings("unused")
@@ -308,6 +274,13 @@ public class KafkaProperties {
          */
         private final Map<String, String> properties = new HashMap<>();
 
+        /**
+         * Controls the default message source type which will be responsible for consuming records from Kafka and
+         * providing them to an Event Processor. Defaults to {@link EventProcessorMode#TRACKING}, which will instantiate
+         * a {@link org.axonframework.extensions.kafka.eventhandling.consumer.tracking.StreamableKafkaMessageSource}.
+         */
+        private EventProcessorMode eventProcessorMode = EventProcessorMode.TRACKING;
+
         public Ssl getSsl() {
             return this.ssl;
         }
@@ -404,6 +377,14 @@ public class KafkaProperties {
             return this.properties;
         }
 
+        public EventProcessorMode getEventProcessorMode() {
+            return eventProcessorMode;
+        }
+
+        public void setEventProcessorMode(EventProcessorMode eventProcessorMode) {
+            this.eventProcessorMode = eventProcessorMode;
+        }
+
         @SuppressWarnings({"Duplicates", "WeakerAccess"})
         public Map<String, Object> buildProperties() {
             Map<String, Object> properties = new HashMap<>();
@@ -460,24 +441,6 @@ public class KafkaProperties {
             properties.putAll(this.properties);
             return properties;
         }
-    }
-
-    /**
-     * Modes for handler publishing messages from Axon to Kafka.
-     * <ul>
-     * <li>SUBSCRIBING: use kafka transactions while sending messages.</li>
-     * <li>TRACKING : use a individual tracking processor to publish messages.</li>
-     * </ul>
-     */
-    public enum EventProcessorMode {
-        /**
-         * Register publishing processor in subscribing mode.
-         */
-        SUBSCRIBING,
-        /**
-         * Register publishing processor in tracking mode.
-         */
-        TRACKING
     }
 
     /**
@@ -583,6 +546,15 @@ public class KafkaProperties {
          */
         private final Map<String, String> properties = new HashMap<>();
 
+        /**
+         * Controls the mode of event processor responsible for sending messages to Kafka. Depending on this, different
+         * error handling behaviours are taken in case of any errors during Kafka publishing.
+         * <p>
+         * Defaults to {@link EventProcessorMode#SUBSCRIBING}, using a {@link org.axonframework.eventhandling.SubscribingEventProcessor}
+         * to publish events.
+         */
+        private EventProcessorMode eventProcessorMode = EventProcessorMode.SUBSCRIBING;
+
         public Ssl getSsl() {
             return this.ssl;
         }
@@ -671,6 +643,14 @@ public class KafkaProperties {
             return this.properties;
         }
 
+        public EventProcessorMode getEventProcessorMode() {
+            return eventProcessorMode;
+        }
+
+        public void setEventProcessorMode(EventProcessorMode eventProcessorMode) {
+            this.eventProcessorMode = eventProcessorMode;
+        }
+
         @SuppressWarnings({"Duplicates", "WeakerAccess"})
         public Map<String, Object> buildProperties() {
             Map<String, Object> properties = new HashMap<>();
@@ -740,6 +720,24 @@ public class KafkaProperties {
         public void setConfirmationMode(ConfirmationMode confirmationMode) {
             this.confirmationMode = confirmationMode;
         }
+    }
+
+    /**
+     * Modes for message production and consumption.
+     */
+    public enum EventProcessorMode {
+        /**
+         * For producing messages a {@link org.axonframework.eventhandling.SubscribingEventProcessor} will be used, that
+         * will utilize Kafka's transactions for sending. A {@link org.axonframework.extensions.kafka.eventhandling.consumer.subscribable.SubscribableKafkaMessageSource}
+         * will be created for consuming messages.
+         */
+        SUBSCRIBING,
+        /**
+         * Use a {@link org.axonframework.eventhandling.TrackingEventProcessor} to publish messages. A {@link
+         * org.axonframework.extensions.kafka.eventhandling.consumer.tracking.StreamableKafkaMessageSource} will be
+         * created for consuming messages.
+         */
+        TRACKING
     }
 
     /**

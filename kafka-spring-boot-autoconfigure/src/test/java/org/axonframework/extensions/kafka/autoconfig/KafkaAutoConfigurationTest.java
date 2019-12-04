@@ -101,7 +101,10 @@ class KafkaAutoConfigurationTest {
             assertEquals("foo", producerFactory.transactionIdPrefix());
             assertEquals(StringSerializer.class, producerConfigs.get(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG));
             assertEquals(ByteArraySerializer.class, producerConfigs.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG));
-            assertEquals(KafkaProperties.EventProcessorMode.SUBSCRIBING, kafkaProperties.getEventProcessorMode());
+            assertEquals(
+                    KafkaProperties.EventProcessorMode.SUBSCRIBING,
+                    kafkaProperties.getProducer().getEventProcessorMode()
+            );
 
             // Consumer assertions
             Map<String, Object> consumerConfigs =
@@ -264,7 +267,10 @@ class KafkaAutoConfigurationTest {
                                   "axon.kafka.event-processor-mode=TRACKING"
                           ).run(context -> {
             KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
-            assertEquals(KafkaProperties.EventProcessorMode.TRACKING, kafkaProperties.getEventProcessorMode());
+            assertEquals(
+                    KafkaProperties.EventProcessorMode.TRACKING,
+                    kafkaProperties.getProducer().getEventProcessorMode()
+            );
             assertNotNull(context.getBean(KafkaEventPublisher.class));
 
             EventProcessingConfigurer eventProcessingConfigurer = context.getBean(EventProcessingConfigurer.class);
@@ -287,7 +293,10 @@ class KafkaAutoConfigurationTest {
                                   "axon.kafka.event-processor-mode=SUBSCRIBING"
                           ).run(context -> {
             KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
-            assertEquals(KafkaProperties.EventProcessorMode.SUBSCRIBING, kafkaProperties.getEventProcessorMode());
+            assertEquals(
+                    KafkaProperties.EventProcessorMode.SUBSCRIBING,
+                    kafkaProperties.getProducer().getEventProcessorMode()
+            );
             assertNotNull(context.getBean(KafkaEventPublisher.class));
 
             EventProcessingConfigurer eventProcessingConfigurer = context.getBean(EventProcessingConfigurer.class);
