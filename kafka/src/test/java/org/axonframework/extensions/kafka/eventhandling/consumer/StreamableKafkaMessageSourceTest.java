@@ -19,6 +19,7 @@ package org.axonframework.extensions.kafka.eventhandling.consumer;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.common.stream.BlockingStream;
+import org.axonframework.eventhandling.TrackedEventMessage;
 import org.axonframework.eventhandling.TrackingToken;
 import org.junit.jupiter.api.*;
 import org.mockito.*;
@@ -44,7 +45,7 @@ class StreamableKafkaMessageSourceTest {
     private ConsumerFactory<String, String> consumerFactory;
     private Fetcher<KafkaEventMessage, String, String> fetcher;
 
-    private StreamableKafkaMessageSource testSubject;
+    private StreamableKafkaMessageSource<String, String> testSubject;
 
     private Consumer<String, String> mockConsumer;
 
@@ -87,7 +88,7 @@ class StreamableKafkaMessageSourceTest {
 
     @Test
     void testBuildingWithInvalidConsumerFactoryShouldThrowAxonConfigurationException() {
-        //noinspection unchecked
+        //noinspection unchecked,rawtypes
         assertThrows(
                 AxonConfigurationException.class,
                 () -> StreamableKafkaMessageSource.builder().consumerFactory((ConsumerFactory) null)
@@ -129,8 +130,7 @@ class StreamableKafkaMessageSourceTest {
         String testSuffix = "group-id-suffix";
         when(consumerFactory.createConsumer(testPrefix + testSuffix)).thenReturn(mockConsumer);
 
-        //noinspection unchecked
-        StreamableKafkaMessageSource<String, byte[]> testSubject = StreamableKafkaMessageSource.<String, String>builder()
+        StreamableKafkaMessageSource<String, String> testSubject = StreamableKafkaMessageSource.<String, String>builder()
                 .groupIdPrefix(testPrefix)
                 .groupIdSuffixFactory(() -> testSuffix)
                 .consumerFactory(consumerFactory)
@@ -153,7 +153,7 @@ class StreamableKafkaMessageSourceTest {
         AtomicBoolean closed = new AtomicBoolean(false);
         when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(() -> closed.set(true));
 
-        BlockingStream result = testSubject.openStream(null);
+        BlockingStream<TrackedEventMessage<?>> result = testSubject.openStream(null);
 
         verify(consumerFactory).createConsumer(GROUP_ID_PREFIX + GROUP_ID_SUFFIX);
         verify(fetcher).poll(eq(mockConsumer), any(), any());
@@ -167,7 +167,7 @@ class StreamableKafkaMessageSourceTest {
         AtomicBoolean closed = new AtomicBoolean(false);
         when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(() -> closed.set(true));
 
-        BlockingStream result = testSubject.openStream(emptyToken());
+        BlockingStream<TrackedEventMessage<?>> result = testSubject.openStream(emptyToken());
 
         verify(consumerFactory).createConsumer(GROUP_ID_PREFIX + GROUP_ID_SUFFIX);
         verify(fetcher).poll(eq(mockConsumer), any(), any());

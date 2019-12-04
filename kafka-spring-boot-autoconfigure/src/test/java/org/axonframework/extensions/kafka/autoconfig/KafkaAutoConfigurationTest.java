@@ -90,7 +90,7 @@ class KafkaAutoConfigurationTest {
             assertNotNull(context.getBeanNamesForType(StreamableKafkaMessageSource.class));
 
             // Producer assertions
-            DefaultProducerFactory producerFactory =
+            DefaultProducerFactory<?, ?> producerFactory =
                     ((DefaultProducerFactory<?, ?>) context.getBean(DefaultProducerFactory.class));
             Map<String, Object> producerConfigs =
                     ((DefaultProducerFactory<?, ?>) context.getBean(DefaultProducerFactory.class))
@@ -312,10 +312,10 @@ class KafkaAutoConfigurationTest {
             return mock(EventBus.class);
         }
 
-        @SuppressWarnings("unchecked")
         @Bean
         public AxonConfiguration axonConfiguration() {
             AxonConfiguration mock = mock(AxonConfiguration.class);
+            //noinspection unchecked,rawtypes
             when(mock.messageMonitor(any(), any())).thenReturn((MessageMonitor) NoOpMessageMonitor.instance());
             return mock;
         }

@@ -162,14 +162,13 @@ public class KafkaAutoConfiguration {
     @ConditionalOnBean({ConsumerFactory.class, KafkaMessageConverter.class, Fetcher.class})
     public StreamableKafkaMessageSource<String, byte[]> streamableKafkaMessageSource(
             ConsumerFactory<String, byte[]> kafkaConsumerFactory,
-            Fetcher<KafkaEventMessage, String, byte[]> fetcher,
+            Fetcher<KafkaEventMessage, String, byte[]> kafkaFetcher,
             KafkaMessageConverter<String, byte[]> kafkaMessageConverter
     ) {
-        //noinspection unchecked
         return StreamableKafkaMessageSource.<String, byte[]>builder()
                 .topic(properties.getDefaultTopic())
                 .consumerFactory(kafkaConsumerFactory)
-                .fetcher(fetcher)
+                .fetcher(kafkaFetcher)
                 .messageConverter(kafkaMessageConverter)
                 .bufferFactory(() -> new SortedKafkaMessageBuffer<>(properties.getFetcher().getBufferSize()))
                 .build();
