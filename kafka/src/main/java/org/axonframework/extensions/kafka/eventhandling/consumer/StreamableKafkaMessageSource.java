@@ -176,7 +176,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
          *                      Consumer} should retrieve records from
          * @return the current Builder instance, for fluent interfacing
          */
-        public Builder groupIdPrefix(String groupIdPrefix) {
+        public Builder<K, V> groupIdPrefix(String groupIdPrefix) {
             assertThat(groupIdPrefix, name -> Objects.nonNull(name) && !"".equals(name),
                        "The groupIdPrefix may not be null or empty");
             this.groupIdPrefix = groupIdPrefix;
@@ -192,7 +192,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
          * @return the current Builder instance, for fluent interfacing
          */
         @SuppressWarnings("WeakerAccess")
-        public Builder groupIdSuffixFactory(Supplier<String> groupIdSuffixFactory) {
+        public Builder<K, V> groupIdSuffixFactory(Supplier<String> groupIdSuffixFactory) {
             assertNonNull(groupIdSuffixFactory, "GroupIdSuffixFactory may not be null");
             this.groupIdSuffixFactory = groupIdSuffixFactory;
             return this;
@@ -233,7 +233,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
          * @param fetcher the {@link Fetcher} used to poll, convert and consume {@link ConsumerRecords} with
          * @return the current Builder instance, for fluent interfacing
          */
-        public Builder fetcher(Fetcher<KafkaEventMessage, K, V> fetcher) {
+        public Builder<K, V> fetcher(Fetcher<KafkaEventMessage, K, V> fetcher) {
             assertNonNull(fetcher, "Fetcher may not be null");
             this.fetcher = fetcher;
             return this;

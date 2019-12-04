@@ -49,7 +49,7 @@ public class AsyncFetcher<E, K, V> implements Fetcher<E, K, V> {
     private final Duration pollTimeout;
     private final ExecutorService executorService;
     private final boolean requirePoolShutdown;
-    private final Set<FetchEventsTask> activeFetchers = ConcurrentHashMap.newKeySet();
+    private final Set<FetchEventsTask<E, K, V>> activeFetchers = ConcurrentHashMap.newKeySet();
 
     /**
      * Instantiate a Builder to be able to create a {@link AsyncFetcher}.
@@ -59,8 +59,8 @@ public class AsyncFetcher<E, K, V> implements Fetcher<E, K, V> {
      *
      * @return a Builder to be able to create an {@link AsyncFetcher}
      */
-    public static Builder builder() {
-        return new Builder();
+    public static <E, K, V> Builder<E, K, V> builder() {
+        return new Builder<>();
     }
 
     /**
@@ -69,7 +69,7 @@ public class AsyncFetcher<E, K, V> implements Fetcher<E, K, V> {
      * @param builder the {@link Builder} used to instantiate a {@link AsyncFetcher} instance
      */
     @SuppressWarnings("WeakerAccess")
-    protected AsyncFetcher(Builder builder) {
+    protected AsyncFetcher(Builder<E, K, V> builder) {
         this.pollTimeout = builder.pollTimeout;
         this.executorService = builder.executorService;
         this.requirePoolShutdown = builder.requirePoolShutdown;
@@ -101,8 +101,15 @@ public class AsyncFetcher<E, K, V> implements Fetcher<E, K, V> {
      * <p>
      * The {@code pollTimeout} is defaulted to a {@link Duration} of {@code 5000} milliseconds and the {@link
      * ExecutorService} to an {@link Executors#newCachedThreadPool()} using an {@link AxonThreadFactory}.
+     *
+     * @param <E> the element type the {@link org.apache.kafka.clients.consumer.ConsumerRecords} will be converted in to
+     *            by the {@link RecordConverter} and consumed by the {@link RecordConsumer}
+     * @param <K> the key of the {@link org.apache.kafka.clients.consumer.ConsumerRecords} polled by the {@link
+     *            FetchEventsTask}
+     * @param <V> the value type of {@link org.apache.kafka.clients.consumer.ConsumerRecords} polled by the {@link
+     *            FetchEventsTask}
      */
-    public static final class Builder {
+    public static final class Builder<E, K, V> {
 
         private Duration pollTimeout = Duration.ofMillis(DEFAULT_POLL_TIMEOUT_MS);
         private ExecutorService executorService = Executors.newCachedThreadPool(new AxonThreadFactory("AsyncFetcher"));
@@ -115,7 +122,7 @@ public class AsyncFetcher<E, K, V> implements Fetcher<E, K, V> {
          * @param timeoutMillis the timeoutMillis as a {@code long} when reading message from the topic
          * @return the current Builder instance, for fluent interfacing
          */
-        public Builder pollTimeout(long timeoutMillis) {
+        public Builder<E, K, V> pollTimeout(long timeoutMillis) {
             assertThat(timeoutMillis, timeout -> timeout > 0,
                        "The poll timeout may not be negative [" + timeoutMillis + "]");
             this.pollTimeout = Duration.ofMillis(timeoutMillis);
@@ -136,7 +143,7 @@ public class AsyncFetcher<E, K, V> implements Fetcher<E, K, V> {
          * @return the current Builder instance, for fluent interfacing
          */
         @SuppressWarnings("WeakerAccess")
-        public Builder executorService(ExecutorService executorService) {
+        public Builder<E, K, V> executorService(ExecutorService executorService) {
             assertNonNull(executorService, "ExecutorService may not be null");
             this.requirePoolShutdown = false;
             this.executorService = executorService;
@@ -148,7 +155,7 @@ public class AsyncFetcher<E, K, V> implements Fetcher<E, K, V> {
          *
          * @return a {@link AsyncFetcher} as specified through this Builder
          */
-        public AsyncFetcher build() {
+        public AsyncFetcher<E, K, V> build() {
             return new AsyncFetcher<>(this);
         }
     }

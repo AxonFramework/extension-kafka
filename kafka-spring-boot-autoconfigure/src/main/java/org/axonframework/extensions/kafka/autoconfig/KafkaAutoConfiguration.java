@@ -110,10 +110,10 @@ public class KafkaAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnBean({KafkaPublisher.class})
-    public KafkaEventPublisher kafkaEventPublisher(KafkaPublisher<String, byte[]> kafkaPublisher,
-                                                   KafkaProperties kafkaProperties,
-                                                   EventProcessingConfigurer eventProcessingConfigurer) {
-        KafkaEventPublisher kafkaEventPublisher =
+    public KafkaEventPublisher<String, byte[]> kafkaEventPublisher(KafkaPublisher<String, byte[]> kafkaPublisher,
+                                                                   KafkaProperties kafkaProperties,
+                                                                   EventProcessingConfigurer eventProcessingConfigurer) {
+        KafkaEventPublisher<String, byte[]> kafkaEventPublisher =
                 KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(kafkaPublisher).build();
 
         /*
@@ -151,7 +151,7 @@ public class KafkaAutoConfiguration {
 
     @ConditionalOnMissingBean
     @Bean(destroyMethod = "shutdown")
-    public Fetcher kafkaFetcher() {
+    public Fetcher<?, ?, ?> kafkaFetcher() {
         return AsyncFetcher.builder()
                            .pollTimeout(properties.getFetcher().getPollTimeout())
                            .build();
