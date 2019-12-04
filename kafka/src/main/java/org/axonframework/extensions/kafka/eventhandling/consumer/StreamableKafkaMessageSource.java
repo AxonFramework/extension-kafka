@@ -68,7 +68,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
      * Instantiate a Builder to be able to create a {@link StreamableKafkaMessageSource}.
      * <p>
      * The {@code topic} is defaulted to {@code "Axon.Events"}, {@code groupIdPrefix} defaults to {@code
-     * "Axon.Events.Consumer-"} and it's {@code groupIdSuffixFactory} to a {@link UUID#randomUUID()} operation, the
+     * "Axon.Streamable.Consumer-"} and it's {@code groupIdSuffixFactory} to a {@link UUID#randomUUID()} operation, the
      * {@link KafkaMessageConverter} to a {@link DefaultKafkaMessageConverter} using the {@link XStreamSerializer} and
      * the {@code bufferFactory} the {@link SortedKafkaMessageBuffer} constructor. The {@link ConsumerFactory} and
      * {@link Fetcher} are <b>hard requirements</b> and as such should be provided.
@@ -134,7 +134,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
      * Builder class to instantiate a {@link StreamableKafkaMessageSource}.
      * <p>
      * The {@code topic} is defaulted to {@code "Axon.Events"}, {@code groupIdPrefix} defaults to {@code
-     * "Axon.Events.Consumer-"} and it's {@code groupIdSuffixFactory} to a {@link UUID#randomUUID()} operation, the
+     * "Axon.Streamable.Consumer-"} and it's {@code groupIdSuffixFactory} to a {@link UUID#randomUUID()} operation, the
      * {@link KafkaMessageConverter} to a {@link DefaultKafkaMessageConverter} using the {@link XStreamSerializer} and
      * the {@code bufferFactory} the {@link SortedKafkaMessageBuffer} constructor. The {@link ConsumerFactory} and
      * {@link Fetcher} are <b>hard requirements</b> and as such should be provided.
@@ -145,7 +145,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
     public static class Builder<K, V> {
 
         private String topic = "Axon.Events";
-        private String groupIdPrefix = "Axon.Events.Consumer-";
+        private String groupIdPrefix = "Axon.Streamable.Consumer-";
         private Supplier<String> groupIdSuffixFactory = () -> UUID.randomUUID().toString();
         private ConsumerFactory<K, V> consumerFactory;
         private Fetcher<KafkaEventMessage, K, V> fetcher;
@@ -170,7 +170,8 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
         }
 
         /**
-         * Sets the prefix of the Consumer {@code groupId} from which a {@link Consumer} should retrieve records from
+         * Sets the prefix of the Consumer {@code groupId} from which a {@link Consumer} should retrieve records from.
+         * Defaults to {@code "Axon.Streamable.Consumer-"}.
          *
          * @param groupIdPrefix a {@link String} defining the prefix of  the Consumer Group id to which a {@link
          *                      Consumer} should retrieve records from
