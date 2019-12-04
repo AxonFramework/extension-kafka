@@ -148,7 +148,7 @@ public class KafkaPublisherTest {
         String testTopic = "testSendMessagesAckNoUnitOfWorkWithTimeout";
         testProducerFactory = mock(DefaultProducerFactory.class);
         when(testProducerFactory.confirmationMode()).thenReturn(ConfirmationMode.WAIT_FOR_ACK);
-        Producer testProducer = mock(Producer.class);
+        Producer<String, byte[]> testProducer = mock(Producer.class);
         when(testProducerFactory.createProducer()).thenReturn(testProducer);
 
         Future<RecordMetadata> timeoutFuture1 = new CompletableFuture<>();
@@ -264,13 +264,14 @@ public class KafkaPublisherTest {
         publishWithException(testTopic, testMessage);
     }
 
+    @SuppressWarnings("unchecked")
     private static DefaultProducerFactory<String, byte[]> producerFactoryWithFencedExceptionOnBeginTransaction() {
-        DefaultProducerFactory producerFactory = mock(DefaultProducerFactory.class, "FactoryForExceptionOnBeginTx");
-        Producer producer = mock(Producer.class, "ExceptionOnBeginTxMock");
+        DefaultProducerFactory<String, byte[]> producerFactory =
+                mock(DefaultProducerFactory.class, "FactoryForExceptionOnBeginTx");
+        Producer<String, byte[]> producer = mock(Producer.class, "ExceptionOnBeginTxMock");
         when(producerFactory.confirmationMode()).thenReturn(ConfirmationMode.TRANSACTIONAL);
         when(producerFactory.createProducer()).thenReturn(producer);
         doThrow(ProducerFencedException.class).when(producer).beginTransaction();
-        //noinspection unchecked
         return producerFactory;
     }
 
@@ -284,13 +285,13 @@ public class KafkaPublisherTest {
         publishWithException(testTopic, testMessage);
     }
 
+    @SuppressWarnings("unchecked")
     private static DefaultProducerFactory<String, byte[]> producerFactoryWithFencedExceptionOnCommit() {
-        DefaultProducerFactory producerFactory = mock(DefaultProducerFactory.class);
-        Producer producer = mock(Producer.class, "ExceptionOnCommitTxMock");
+        DefaultProducerFactory<String, byte[]> producerFactory = mock(DefaultProducerFactory.class);
+        Producer<String, byte[]> producer = mock(Producer.class, "ExceptionOnCommitTxMock");
         when(producerFactory.confirmationMode()).thenReturn(ConfirmationMode.TRANSACTIONAL);
         when(producerFactory.createProducer()).thenReturn(producer);
         doThrow(ProducerFencedException.class).when(producer).commitTransaction();
-        //noinspection unchecked
         return producerFactory;
     }
 
@@ -322,13 +323,14 @@ public class KafkaPublisherTest {
         assertTrue("Didn't expect any consumer records", KafkaTestUtils.getRecords(testConsumer, 100).isEmpty());
     }
 
+    @SuppressWarnings("unchecked")
     private static DefaultProducerFactory<String, byte[]> producerFactoryWithFencedExceptionOnAbort() {
-        DefaultProducerFactory producerFactory = mock(DefaultProducerFactory.class, "FactoryForExceptionOnAbortTx");
-        Producer producer = mock(Producer.class, "ExceptionOnAbortTx");
+        DefaultProducerFactory<String, byte[]> producerFactory =
+                mock(DefaultProducerFactory.class, "FactoryForExceptionOnAbortTx");
+        Producer<String, byte[]> producer = mock(Producer.class, "ExceptionOnAbortTx");
         when(producerFactory.confirmationMode()).thenReturn(ConfirmationMode.TRANSACTIONAL);
         when(producerFactory.createProducer()).thenReturn(producer);
         doThrow(RuntimeException.class).when(producer).abortTransaction();
-        //noinspection unchecked
         return producerFactory;
     }
 
@@ -344,7 +346,7 @@ public class KafkaPublisherTest {
                 .topic(topic)
                 .publisherAckTimeout(1000)
                 .build();
-        KafkaEventPublisher kafkaEventPublisher =
+        KafkaEventPublisher<String, byte[]> kafkaEventPublisher =
                 KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(kafkaPublisher).build();
         /*
          * Simulate configuration.

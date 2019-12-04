@@ -159,7 +159,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
          *                records from
          * @return the current Builder instance, for fluent interfacing
          */
-        public Builder groupId(String groupId) {
+        public Builder<K, V> groupId(String groupId) {
             assertThat(groupId, name -> Objects.nonNull(name) && !"".equals(name),
                        "The groupId may not be null or empty");
             this.groupId = groupId;
@@ -189,6 +189,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
          *                              Consumer} instances with
          * @return the current Builder instance, for fluent interfacing
          */
+        @SuppressWarnings("unused")
         public Builder<K, V> consumerFactory(Map<String, Object> consumerConfiguration) {
             this.consumerFactory = new DefaultConsumerFactory<>(consumerConfiguration);
             return this;
@@ -200,7 +201,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
          * @param fetcher the {@link Fetcher} used to poll, convert and consume {@link ConsumerRecords} with
          * @return the current Builder instance, for fluent interfacing
          */
-        public Builder fetcher(Fetcher<KafkaEventMessage, K, V> fetcher) {
+        public Builder<K, V> fetcher(Fetcher<KafkaEventMessage, K, V> fetcher) {
             assertNonNull(fetcher, "Fetcher may not be null");
             this.fetcher = fetcher;
             return this;

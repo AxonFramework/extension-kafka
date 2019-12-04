@@ -78,15 +78,15 @@ class KafkaIntegrationTest {
                 .producerFactory(producerFactory)
                 .topic("integration")
                 .build();
-        KafkaEventPublisher sender = KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(publisher).build();
+        KafkaEventPublisher<String, byte[]> sender =
+                KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(publisher).build();
         configurer.eventProcessing(
                 eventProcessingConfigurer -> eventProcessingConfigurer.registerEventHandler(c -> sender)
         );
 
         consumerFactory = new DefaultConsumerFactory<>(minimal(kafkaBroker, ByteArrayDeserializer.class));
 
-        //noinspection unchecked
-        fetcher = AsyncFetcher.<String, byte[]>builder()
+        fetcher = AsyncFetcher.<KafkaEventMessage, String, byte[]>builder()
                 .pollTimeout(300)
                 .build();
 
@@ -105,7 +105,6 @@ class KafkaIntegrationTest {
 
     @Test
     void testPublishAndReadMessages() throws Exception {
-        //noinspection unchecked
         StreamableKafkaMessageSource<String, byte[]> streamableMessageSource =
                 StreamableKafkaMessageSource.<String, byte[]>builder()
                         .topic("integration")

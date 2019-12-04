@@ -49,7 +49,7 @@ class FetchEventsTask<E, K, V> implements Runnable {
     private final Duration pollTimeout;
     private final RecordConverter<E, K, V> recordConverter;
     private final RecordConsumer<E> recordConsumer;
-    private final java.util.function.Consumer<FetchEventsTask> closeHandler;
+    private final java.util.function.Consumer<FetchEventsTask<E, K, V>> closeHandler;
 
     private final AtomicBoolean running = new AtomicBoolean(true);
 
@@ -68,7 +68,7 @@ class FetchEventsTask<E, K, V> implements Runnable {
                     Duration pollTimeout,
                     RecordConverter<E, K, V> recordConverter,
                     RecordConsumer<E> recordConsumer,
-                    java.util.function.Consumer<FetchEventsTask> closeHandler) {
+                    java.util.function.Consumer<FetchEventsTask<E, K, V>> closeHandler) {
         this.consumer = nonNull(consumer, () -> "Consumer may not be null");
         assertThat(pollTimeout, time -> !time.isNegative(),
                    "The poll timeout may not be negative [" + pollTimeout + "]");
