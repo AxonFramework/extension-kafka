@@ -79,8 +79,8 @@ class AsyncFetcherTest {
 
     @BeforeEach
     void setUp() {
-        //noinspection unchecked
-        testSubject = AsyncFetcher.<String, String>builder().executorService(newSingleThreadExecutor()).build();
+        testSubject = AsyncFetcher.<KafkaEventMessage, String, String>builder()
+                .executorService(newSingleThreadExecutor()).build();
     }
 
     @AfterEach
@@ -223,7 +223,7 @@ class AsyncFetcherTest {
      *
      * @param <E> the type of the elements stored in this {@link Buffer} implementation
      */
-    private static class LatchedSortedKafkaMessageBuffer<E extends Comparable & KafkaRecordMetaData>
+    private static class LatchedSortedKafkaMessageBuffer<E extends Comparable<?> & KafkaRecordMetaData<?>>
             extends SortedKafkaMessageBuffer<E> {
 
         private final CountDownLatch bufferedMessageLatch;

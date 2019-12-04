@@ -110,10 +110,10 @@ public class KafkaAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnBean({KafkaPublisher.class})
-    public KafkaEventPublisher kafkaEventPublisher(KafkaPublisher<String, byte[]> kafkaPublisher,
-                                                   KafkaProperties kafkaProperties,
-                                                   EventProcessingConfigurer eventProcessingConfigurer) {
-        KafkaEventPublisher kafkaEventPublisher =
+    public KafkaEventPublisher<String, byte[]> kafkaEventPublisher(KafkaPublisher<String, byte[]> kafkaPublisher,
+                                                                   KafkaProperties kafkaProperties,
+                                                                   EventProcessingConfigurer eventProcessingConfigurer) {
+        KafkaEventPublisher<String, byte[]> kafkaEventPublisher =
                 KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(kafkaPublisher).build();
 
         /*
@@ -151,7 +151,7 @@ public class KafkaAutoConfiguration {
 
     @ConditionalOnMissingBean
     @Bean(destroyMethod = "shutdown")
-    public Fetcher kafkaFetcher() {
+    public Fetcher<?, ?, ?> kafkaFetcher() {
         return AsyncFetcher.builder()
                            .pollTimeout(properties.getFetcher().getPollTimeout())
                            .build();
@@ -162,14 +162,13 @@ public class KafkaAutoConfiguration {
     @ConditionalOnBean({ConsumerFactory.class, KafkaMessageConverter.class, Fetcher.class})
     public StreamableKafkaMessageSource<String, byte[]> streamableKafkaMessageSource(
             ConsumerFactory<String, byte[]> kafkaConsumerFactory,
-            Fetcher<KafkaEventMessage, String, byte[]> fetcher,
+            Fetcher<KafkaEventMessage, String, byte[]> kafkaFetcher,
             KafkaMessageConverter<String, byte[]> kafkaMessageConverter
     ) {
-        //noinspection unchecked
         return StreamableKafkaMessageSource.<String, byte[]>builder()
                 .topic(properties.getDefaultTopic())
                 .consumerFactory(kafkaConsumerFactory)
-                .fetcher(fetcher)
+                .fetcher(kafkaFetcher)
                 .messageConverter(kafkaMessageConverter)
                 .bufferFactory(() -> new SortedKafkaMessageBuffer<>(properties.getFetcher().getBufferSize()))
                 .build();

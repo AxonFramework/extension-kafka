@@ -50,7 +50,7 @@ class FetchEventsTaskTest {
     private Duration testPollTimeout;
     private RecordConverter<KafkaEventMessage, String, String> testRecordConverter;
     private RecordConsumer<KafkaEventMessage> testRecordConsumer;
-    private java.util.function.Consumer<FetchEventsTask> testCloseHandler;
+    private java.util.function.Consumer<FetchEventsTask<KafkaEventMessage, String, String>> testCloseHandler;
     private FetchEventsTask<KafkaEventMessage, String, String> testSubject;
 
     @SuppressWarnings("unchecked")

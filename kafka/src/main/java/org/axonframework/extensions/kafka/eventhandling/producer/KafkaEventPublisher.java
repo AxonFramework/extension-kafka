@@ -47,19 +47,6 @@ public class KafkaEventPublisher<K, V> implements EventMessageHandler {
     private final KafkaPublisher<K, V> kafkaPublisher;
 
     /**
-     * Instantiate a {@link KafkaEventPublisher} based on the fields contained in the {@link Builder}.
-     * <p>
-     * Will assert that the {@link KafkaPublisher} is not {@code null}, and will throw an
-     * {@link AxonConfigurationException} if it is.
-     *
-     * @param builder the {@link Builder} used to instantiate a {@link KafkaEventPublisher} instance
-     */
-    protected KafkaEventPublisher(Builder<K, V> builder) {
-        builder.validate();
-        this.kafkaPublisher = builder.kafkaPublisher;
-    }
-
-    /**
      * Instantiate a Builder to be able to create a {@link KafkaEventPublisher}.
      * <p>
      * The {@link KafkaPublisher} is a <b>hard requirements</b> and as such should be provided.
@@ -70,6 +57,19 @@ public class KafkaEventPublisher<K, V> implements EventMessageHandler {
      */
     public static <K, V> Builder<K, V> builder() {
         return new Builder<>();
+    }
+
+    /**
+     * Instantiate a {@link KafkaEventPublisher} based on the fields contained in the {@link Builder}.
+     * <p>
+     * Will assert that the {@link KafkaPublisher} is not {@code null}, and will throw an
+     * {@link AxonConfigurationException} if it is.
+     *
+     * @param builder the {@link Builder} used to instantiate a {@link KafkaEventPublisher} instance
+     */
+    protected KafkaEventPublisher(Builder<K, V> builder) {
+        builder.validate();
+        this.kafkaPublisher = builder.kafkaPublisher;
     }
 
     @Override
@@ -103,7 +103,7 @@ public class KafkaEventPublisher<K, V> implements EventMessageHandler {
          *                       {@link EventMessage} on
          * @return the current Builder instance, for fluent interfacing
          */
-        public Builder kafkaPublisher(KafkaPublisher<K, V> kafkaPublisher) {
+        public Builder<K, V> kafkaPublisher(KafkaPublisher<K, V> kafkaPublisher) {
             assertNonNull(kafkaPublisher, "KafkaPublisher may not be null");
             this.kafkaPublisher = kafkaPublisher;
             return this;
@@ -114,7 +114,7 @@ public class KafkaEventPublisher<K, V> implements EventMessageHandler {
          *
          * @return a {@link KafkaEventPublisher} as specified through this Builder
          */
-        public KafkaEventPublisher build() {
+        public KafkaEventPublisher<K, V> build() {
             return new KafkaEventPublisher<>(this);
         }
 
