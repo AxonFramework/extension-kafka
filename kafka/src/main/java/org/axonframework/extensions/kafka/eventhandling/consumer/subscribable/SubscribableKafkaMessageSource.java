@@ -166,7 +166,12 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
                                                     .filter(Optional::isPresent)
                                                     .map(Optional::get)
                                                     .collect(Collectors.toList()),
-                    eventProcessor::accept
+                    eventMessages -> {
+                        if (eventMessages.isEmpty()) {
+                            return;
+                        }
+                        eventProcessor.accept(eventMessages);
+                    }
             );
             fetcherRegistrations.put(eventProcessor, closeConsumer);
         });
