@@ -137,6 +137,9 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
     /**
      * Start polling the {@code topic} configured through {@link Builder#topic(String)} with a {@link Consumer} build by
      * the {@link ConsumerFactory} per subscribed Event Processor.
+     * <p>
+     * This operation should be called <b>only</b> if all desired Event Processors have been subscribed (through the
+     * {@link #subscribe(java.util.function.Consumer)} method).
      */
     public void start() {
         start(Collections.singletonList(topic));
@@ -145,6 +148,9 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
     /**
      * Start polling the provided {@link List} of topics with a {@link Consumer} build by the {@link ConsumerFactory}
      * per subscribed Event Processor.
+     * <p>
+     * This operation should be called <b>only</b> if all desired Event Processors have been subscribed (through the
+     * {@link #subscribe(java.util.function.Consumer)} method).
      *
      * @param topics a {@link List} of topics which a {@link Consumer} will start polling from
      */
