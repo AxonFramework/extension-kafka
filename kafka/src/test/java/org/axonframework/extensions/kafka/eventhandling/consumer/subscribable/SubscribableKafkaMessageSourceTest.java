@@ -132,6 +132,25 @@ class SubscribableKafkaMessageSourceTest {
     }
 
     @Test
+    void testStartOnFirstSubscriptionInitiatesProcessingOnFirstEventProcessor() {
+        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(NO_OP_FETCHER_REGISTRATION);
+
+        SubscribableKafkaMessageSource<String, String> testSubject = SubscribableKafkaMessageSource.<String, String>builder()
+                .topic(TEST_TOPIC)
+                .groupId(DEFAULT_GROUP_ID)
+                .consumerFactory(consumerFactory)
+                .fetcher(fetcher)
+                .startOnFirstSubscription()
+                .build();
+
+        testSubject.subscribe(NO_OP_EVENT_PROCESSOR);
+
+        verify(consumerFactory, times(1)).createConsumer(DEFAULT_GROUP_ID);
+        verify(mockConsumer, times(1)).subscribe(Collections.singletonList(TEST_TOPIC));
+        verify(fetcher).poll(eq(mockConsumer), any(), any());
+    }
+
+    @Test
     void testSubscribingTheSameInstanceTwiceDisregardsSecondInstanceOnStart() {
         when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(NO_OP_FETCHER_REGISTRATION);
 
@@ -142,6 +161,7 @@ class SubscribableKafkaMessageSourceTest {
 
         verify(consumerFactory, times(1)).createConsumer(DEFAULT_GROUP_ID);
         verify(mockConsumer, times(1)).subscribe(Collections.singletonList(TEST_TOPIC));
+        verify(fetcher, times(1)).poll(eq(mockConsumer), any(), any());
     }
 
     @Test
@@ -157,6 +177,7 @@ class SubscribableKafkaMessageSourceTest {
 
         verify(consumerFactory).createConsumer(DEFAULT_GROUP_ID);
         verify(mockConsumer).subscribe(testTopics);
+        verify(fetcher).poll(eq(mockConsumer), any(), any());
     }
 
     @Test
@@ -174,6 +195,7 @@ class SubscribableKafkaMessageSourceTest {
 
         verify(consumerFactory, times(2)).createConsumer(DEFAULT_GROUP_ID);
         verify(mockConsumer, times(2)).subscribe(Collections.singletonList(TEST_TOPIC));
+        verify(fetcher, times(2)).poll(eq(mockConsumer), any(), any());
     }
 
     @Test
@@ -202,6 +224,7 @@ class SubscribableKafkaMessageSourceTest {
 
         verify(consumerFactory, times(2)).createConsumer(DEFAULT_GROUP_ID);
         verify(mockConsumer, times(2)).subscribe(Collections.singletonList(TEST_TOPIC));
+        verify(fetcher, times(2)).poll(eq(mockConsumer), any(), any());
 
         assertTrue(closedEventProcessorOne.get());
         assertTrue(closedEventProcessorTwo.get());

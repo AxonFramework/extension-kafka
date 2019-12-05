@@ -39,6 +39,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -72,9 +73,11 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
     private final ConsumerFactory<K, V> consumerFactory;
     private final Fetcher<K, V, EventMessage<?>> fetcher;
     private final KafkaMessageConverter<K, V> messageConverter;
+    private final boolean startOnFirstSubscription;
 
     private final Set<java.util.function.Consumer<List<? extends EventMessage<?>>>> eventProcessors = new CopyOnWriteArraySet<>();
     private final Map<java.util.function.Consumer<List<? extends EventMessage<?>>>, Registration> fetcherRegistrations = new HashMap<>();
+    private final AtomicBoolean inProgress = new AtomicBoolean(false);
 
     /**
      * Instantiate a Builder to be able to create a {@link SubscribableKafkaMessageSource}.
@@ -106,6 +109,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
         this.consumerFactory = builder.consumerFactory;
         this.fetcher = builder.fetcher;
         this.messageConverter = builder.messageConverter;
+        this.startOnFirstSubscription = builder.startOnFirstSubscription;
     }
 
     /**
@@ -120,6 +124,10 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
             logger.debug("Event Processor [{}] subscribed successfully", eventProcessor);
         } else {
             logger.info("Event Processor [{}] not added. It was already subscribed", eventProcessor);
+        }
+
+        if (startOnFirstSubscription && !inProgress.get()) {
+            start();
         }
 
         return () -> {
@@ -155,6 +163,8 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
      * @param topics a {@link List} of topics which a {@link Consumer} will start polling from
      */
     public void start(List<String> topics) {
+        inProgress.set(true);
+
         eventProcessors.forEach(eventProcessor -> {
             Consumer<K, V> consumer = consumerFactory.createConsumer(groupId);
             consumer.subscribe(topics);
@@ -188,6 +198,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
             return;
         }
         fetcherRegistrations.values().forEach(Registration::close);
+        inProgress.set(false);
     }
 
     /**
@@ -211,6 +222,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
                 (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder().serializer(
                         XStreamSerializer.builder().build()
                 ).build();
+        private boolean startOnFirstSubscription = false;
 
         /**
          * Set the Kafka {@code topic} to read {@link org.axonframework.eventhandling.EventMessage}s from. Defaults to
@@ -294,6 +306,17 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
         public Builder<K, V> messageConverter(KafkaMessageConverter<K, V> messageConverter) {
             assertNonNull(messageConverter, "MessageConverter may not be null");
             this.messageConverter = messageConverter;
+            return this;
+        }
+
+        /**
+         * Toggles on that after the first {@link #subscribe(java.util.function.Consumer)} operation, the {@link
+         * #start()} method of this source will be called. By default this is behaviour is turned off.
+         *
+         * @return the current Builder instance, for fluent interfacing
+         */
+        public Builder<K, V> startOnFirstSubscription() {
+            startOnFirstSubscription = true;
             return this;
         }
 
