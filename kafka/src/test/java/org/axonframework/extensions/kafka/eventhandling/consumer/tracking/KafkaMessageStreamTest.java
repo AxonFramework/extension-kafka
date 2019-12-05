@@ -141,9 +141,9 @@ public class KafkaMessageStreamTest {
     public void testClosingMessageStreamShouldInvokeTheCloseHandler() {
         Registration closeHandler = mock(Registration.class);
         KafkaMessageStream mock = new KafkaMessageStream(new SortedKafkaMessageBuffer<>(), closeHandler);
-        verify(closeHandler, never()).cancel();
+        verify(closeHandler, never()).close();
         mock.close();
-        verify(closeHandler).cancel();
+        verify(closeHandler).close();
     }
 
     private static KafkaMessageStream emptyStream() {
