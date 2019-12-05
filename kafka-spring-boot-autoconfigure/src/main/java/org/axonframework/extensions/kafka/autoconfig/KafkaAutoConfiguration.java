@@ -26,6 +26,9 @@ import org.axonframework.extensions.kafka.eventhandling.consumer.AsyncFetcher;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
+import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaEventMessage;
+import org.axonframework.extensions.kafka.eventhandling.consumer.SortedKafkaMessageBuffer;
+import org.axonframework.extensions.kafka.eventhandling.consumer.StreamableKafkaMessageSource;
 import org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode;
 import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher;
@@ -152,5 +155,22 @@ public class KafkaAutoConfiguration {
         return AsyncFetcher.builder()
                            .pollTimeout(properties.getFetcher().getPollTimeout())
                            .build();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnBean({ConsumerFactory.class, KafkaMessageConverter.class, Fetcher.class})
+    public StreamableKafkaMessageSource<String, byte[]> streamableKafkaMessageSource(
+            ConsumerFactory<String, byte[]> kafkaConsumerFactory,
+            Fetcher<String, byte[], KafkaEventMessage> kafkaFetcher,
+            KafkaMessageConverter<String, byte[]> kafkaMessageConverter
+    ) {
+        return StreamableKafkaMessageSource.<String, byte[]>builder()
+                .topic(properties.getDefaultTopic())
+                .consumerFactory(kafkaConsumerFactory)
+                .fetcher(kafkaFetcher)
+                .messageConverter(kafkaMessageConverter)
+                .bufferFactory(() -> new SortedKafkaMessageBuffer<>(properties.getFetcher().getBufferSize()))
+                .build();
     }
 }

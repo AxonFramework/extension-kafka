@@ -27,9 +27,13 @@ import org.axonframework.extensions.kafka.eventhandling.DefaultKafkaMessageConve
 import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
 import org.axonframework.messaging.StreamableMessageSource;
 import org.axonframework.serialization.xml.XStreamSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.lang.invoke.MethodHandles;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.function.Supplier;
 
 import static org.axonframework.common.Assert.isTrue;
@@ -38,7 +42,10 @@ import static org.axonframework.common.BuilderUtils.assertThat;
 
 /**
  * Implementation of the {@link StreamableMessageSource} that reads messages from a Kafka topic using the provided
- * {@link Fetcher}.
+ * {@link Fetcher}. Will create new {@link Consumer} instances for every call of {@link #openStream(TrackingToken)}, for
+ * which it will create a unique Consumer Group Id. The latter ensures that we can guarantee that each Consumer Group
+ * receives all messages, so that the {@link org.axonframework.eventhandling.TrackingEventProcessor} and it's {@link
+ * org.axonframework.eventhandling.async.SequencingPolicy} are in charge of partitioning the load instead of Kafka.
  *
  * @param <K> the key of the {@link ConsumerRecords} to consume, fetch and convert
  * @param <V> the value type of {@link ConsumerRecords} to consume, fetch and convert
@@ -48,8 +55,11 @@ import static org.axonframework.common.BuilderUtils.assertThat;
  */
 public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSource<TrackedEventMessage<?>> {
 
+    private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+
     private final String topic;
-    private final String groupId;
+    private final String groupIdPrefix;
+    private final Supplier<String> groupIdSuffixFactory;
     private final ConsumerFactory<K, V> consumerFactory;
     private final Fetcher<K, V, KafkaEventMessage> fetcher;
     private final KafkaMessageConverter<K, V> messageConverter;
@@ -58,10 +68,11 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
     /**
      * Instantiate a Builder to be able to create a {@link StreamableKafkaMessageSource}.
      * <p>
-     * The {@code topic} is defaulted to {@code "Axon.Events"}, the {@link KafkaMessageConverter} to a {@link
-     * DefaultKafkaMessageConverter} using the {@link XStreamSerializer} and the {@code bufferFactory} the {@link
-     * SortedKafkaMessageBuffer} constructor. The {@code groupId}, {@link ConsumerFactory} and {@link Fetcher} are
-     * <b>hard requirements</b> and as such should be provided.
+     * The {@code topic} is defaulted to {@code "Axon.Events"}, {@code groupIdPrefix} defaults to {@code
+     * "Axon.Streamable.Consumer-"} and it's {@code groupIdSuffixFactory} to a {@link UUID#randomUUID()} operation, the
+     * {@link KafkaMessageConverter} to a {@link DefaultKafkaMessageConverter} using the {@link XStreamSerializer} and
+     * the {@code bufferFactory} the {@link SortedKafkaMessageBuffer} constructor. The {@link ConsumerFactory} and
+     * {@link Fetcher} are <b>hard requirements</b> and as such should be provided.
      *
      * @param <K> the key of the {@link ConsumerRecords} to consume, fetch and convert
      * @param <V> the value type of {@link ConsumerRecords} to consume, fetch and convert
@@ -74,18 +85,16 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
     /**
      * Instantiate a {@link StreamableKafkaMessageSource} based on the fields contained in the {@link Builder}.
      * <p>
-     * Will assert that the {@code groupId} is a non-empty {@link String} and that the {@link ConsumerFactory} and
-     * {@link Fetcher} are not {@code null}. An {@link AxonConfigurationException} is thrown if any of them is not the
-     * case.
+     * Will assert that the {@link ConsumerFactory} and {@link Fetcher} are not {@code null}. An {@link
+     * AxonConfigurationException} is thrown if any of them is not the case.
      *
      * @param builder the {@link Builder} used to instantiate a {@link StreamableKafkaMessageSource} instance
      */
-    @SuppressWarnings("WeakerAccess")
     protected StreamableKafkaMessageSource(Builder<K, V> builder) {
         builder.validate();
-
         this.topic = builder.topic;
-        this.groupId = builder.groupId;
+        this.groupIdPrefix = builder.groupIdPrefix;
+        this.groupIdSuffixFactory = builder.groupIdSuffixFactory;
         this.consumerFactory = builder.consumerFactory;
         this.fetcher = builder.fetcher;
         this.messageConverter = builder.messageConverter;
@@ -105,6 +114,8 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
                () -> "Incompatible token type provided.");
         KafkaTrackingToken token = ((KafkaTrackingToken) trackingToken);
 
+        String groupId = buildConsumerGroupId();
+        logger.debug("Consumer Group Id [{}] will start consuming from topic [{}]", groupId, topic);
         Consumer<K, V> consumer = consumerFactory.createConsumer(groupId);
         ConsumerUtil.seek(topic, consumer, token);
 
@@ -118,13 +129,18 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
         return new KafkaMessageStream(buffer, closeHandler);
     }
 
+    private String buildConsumerGroupId() {
+        return groupIdPrefix + groupIdSuffixFactory.get();
+    }
+
     /**
      * Builder class to instantiate a {@link StreamableKafkaMessageSource}.
      * <p>
-     * The {@code topic} is defaulted to {@code "Axon.Events"}, the {@link KafkaMessageConverter} to a {@link
-     * DefaultKafkaMessageConverter} using the {@link XStreamSerializer} and the {@code bufferFactory} the {@link
-     * SortedKafkaMessageBuffer} constructor. The {@code groupId}, {@link ConsumerFactory} and {@link Fetcher} are
-     * <b>hard requirements</b> and as such should be provided.
+     * The {@code topic} is defaulted to {@code "Axon.Events"}, {@code groupIdPrefix} defaults to {@code
+     * "Axon.Streamable.Consumer-"} and it's {@code groupIdSuffixFactory} to a {@link UUID#randomUUID()} operation, the
+     * {@link KafkaMessageConverter} to a {@link DefaultKafkaMessageConverter} using the {@link XStreamSerializer} and
+     * the {@code bufferFactory} the {@link SortedKafkaMessageBuffer} constructor. The {@link ConsumerFactory} and
+     * {@link Fetcher} are <b>hard requirements</b> and as such should be provided.
      *
      * @param <K> the key of the {@link ConsumerRecords} to consume, fetch and convert
      * @param <V> the value type of {@link ConsumerRecords} to consume, fetch and convert
@@ -132,7 +148,8 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
     public static class Builder<K, V> {
 
         private String topic = "Axon.Events";
-        private String groupId;
+        private String groupIdPrefix = "Axon.Streamable.Consumer-";
+        private Supplier<String> groupIdSuffixFactory = () -> UUID.randomUUID().toString();
         private ConsumerFactory<K, V> consumerFactory;
         private Fetcher<K, V, KafkaEventMessage> fetcher;
         @SuppressWarnings("unchecked")
@@ -156,16 +173,32 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
         }
 
         /**
-         * Sets the Consumer {@code groupId} to which a {@link Consumer} should retrieve records from
+         * Sets the prefix of the Consumer {@code groupId} from which a {@link Consumer} should retrieve records from.
+         * Defaults to {@code "Axon.Streamable.Consumer-"}.
          *
-         * @param groupId a {@link String} defining the Consumer Group id to which a {@link Consumer} should retrieve
-         *                records from
+         * @param groupIdPrefix a {@link String} defining the prefix of  the Consumer Group id to which a {@link
+         *                      Consumer} should retrieve records from
          * @return the current Builder instance, for fluent interfacing
          */
-        public Builder<K, V> groupId(String groupId) {
-            assertThat(groupId, name -> Objects.nonNull(name) && !"".equals(name),
-                       "The groupId may not be null or empty");
-            this.groupId = groupId;
+        public Builder<K, V> groupIdPrefix(String groupIdPrefix) {
+            assertThat(groupIdPrefix, name -> Objects.nonNull(name) && !"".equals(name),
+                       "The groupIdPrefix may not be null or empty");
+            this.groupIdPrefix = groupIdPrefix;
+            return this;
+        }
+
+        /**
+         * Sets the factory that will provide the suffix of the Consumer {@code groupId} from which a {@link Consumer}
+         * should retrieve records from
+         *
+         * @param groupIdSuffixFactory a {@link Supplier} of {@link String} providing the suffix of the Consumer {@code
+         *                             groupId} from which a {@link Consumer} should retrieve records from
+         * @return the current Builder instance, for fluent interfacing
+         */
+        @SuppressWarnings("WeakerAccess")
+        public Builder<K, V> groupIdSuffixFactory(Supplier<String> groupIdSuffixFactory) {
+            assertNonNull(groupIdSuffixFactory, "GroupIdSuffixFactory may not be null");
+            this.groupIdSuffixFactory = groupIdSuffixFactory;
             return this;
         }
 
@@ -259,8 +292,6 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
          */
         @SuppressWarnings("WeakerAccess")
         protected void validate() throws AxonConfigurationException {
-            assertThat(groupId, name -> Objects.nonNull(name) && !"".equals(name),
-                       "The groupId may not be null or empty");
             assertNonNull(consumerFactory, "The ConsumerFactory is a hard requirement and should be provided");
             assertNonNull(fetcher, "The Fetcher is a hard requirement and should be provided");
         }

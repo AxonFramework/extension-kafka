@@ -20,8 +20,7 @@ import org.axonframework.eventhandling.tokenstore.inmemory.InMemoryTokenStore
 import org.axonframework.eventsourcing.eventstore.EmbeddedEventStore
 import org.axonframework.eventsourcing.eventstore.inmemory.InMemoryEventStorageEngine
 import org.axonframework.extensions.kafka.KafkaProperties
-import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter
-import org.axonframework.extensions.kafka.eventhandling.consumer.*
+import org.axonframework.extensions.kafka.eventhandling.consumer.StreamableKafkaMessageSource
 import org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode
 import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducerFactory
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory
@@ -71,18 +70,7 @@ class KafkaAxonExampleApplication {
 
     @Autowired
     fun configureKafkaSourceForProcessingGroup(configurer: EventProcessingConfigurer,
-                                               kafkaProperties: KafkaProperties,
-                                               consumerFactory: ConsumerFactory<String, ByteArray>,
-                                               fetcher: Fetcher<String, ByteArray, KafkaEventMessage>,
-                                               kafkaMessageConverter: KafkaMessageConverter<String, ByteArray>) {
-        val streamableKafkaMessageSource = StreamableKafkaMessageSource.builder<String, ByteArray>()
-                .topic(kafkaProperties.defaultTopic)
-                .groupId("kafka-group")
-                .consumerFactory(consumerFactory)
-                .fetcher(fetcher)
-                .messageConverter(kafkaMessageConverter)
-                .bufferFactory { SortedKafkaMessageBuffer<KafkaEventMessage>(kafkaProperties.fetcher.bufferSize) }
-                .build()
+                                               streamableKafkaMessageSource: StreamableKafkaMessageSource<String, ByteArray>) {
         configurer.registerTrackingEventProcessor("kafka-group") { streamableKafkaMessageSource }
     }
 }

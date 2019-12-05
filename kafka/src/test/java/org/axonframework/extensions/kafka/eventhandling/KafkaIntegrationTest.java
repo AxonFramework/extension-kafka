@@ -44,7 +44,6 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.util.concurrent.TimeUnit;
 
 import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage;
-import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.minimal;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -108,7 +107,6 @@ class KafkaIntegrationTest {
         StreamableKafkaMessageSource<String, byte[]> streamableMessageSource =
                 StreamableKafkaMessageSource.<String, byte[]>builder()
                         .topic("integration")
-                        .groupId(DEFAULT_GROUP_ID)
                         .consumerFactory(consumerFactory)
                         .fetcher(fetcher)
                         .build();
