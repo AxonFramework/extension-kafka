@@ -70,11 +70,11 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
     private final String topic;
     private final String groupId;
     private final ConsumerFactory<K, V> consumerFactory;
-    private final Fetcher<EventMessage<?>, K, V> fetcher;
+    private final Fetcher<K, V, EventMessage<?>> fetcher;
     private final KafkaMessageConverter<K, V> messageConverter;
 
     private final Set<java.util.function.Consumer<List<? extends EventMessage<?>>>> eventProcessors = new CopyOnWriteArraySet<>();
-    private final Map<java.util.function.Consumer<List<? extends EventMessage<?>>>, Runnable> consumerCloseHandlers = new HashMap<>();
+    private final Map<java.util.function.Consumer<List<? extends EventMessage<?>>>, Registration> fetcherRegistrations = new HashMap<>();
 
     /**
      * Instantiate a Builder to be able to create a {@link SubscribableKafkaMessageSource}.
@@ -124,13 +124,9 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
 
         return () -> {
             if (eventProcessors.remove(eventProcessor)) {
-                Runnable consumerCloser = consumerCloseHandlers.remove(eventProcessor);
-                if (consumerCloser != null) {
-                    consumerCloser.run();
-                }
-
                 logger.debug("Event Processor [{}] unsubscribed successfully", eventProcessor);
-                return true;
+                Registration fetcherRegistration = fetcherRegistrations.remove(eventProcessor);
+                return fetcherRegistration == null || fetcherRegistration.cancel();
             } else {
                 logger.info("Event Processor [{}] not removed. It was already unsubscribed", eventProcessor);
                 return false;
@@ -157,7 +153,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
             Consumer<K, V> consumer = consumerFactory.createConsumer(groupId);
             consumer.subscribe(topics);
 
-            Runnable closeConsumer = fetcher.poll(
+            Registration closeConsumer = fetcher.poll(
                     consumer,
                     consumerRecords -> StreamSupport.stream(consumerRecords.spliterator(), false)
                                                     .map(messageConverter::readKafkaMessage)
@@ -166,7 +162,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
                                                     .collect(Collectors.toList()),
                     eventProcessor::accept
             );
-            consumerCloseHandlers.put(eventProcessor, closeConsumer);
+            fetcherRegistrations.put(eventProcessor, closeConsumer);
         });
     }
 
@@ -176,11 +172,11 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
      * Processor are closed.
      */
     public void close() {
-        if (consumerCloseHandlers.isEmpty()) {
+        if (fetcherRegistrations.isEmpty()) {
             logger.debug("No Event Processors have been subscribed who's Consumers should be closed");
             return;
         }
-        consumerCloseHandlers.values().forEach(Runnable::run);
+        fetcherRegistrations.values().forEach(Registration::close);
     }
 
     /**
@@ -198,7 +194,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
         private String topic = "Axon.Events";
         private String groupId;
         private ConsumerFactory<K, V> consumerFactory;
-        private Fetcher<EventMessage<?>, K, V> fetcher;
+        private Fetcher<K, V, EventMessage<?>> fetcher;
         @SuppressWarnings("unchecked")
         private KafkaMessageConverter<K, V> messageConverter =
                 (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder().serializer(
@@ -266,7 +262,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
          * @param fetcher the {@link Fetcher} used to poll, convert and consume {@link ConsumerRecords} with
          * @return the current Builder instance, for fluent interfacing
          */
-        public Builder<K, V> fetcher(Fetcher<EventMessage<?>, K, V> fetcher) {
+        public Builder<K, V> fetcher(Fetcher<K, V, EventMessage<?>> fetcher) {
             assertNonNull(fetcher, "Fetcher may not be null");
             this.fetcher = fetcher;
             return this;

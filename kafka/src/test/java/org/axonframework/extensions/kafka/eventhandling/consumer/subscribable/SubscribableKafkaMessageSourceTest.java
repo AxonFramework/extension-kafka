@@ -41,15 +41,16 @@ import static org.mockito.Mockito.*;
 class SubscribableKafkaMessageSourceTest {
 
     private static final String TEST_TOPIC = "someTopic";
-    private static final Runnable NO_OP_CLOSE_HANDLER = () -> {
+    private static final Registration NO_OP_FETCHER_REGISTRATION = () -> {
         // No-op
+        return true;
     };
     private static final java.util.function.Consumer<List<? extends EventMessage<?>>> NO_OP_EVENT_PROCESSOR = eventMessages -> {
         // No-op
     };
 
     private ConsumerFactory<String, String> consumerFactory;
-    private Fetcher<EventMessage<?>, String, String> fetcher;
+    private Fetcher<String, String, EventMessage<?>> fetcher;
 
     private SubscribableKafkaMessageSource<String, String> testSubject;
 
@@ -115,7 +116,10 @@ class SubscribableKafkaMessageSourceTest {
     @Test
     void testCancelingSubscribedEventProcessorRunsConnectedCloseHandler() {
         AtomicBoolean closedEventProcessor = new AtomicBoolean(false);
-        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(() -> closedEventProcessor.set(true));
+        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(() -> {
+            closedEventProcessor.set(true);
+            return true;
+        });
 
         Registration registration = testSubject.subscribe(NO_OP_EVENT_PROCESSOR);
         testSubject.start();
@@ -129,7 +133,7 @@ class SubscribableKafkaMessageSourceTest {
 
     @Test
     void testSubscribingTheSameInstanceTwiceDisregardsSecondInstanceOnStart() {
-        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(NO_OP_CLOSE_HANDLER);
+        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(NO_OP_FETCHER_REGISTRATION);
 
         testSubject.subscribe(NO_OP_EVENT_PROCESSOR);
         testSubject.subscribe(NO_OP_EVENT_PROCESSOR);
@@ -142,7 +146,7 @@ class SubscribableKafkaMessageSourceTest {
 
     @Test
     void testStartSubscribesConsumerToAllProvidedTopics() {
-        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(NO_OP_CLOSE_HANDLER);
+        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(NO_OP_FETCHER_REGISTRATION);
 
         List<String> testTopics = new ArrayList<>();
         testTopics.add("topicOne");
@@ -157,7 +161,7 @@ class SubscribableKafkaMessageSourceTest {
 
     @Test
     void testStartBuildsConsumersForEverySubscribedEventProcessor() {
-        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(NO_OP_CLOSE_HANDLER);
+        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(NO_OP_FETCHER_REGISTRATION);
 
         java.util.function.Consumer<List<? extends EventMessage<?>>> testEventProcessorOne = eventMessages -> {
         };
@@ -177,8 +181,14 @@ class SubscribableKafkaMessageSourceTest {
         AtomicBoolean closedEventProcessorOne = new AtomicBoolean(false);
         AtomicBoolean closedEventProcessorTwo = new AtomicBoolean(false);
         when(fetcher.poll(eq(mockConsumer), any(), any()))
-                .thenReturn(() -> closedEventProcessorOne.set(true))
-                .thenReturn(() -> closedEventProcessorTwo.set(true));
+                .thenReturn(() -> {
+                    closedEventProcessorOne.set(true);
+                    return true;
+                })
+                .thenReturn(() -> {
+                    closedEventProcessorTwo.set(true);
+                    return true;
+                });
 
         java.util.function.Consumer<List<? extends EventMessage<?>>> testEventProcessorOne = eventMessages -> {
         };
