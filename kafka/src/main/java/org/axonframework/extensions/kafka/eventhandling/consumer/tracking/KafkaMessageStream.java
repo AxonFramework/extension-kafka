@@ -16,6 +16,7 @@
 
 package org.axonframework.extensions.kafka.eventhandling.consumer.tracking;
 
+import org.axonframework.common.Registration;
 import org.axonframework.eventhandling.TrackedEventMessage;
 import org.axonframework.eventhandling.TrackingEventStream;
 import org.slf4j.Logger;
@@ -27,9 +28,9 @@ import java.util.concurrent.TimeUnit;
 import static org.axonframework.common.BuilderUtils.assertNonNull;
 
 /**
- * Create message stream from a specific kafka topic. Messages are fetch in bulk and stored in an in-memory buffer. We
+ * Create message stream from a specific Kafka topic. Messages are fetch in bulk and stored in an in-memory buffer. We
  * try to introduce some sort and stored them in a local buffer. Consumer position is tracked via {@link
- * KafkaTrackingToken}. Records are fetched from kafka and stored in-memory buffer.
+ * KafkaTrackingToken}. Records are fetched from Kafka and stored in-memory buffer.
  * <p>
  * This is not thread safe.
  *
@@ -42,7 +43,7 @@ public class KafkaMessageStream implements TrackingEventStream {
     private static final Logger logger = LoggerFactory.getLogger(KafkaMessageStream.class);
 
     private final Buffer<KafkaEventMessage> buffer;
-    private final Runnable closeHandler;
+    private final Registration closeHandler;
     private KafkaEventMessage peekedEvent;
 
     /**
@@ -50,10 +51,11 @@ public class KafkaMessageStream implements TrackingEventStream {
      * retrieve event messages from.
      *
      * @param buffer       the {@link KafkaEventMessage} {@link Buffer} containing the fetched messages
-     * @param closeHandler the {@link Runnable} called upon executing a {@link #close()}
+     * @param closeHandler the service {@link Registration} which fills the buffer. Will be canceled upon executing a
+     *                     {@link #close()}
      */
     @SuppressWarnings("WeakerAccess")
-    public KafkaMessageStream(Buffer<KafkaEventMessage> buffer, Runnable closeHandler) {
+    public KafkaMessageStream(Buffer<KafkaEventMessage> buffer, Registration closeHandler) {
         assertNonNull(buffer, "Buffer may not be null");
         this.buffer = buffer;
         this.closeHandler = closeHandler;
@@ -93,7 +95,7 @@ public class KafkaMessageStream implements TrackingEventStream {
     @Override
     public void close() {
         if (closeHandler != null) {
-            closeHandler.run();
+            closeHandler.cancel();
         }
     }
 }

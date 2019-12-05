@@ -31,25 +31,24 @@ import static org.axonframework.common.ObjectUtils.getOrDefault;
 
 /**
  * Polls {@link ConsumerRecords} with a {@link Consumer}. These ConsumerRecords will be converted by a {@link
- * RecordConverter} and afterwards consumed by a {@link RecordConsumer}.
+ * RecordConverter} and afterwards consumed by a {@link EventConsumer}.
  *
- * @param <E> the element type each {@link org.apache.kafka.clients.consumer.ConsumerRecord} instance is converted in
- *            to
  * @param <K> the key of the Kafka {@link ConsumerRecords} to be polled, converted and consumed
  * @param <V> the value type of Kafka {@link ConsumerRecords} to be polled, converted and consumed
+ * @param <E> the element type each {@link org.apache.kafka.clients.consumer.ConsumerRecord} instance is converted to
  * @author Nakul Mishra
  * @author Steven van Beelen
  * @since 4.0
  */
-class FetchEventsTask<E, K, V> implements Runnable {
+class FetchEventsTask<K, V, E> implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(FetchEventsTask.class);
 
     private final Consumer<K, V> consumer;
     private final Duration pollTimeout;
-    private final RecordConverter<E, K, V> recordConverter;
-    private final RecordConsumer<E> recordConsumer;
-    private final java.util.function.Consumer<FetchEventsTask<E, K, V>> closeHandler;
+    private final RecordConverter<K, V, E> recordConverter;
+    private final EventConsumer<E> eventConsumer;
+    private final java.util.function.Consumer<FetchEventsTask<K, V, E>> closeHandler;
 
     private final AtomicBoolean running = new AtomicBoolean(true);
 
@@ -61,20 +60,20 @@ class FetchEventsTask<E, K, V> implements Runnable {
      * @param consumer        the {@link Consumer} used to {@link Consumer#poll(Duration)} {@link ConsumerRecords} from
      * @param pollTimeout     the {@link Duration} used for the {@link Consumer#poll(Duration)} call
      * @param recordConverter the {@link RecordConverter} used to convert the retrieved {@link ConsumerRecords}
-     * @param recordConsumer  the {@link RecordConsumer} used to consume the converted {@link ConsumerRecords}
+     * @param eventConsumer   the {@link EventConsumer} used to consume the converted {@link ConsumerRecords}
      * @param closeHandler    the handler called after this {@link Runnable} is shutdown
      */
     FetchEventsTask(Consumer<K, V> consumer,
                     Duration pollTimeout,
-                    RecordConverter<E, K, V> recordConverter,
-                    RecordConsumer<E> recordConsumer,
-                    java.util.function.Consumer<FetchEventsTask<E, K, V>> closeHandler) {
+                    RecordConverter<K, V, E> recordConverter,
+                    EventConsumer<E> eventConsumer,
+                    java.util.function.Consumer<FetchEventsTask<K, V, E>> closeHandler) {
         this.consumer = nonNull(consumer, () -> "Consumer may not be null");
         assertThat(pollTimeout, time -> !time.isNegative(),
                    "The poll timeout may not be negative [" + pollTimeout + "]");
         this.pollTimeout = pollTimeout;
         this.recordConverter = recordConverter;
-        this.recordConsumer = recordConsumer;
+        this.eventConsumer = eventConsumer;
         this.closeHandler = getOrDefault(closeHandler, task -> { /* no-op */ });
     }
 
@@ -86,7 +85,7 @@ class FetchEventsTask<E, K, V> implements Runnable {
                 logger.debug("Fetched [{}] number of ConsumerRecords", records.count());
                 List<E> convertedMessages = recordConverter.convert(records);
                 try {
-                    recordConsumer.consume(convertedMessages);
+                    eventConsumer.consume(convertedMessages);
                 } catch (InterruptedException e) {
                     logger.debug("Event Consumer thread was interrupted. Shutting down", e);
                     running.set(false);

@@ -37,7 +37,7 @@ import static org.axonframework.common.Assert.nonNull;
  * @author Steven van Beelen
  * @since 4.0
  */
-public class TrackingRecordConverter<K, V> implements RecordConverter<KafkaEventMessage, K, V> {
+public class TrackingRecordConverter<K, V> implements RecordConverter<K, V, KafkaEventMessage> {
 
     private static final Logger logger = LoggerFactory.getLogger(TrackingRecordConverter.class);
 

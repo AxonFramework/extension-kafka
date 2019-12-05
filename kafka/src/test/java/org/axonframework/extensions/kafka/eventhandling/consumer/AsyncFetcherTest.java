@@ -75,11 +75,11 @@ class AsyncFetcherTest {
     @Autowired
     private EmbeddedKafkaBroker kafkaBroker;
 
-    private AsyncFetcher<KafkaEventMessage, String, String> testSubject;
+    private AsyncFetcher<String, String, KafkaEventMessage> testSubject;
 
     @BeforeEach
     void setUp() {
-        testSubject = AsyncFetcher.<KafkaEventMessage, String, String>builder()
+        testSubject = AsyncFetcher.<String, String, KafkaEventMessage>builder()
                 .executorService(newSingleThreadExecutor()).build();
     }
 

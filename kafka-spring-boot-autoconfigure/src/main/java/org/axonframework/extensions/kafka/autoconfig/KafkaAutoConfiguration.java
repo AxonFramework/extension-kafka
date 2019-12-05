@@ -163,7 +163,7 @@ public class KafkaAutoConfiguration {
     @ConditionalOnProperty(value = "axon.kafka.consumer.event-processor-mode", havingValue = "TRACKING")
     public StreamableKafkaMessageSource<String, byte[]> streamableKafkaMessageSource(
             ConsumerFactory<String, byte[]> kafkaConsumerFactory,
-            Fetcher<KafkaEventMessage, String, byte[]> kafkaFetcher,
+            Fetcher<String, byte[], KafkaEventMessage> kafkaFetcher,
             KafkaMessageConverter<String, byte[]> kafkaMessageConverter
     ) {
         return StreamableKafkaMessageSource.<String, byte[]>builder()

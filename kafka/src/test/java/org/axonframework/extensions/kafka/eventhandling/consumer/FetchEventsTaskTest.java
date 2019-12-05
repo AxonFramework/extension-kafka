@@ -48,10 +48,10 @@ class FetchEventsTaskTest {
 
     private Consumer<String, String> testConsumer;
     private Duration testPollTimeout;
-    private RecordConverter<KafkaEventMessage, String, String> testRecordConverter;
-    private RecordConsumer<KafkaEventMessage> testRecordConsumer;
-    private java.util.function.Consumer<FetchEventsTask<KafkaEventMessage, String, String>> testCloseHandler;
-    private FetchEventsTask<KafkaEventMessage, String, String> testSubject;
+    private RecordConverter<String, String, KafkaEventMessage> testRecordConverter;
+    private EventConsumer<KafkaEventMessage> testEventConsumer;
+    private java.util.function.Consumer<FetchEventsTask<String, String, KafkaEventMessage>> testCloseHandler;
+    private FetchEventsTask<String, String, KafkaEventMessage> testSubject;
 
     @SuppressWarnings("unchecked")
     @BeforeEach
@@ -62,11 +62,11 @@ class FetchEventsTaskTest {
         testConsumer = mock(KafkaConsumer.class);
         testPollTimeout = Duration.ofMillis(10);
         testRecordConverter = mock(RecordConverter.class);
-        testRecordConsumer = mock(RecordConsumer.class);
+        testEventConsumer = mock(EventConsumer.class);
         testCloseHandler = task -> expectedToBeClosed.set(true);
 
         testSubject = new FetchEventsTask<>(
-                testConsumer, testPollTimeout, testRecordConverter, testRecordConsumer, testCloseHandler
+                testConsumer, testPollTimeout, testRecordConverter, testEventConsumer, testCloseHandler
         );
 
         when(testConsumer.poll(testPollTimeout)).thenReturn(consumerRecords);
@@ -80,7 +80,7 @@ class FetchEventsTaskTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> new FetchEventsTask<>(
-                        invalidConsumer, testPollTimeout, testRecordConverter, testRecordConsumer, testCloseHandler
+                        invalidConsumer, testPollTimeout, testRecordConverter, testEventConsumer, testCloseHandler
                 )
         );
     }
@@ -91,7 +91,7 @@ class FetchEventsTaskTest {
         assertThrows(
                 AxonConfigurationException.class,
                 () -> new FetchEventsTask<>(
-                        testConsumer, negativeTimeout, testRecordConverter, testRecordConsumer, testCloseHandler
+                        testConsumer, negativeTimeout, testRecordConverter, testEventConsumer, testCloseHandler
                 )
         );
     }
@@ -101,7 +101,7 @@ class FetchEventsTaskTest {
         Thread taskRunner = new Thread(testSubject);
         taskRunner.start();
 
-        doThrow(new InterruptedException()).when(testRecordConsumer).consume(any());
+        doThrow(new InterruptedException()).when(testEventConsumer).consume(any());
 
         assertWithin(Duration.ofMillis(TIMEOUT_MILLIS), () -> assertTrue(expectedToBeClosed.get()));
         verify(testConsumer).close();
@@ -116,7 +116,7 @@ class FetchEventsTaskTest {
 
         verify(testConsumer, atLeastOnceWithTimeout).poll(testPollTimeout);
         verify(testRecordConverter, atLeastOnceWithTimeout).convert(consumerRecords);
-        verify(testRecordConsumer, atLeastOnceWithTimeout).consume(Collections.singletonList(kafkaEventMessage));
+        verify(testEventConsumer, atLeastOnceWithTimeout).consume(Collections.singletonList(kafkaEventMessage));
 
         taskRunner.interrupt();
     }

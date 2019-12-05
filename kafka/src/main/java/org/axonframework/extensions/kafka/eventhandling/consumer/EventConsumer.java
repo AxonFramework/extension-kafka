@@ -28,7 +28,7 @@ import java.util.List;
  * @since 4.0
  */
 @FunctionalInterface
-public interface RecordConsumer<E> {
+public interface EventConsumer<E> {
 
     /**
      * Consume a {@link List} of records of type {@code E}.

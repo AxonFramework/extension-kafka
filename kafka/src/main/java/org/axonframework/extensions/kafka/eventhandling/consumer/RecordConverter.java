@@ -24,15 +24,14 @@ import java.util.List;
  * A functional interface towards converting the {@link org.apache.kafka.clients.consumer.ConsumerRecord} instances in
  * to a {@link List} of {@code E}.
  *
- * @param <E> the element type each {@link org.apache.kafka.clients.consumer.ConsumerRecord} instance is converted in
- *            to
  * @param <K> the key of the {@link ConsumerRecords}
  * @param <V> the value type of {@link ConsumerRecords}
+ * @param <E> the element type each {@link org.apache.kafka.clients.consumer.ConsumerRecord} instance is converted to
  * @author Steven van Beelen
  * @since 4.0
  */
 @FunctionalInterface
-public interface RecordConverter<E, K, V> {
+public interface RecordConverter<K, V, E> {
 
     /**
      * Covert the provided {@code records} in to a {@link List} of elements of type {@code E}.

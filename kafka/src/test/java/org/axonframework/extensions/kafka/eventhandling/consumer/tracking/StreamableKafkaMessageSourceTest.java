@@ -45,7 +45,7 @@ class StreamableKafkaMessageSourceTest {
     private static final String GROUP_ID_SUFFIX = "WithSuffix";
 
     private ConsumerFactory<String, String> consumerFactory;
-    private Fetcher<KafkaEventMessage, String, String> fetcher;
+    private Fetcher<String, String, KafkaEventMessage> fetcher;
 
     private StreamableKafkaMessageSource<String, String> testSubject;
 
@@ -153,7 +153,10 @@ class StreamableKafkaMessageSourceTest {
     @Test
     void testOpeningMessageStreamWithNullTokenShouldInvokeFetcher() {
         AtomicBoolean closed = new AtomicBoolean(false);
-        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(() -> closed.set(true));
+        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(() -> {
+            closed.set(true);
+            return true;
+        });
 
         BlockingStream<TrackedEventMessage<?>> result = testSubject.openStream(null);
 
@@ -167,7 +170,10 @@ class StreamableKafkaMessageSourceTest {
     @Test
     void testOpeningMessageStreamWithValidTokenShouldStartTheFetcher() {
         AtomicBoolean closed = new AtomicBoolean(false);
-        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(() -> closed.set(true));
+        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(() -> {
+            closed.set(true);
+            return true;
+        });
 
         BlockingStream<TrackedEventMessage<?>> result = testSubject.openStream(emptyToken());
 
