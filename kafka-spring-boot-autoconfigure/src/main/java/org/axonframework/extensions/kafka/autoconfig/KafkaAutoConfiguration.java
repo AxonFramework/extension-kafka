@@ -162,7 +162,7 @@ public class KafkaAutoConfiguration {
     @ConditionalOnBean({ConsumerFactory.class, KafkaMessageConverter.class, Fetcher.class})
     public StreamableKafkaMessageSource<String, byte[]> streamableKafkaMessageSource(
             ConsumerFactory<String, byte[]> kafkaConsumerFactory,
-            Fetcher<KafkaEventMessage, String, byte[]> kafkaFetcher,
+            Fetcher<String, byte[], KafkaEventMessage> kafkaFetcher,
             KafkaMessageConverter<String, byte[]> kafkaMessageConverter
     ) {
         return StreamableKafkaMessageSource.<String, byte[]>builder()
