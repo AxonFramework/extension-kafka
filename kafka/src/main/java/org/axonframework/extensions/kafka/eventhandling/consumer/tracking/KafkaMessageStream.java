@@ -95,7 +95,7 @@ public class KafkaMessageStream implements TrackingEventStream {
     @Override
     public void close() {
         if (closeHandler != null) {
-            closeHandler.cancel();
+            closeHandler.close();
         }
     }
 }
