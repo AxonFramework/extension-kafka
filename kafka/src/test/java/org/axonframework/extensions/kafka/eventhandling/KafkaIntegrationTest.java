@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2019. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,25 +27,26 @@ import org.axonframework.extensions.kafka.eventhandling.consumer.AsyncFetcher;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
+import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaEventMessage;
 import org.axonframework.extensions.kafka.eventhandling.consumer.StreamableKafkaMessageSource;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil;
-import org.junit.*;
-import org.junit.runner.*;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.concurrent.TimeUnit;
 
 import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.minimal;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Kafka Integration tests asserting a message can be published through a Producer on a Kafka topic and received through
@@ -54,10 +55,10 @@ import static org.junit.Assert.*;
  * @author Nakul Mishra
  * @author Steven van Beelen
  */
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @DirtiesContext
 @EmbeddedKafka(topics = {"integration"}, partitions = 5, controlledShutdown = true)
-public class KafkaIntegrationTest {
+class KafkaIntegrationTest {
 
     @SuppressWarnings("SpringJavaAutowiredMembersInspection")
     @Autowired
@@ -67,26 +68,25 @@ public class KafkaIntegrationTest {
     private EventBus eventBus;
     private ProducerFactory<String, byte[]> producerFactory;
     private KafkaPublisher<String, byte[]> publisher;
-    private Fetcher fetcher;
+    private Fetcher<String, byte[], KafkaEventMessage> fetcher;
+    private ConsumerFactory<String, byte[]> consumerFactory;
 
-    @Before
-    public void setupComponents() {
+    @BeforeEach
+    void setUp() {
         producerFactory = ProducerConfigUtil.ackProducerFactory(kafkaBroker, ByteArraySerializer.class);
         publisher = KafkaPublisher.<String, byte[]>builder()
                 .producerFactory(producerFactory)
                 .topic("integration")
                 .build();
-        KafkaEventPublisher sender = KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(publisher).build();
+        KafkaEventPublisher<String, byte[]> sender =
+                KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(publisher).build();
         configurer.eventProcessing(
                 eventProcessingConfigurer -> eventProcessingConfigurer.registerEventHandler(c -> sender)
         );
 
-        ConsumerFactory<String, byte[]> consumerFactory =
-                new DefaultConsumerFactory<>(minimal(kafkaBroker, ByteArrayDeserializer.class));
+        consumerFactory = new DefaultConsumerFactory<>(minimal(kafkaBroker, ByteArrayDeserializer.class));
 
-        fetcher = AsyncFetcher.<String, byte[]>builder()
-                .consumerFactory(consumerFactory)
-                .topic("integration")
+        fetcher = AsyncFetcher.<String, byte[], KafkaEventMessage>builder()
                 .pollTimeout(300)
                 .build();
 
@@ -96,22 +96,26 @@ public class KafkaIntegrationTest {
         configurer.start();
     }
 
-    @After
-    public void shutdown() {
+    @AfterEach
+    void shutdown() {
         producerFactory.shutDown();
         fetcher.shutdown();
         publisher.shutDown();
     }
 
     @Test
-    public void testPublishAndReadMessages() throws Exception {
-        StreamableKafkaMessageSource messageSource = StreamableKafkaMessageSource.builder()
-                                                                                 .fetcher(fetcher)
-                                                                                 .groupId(DEFAULT_GROUP_ID)
-                                                                                 .build();
-        BlockingStream<TrackedEventMessage<?>> stream1 = messageSource.openStream(null);
+    void testPublishAndReadMessages() throws Exception {
+        StreamableKafkaMessageSource<String, byte[]> streamableMessageSource =
+                StreamableKafkaMessageSource.<String, byte[]>builder()
+                        .topic("integration")
+                        .groupId(DEFAULT_GROUP_ID)
+                        .consumerFactory(consumerFactory)
+                        .fetcher(fetcher)
+                        .build();
+
+        BlockingStream<TrackedEventMessage<?>> stream1 = streamableMessageSource.openStream(null);
         stream1.close();
-        BlockingStream<TrackedEventMessage<?>> stream2 = messageSource.openStream(null);
+        BlockingStream<TrackedEventMessage<?>> stream2 = streamableMessageSource.openStream(null);
 
         eventBus.publish(asEventMessage("test"));
 

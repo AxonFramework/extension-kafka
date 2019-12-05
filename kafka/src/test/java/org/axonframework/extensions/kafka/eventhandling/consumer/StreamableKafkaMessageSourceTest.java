@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2019. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,18 @@
 
 package org.axonframework.extensions.kafka.eventhandling.consumer;
 
+import org.apache.kafka.clients.consumer.Consumer;
 import org.axonframework.common.AxonConfigurationException;
+import org.axonframework.common.stream.BlockingStream;
+import org.axonframework.eventhandling.TrackedEventMessage;
 import org.axonframework.eventhandling.TrackingToken;
-import org.junit.*;
+import org.junit.jupiter.api.*;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.axonframework.extensions.kafka.eventhandling.consumer.KafkaTrackingToken.emptyToken;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -30,52 +36,110 @@ import static org.mockito.Mockito.*;
  * @author Nakul Mishra
  * @author Steven van Beelen
  */
-public class StreamableKafkaMessageSourceTest {
+class StreamableKafkaMessageSourceTest {
 
-    private Fetcher fetcher = mock(Fetcher.class);
+    private ConsumerFactory<String, String> consumerFactory;
+    private Fetcher<String, String, KafkaEventMessage> fetcher;
 
-    private StreamableKafkaMessageSource testSubject;
+    private StreamableKafkaMessageSource<String, String> testSubject;
 
-    @Before
-    public void setUp() {
-        testSubject = StreamableKafkaMessageSource.builder()
-                                                  .fetcher(fetcher)
-                                                  .groupId(DEFAULT_GROUP_ID)
-                                                  .build();
-    }
+    private Consumer<String, String> mockConsumer;
 
-    @Test(expected = AxonConfigurationException.class)
-    public void testBuildingStreamableKafkaMessageSourceMissingRequiredFieldsShouldThrowAxonConfigurationException() {
-        StreamableKafkaMessageSource.builder().build();
-    }
+    @SuppressWarnings("unchecked")
+    @BeforeEach
+    void setUp() {
+        consumerFactory = mock(ConsumerFactory.class);
+        mockConsumer = mock(Consumer.class);
+        when(consumerFactory.createConsumer(DEFAULT_GROUP_ID)).thenReturn(mockConsumer);
+        fetcher = mock(Fetcher.class);
 
-    @Test(expected = AxonConfigurationException.class)
-    public void testBuildingStreamableKafkaMessageSourceUsingInvalidFetcherShouldThrowAxonConfigurationException() {
-        StreamableKafkaMessageSource.builder().fetcher(null);
-    }
-
-    @Test(expected = AxonConfigurationException.class)
-    public void testBuildingStreamableKafkaMessageSourceUsingInvalidGroupIdShouldThrowAxonConfigurationException() {
-        StreamableKafkaMessageSource.builder().groupId(null);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testOpeningMessageStreamWithInvalidTypeOfTrackingTokenShouldThrowException() {
-        testSubject.openStream(incompatibleTokenType());
+        testSubject = StreamableKafkaMessageSource.<String, String>builder()
+                .groupId(DEFAULT_GROUP_ID)
+                .consumerFactory(consumerFactory)
+                .fetcher(fetcher)
+                .build();
     }
 
     @Test
-    public void testOpeningMessageStreamWithNullTokenShouldInvokeFetcher() {
-        testSubject.openStream(null);
-
-        verify(fetcher, times(1)).start(any(), eq(DEFAULT_GROUP_ID));
+    void testBuildingWithInvalidTopicShouldThrowAxonConfigurationException() {
+        assertThrows(AxonConfigurationException.class, () -> StreamableKafkaMessageSource.builder().topic(null));
     }
 
     @Test
-    public void testOpeningMessageStreamWithValidTokenShouldStartTheFetcher() {
-        testSubject.openStream(emptyToken());
+    void testBuildingWithInvalidGroupIdShouldThrowAxonConfigurationException() {
+        assertThrows(AxonConfigurationException.class, () -> StreamableKafkaMessageSource.builder().groupId(null));
+    }
 
-        verify(fetcher, times(1)).start(any(), eq(DEFAULT_GROUP_ID));
+    @Test
+    void testBuildingWithInvalidConsumerFactoryShouldThrowAxonConfigurationException() {
+        //noinspection unchecked,rawtypes
+        assertThrows(
+                AxonConfigurationException.class,
+                () -> StreamableKafkaMessageSource.builder().consumerFactory((ConsumerFactory) null)
+        );
+    }
+
+    @Test
+    void testBuildingWithInvalidFetcherShouldThrowAxonConfigurationException() {
+        assertThrows(AxonConfigurationException.class, () -> StreamableKafkaMessageSource.builder().fetcher(null));
+    }
+
+    @Test
+    void testBuildingWithInvalidMessageConverterShouldThrowAxonConfigurationException() {
+        assertThrows(
+                AxonConfigurationException.class, () -> StreamableKafkaMessageSource.builder().messageConverter(null)
+        );
+    }
+
+    @Test
+    void testBuildingWithInvalidBufferFactoryShouldThrowAxonConfigurationException() {
+        assertThrows(
+                AxonConfigurationException.class, () -> StreamableKafkaMessageSource.builder().bufferFactory(null)
+        );
+    }
+
+    @Test
+    void testBuildingWhilstMissingRequiredFieldsShouldThrowAxonConfigurationException() {
+        assertThrows(AxonConfigurationException.class, () -> StreamableKafkaMessageSource.builder().build());
+    }
+
+    @Test
+    void testOpeningMessageStreamWithInvalidTypeOfTrackingTokenShouldThrowException() {
+        assertThrows(IllegalArgumentException.class, () -> testSubject.openStream(incompatibleTokenType()));
+    }
+
+    @Test
+    void testOpeningMessageStreamWithNullTokenShouldInvokeFetcher() {
+        AtomicBoolean closed = new AtomicBoolean(false);
+        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(() -> {
+            closed.set(true);
+            return true;
+        });
+
+        BlockingStream<TrackedEventMessage<?>> result = testSubject.openStream(null);
+
+        verify(consumerFactory).createConsumer(DEFAULT_GROUP_ID);
+        verify(fetcher).poll(eq(mockConsumer), any(), any());
+
+        result.close();
+        assertTrue(closed.get());
+    }
+
+    @Test
+    void testOpeningMessageStreamWithValidTokenShouldStartTheFetcher() {
+        AtomicBoolean closed = new AtomicBoolean(false);
+        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(() -> {
+            closed.set(true);
+            return true;
+        });
+
+        BlockingStream<TrackedEventMessage<?>> result = testSubject.openStream(emptyToken());
+
+        verify(consumerFactory).createConsumer(DEFAULT_GROUP_ID);
+        verify(fetcher).poll(eq(mockConsumer), any(), any());
+
+        result.close();
+        assertTrue(closed.get());
     }
 
     private static TrackingToken incompatibleTokenType() {

@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2019. Axon Framework
+ * Copyright (c) 2010-2019. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,8 +20,8 @@ import org.axonframework.eventhandling.tokenstore.inmemory.InMemoryTokenStore
 import org.axonframework.eventsourcing.eventstore.EmbeddedEventStore
 import org.axonframework.eventsourcing.eventstore.inmemory.InMemoryEventStorageEngine
 import org.axonframework.extensions.kafka.KafkaProperties
-import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher
-import org.axonframework.extensions.kafka.eventhandling.consumer.StreamableKafkaMessageSource
+import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter
+import org.axonframework.extensions.kafka.eventhandling.consumer.*
 import org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode
 import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducerFactory
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory
@@ -58,7 +58,7 @@ class KafkaAxonExampleApplication {
     fun tokenStore() = InMemoryTokenStore()
 
     /**
-     * Creates a Kafka producer factory, using the Kakfa properties configured in resources/application.yml
+     * Creates a Kafka producer factory, using the Kafka properties configured in resources/application.yml
      */
     @Bean
     fun producerFactory(kafkaProperties: KafkaProperties): ProducerFactory<String, ByteArray>? {
@@ -70,10 +70,18 @@ class KafkaAxonExampleApplication {
     }
 
     @Autowired
-    fun configureKafkaSourceForProcessingGroup(configurer: EventProcessingConfigurer, fetcher: Fetcher) {
-        val streamableKafkaMessageSource = StreamableKafkaMessageSource.builder()
-                .fetcher(fetcher)
+    fun configureKafkaSourceForProcessingGroup(configurer: EventProcessingConfigurer,
+                                               kafkaProperties: KafkaProperties,
+                                               consumerFactory: ConsumerFactory<String, ByteArray>,
+                                               fetcher: Fetcher<String, ByteArray, KafkaEventMessage>,
+                                               kafkaMessageConverter: KafkaMessageConverter<String, ByteArray>) {
+        val streamableKafkaMessageSource = StreamableKafkaMessageSource.builder<String, ByteArray>()
+                .topic(kafkaProperties.defaultTopic)
                 .groupId("kafka-group")
+                .consumerFactory(consumerFactory)
+                .fetcher(fetcher)
+                .messageConverter(kafkaMessageConverter)
+                .bufferFactory { SortedKafkaMessageBuffer<KafkaEventMessage>(kafkaProperties.fetcher.bufferSize) }
                 .build()
         configurer.registerTrackingEventProcessor("kafka-group") { streamableKafkaMessageSource }
     }

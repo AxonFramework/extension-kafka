@@ -26,7 +26,6 @@ import org.axonframework.extensions.kafka.eventhandling.consumer.AsyncFetcher;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
-import org.axonframework.extensions.kafka.eventhandling.consumer.SortedKafkaMessageBuffer;
 import org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode;
 import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher;
@@ -108,10 +107,10 @@ public class KafkaAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnBean({KafkaPublisher.class})
-    public KafkaEventPublisher kafkaEventPublisher(KafkaPublisher<String, byte[]> kafkaPublisher,
-                                                   KafkaProperties kafkaProperties,
-                                                   EventProcessingConfigurer eventProcessingConfigurer) {
-        KafkaEventPublisher kafkaEventPublisher =
+    public KafkaEventPublisher<String, byte[]> kafkaEventPublisher(KafkaPublisher<String, byte[]> kafkaPublisher,
+                                                                   KafkaProperties kafkaProperties,
+                                                                   EventProcessingConfigurer eventProcessingConfigurer) {
+        KafkaEventPublisher<String, byte[]> kafkaEventPublisher =
                 KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(kafkaPublisher).build();
 
         /*
@@ -149,15 +148,9 @@ public class KafkaAutoConfiguration {
 
     @ConditionalOnMissingBean
     @Bean(destroyMethod = "shutdown")
-    @ConditionalOnBean({ConsumerFactory.class, KafkaMessageConverter.class})
-    public Fetcher kafkaFetcher(ConsumerFactory<String, byte[]> axonKafkaConsumerFactory,
-                                KafkaMessageConverter<String, byte[]> kafkaMessageConverter) {
-        return AsyncFetcher.<String, byte[]>builder()
-                .consumerFactory(axonKafkaConsumerFactory)
-                .bufferFactory(() -> new SortedKafkaMessageBuffer<>(properties.getFetcher().getBufferSize()))
-                .messageConverter(kafkaMessageConverter)
-                .topic(properties.getDefaultTopic())
-                .pollTimeout(properties.getFetcher().getPollTimeout())
-                .build();
+    public Fetcher<?, ?, ?> kafkaFetcher() {
+        return AsyncFetcher.builder()
+                           .pollTimeout(properties.getFetcher().getPollTimeout())
+                           .build();
     }
 }

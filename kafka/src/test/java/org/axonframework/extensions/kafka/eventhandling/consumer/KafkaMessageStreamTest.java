@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2019. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package org.axonframework.extensions.kafka.eventhandling.consumer;
 
+import org.axonframework.common.Registration;
 import org.axonframework.eventhandling.GenericDomainEventMessage;
 import org.axonframework.eventhandling.GenericTrackedDomainEventMessage;
 import org.axonframework.messaging.MetaData;
@@ -138,15 +139,15 @@ public class KafkaMessageStreamTest {
 
     @Test
     public void testClosingMessageStreamShouldInvokeTheCloseHandler() {
-        Runnable closeHandler = mock(Runnable.class);
+        Registration closeHandler = mock(Registration.class);
         KafkaMessageStream mock = new KafkaMessageStream(new SortedKafkaMessageBuffer<>(), closeHandler);
-        verify(closeHandler, never()).run();
+        verify(closeHandler, never()).cancel();
         mock.close();
-        verify(closeHandler).run();
+        verify(closeHandler).cancel();
     }
 
     private static KafkaMessageStream emptyStream() {
-        Runnable closeHandler = mock(Runnable.class);
+        Registration closeHandler = mock(Registration.class);
         return new KafkaMessageStream(new SortedKafkaMessageBuffer<>(), closeHandler);
     }
 
@@ -166,7 +167,7 @@ public class KafkaMessageStreamTest {
             buffer.put(new KafkaEventMessage(messages.get(i), 0, i, 1));
         }
 
-        Runnable closeHandler = mock(Runnable.class);
+        Registration closeHandler = mock(Registration.class);
         return new KafkaMessageStream(buffer, closeHandler);
     }
 }
