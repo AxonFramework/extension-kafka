@@ -73,7 +73,7 @@ class KafkaAxonExampleApplication {
     fun configureKafkaSourceForProcessingGroup(configurer: EventProcessingConfigurer,
                                                kafkaProperties: KafkaProperties,
                                                consumerFactory: ConsumerFactory<String, ByteArray>,
-                                               fetcher: Fetcher<KafkaEventMessage, String, ByteArray>,
+                                               fetcher: Fetcher<String, ByteArray, KafkaEventMessage>,
                                                kafkaMessageConverter: KafkaMessageConverter<String, ByteArray>) {
         val streamableKafkaMessageSource = StreamableKafkaMessageSource.builder<String, ByteArray>()
                 .topic(kafkaProperties.defaultTopic)

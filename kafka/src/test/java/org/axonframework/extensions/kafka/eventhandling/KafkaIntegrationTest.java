@@ -68,7 +68,7 @@ class KafkaIntegrationTest {
     private EventBus eventBus;
     private ProducerFactory<String, byte[]> producerFactory;
     private KafkaPublisher<String, byte[]> publisher;
-    private Fetcher<KafkaEventMessage, String, byte[]> fetcher;
+    private Fetcher<String, byte[], KafkaEventMessage> fetcher;
     private ConsumerFactory<String, byte[]> consumerFactory;
 
     @BeforeEach
@@ -86,7 +86,7 @@ class KafkaIntegrationTest {
 
         consumerFactory = new DefaultConsumerFactory<>(minimal(kafkaBroker, ByteArrayDeserializer.class));
 
-        fetcher = AsyncFetcher.<KafkaEventMessage, String, byte[]>builder()
+        fetcher = AsyncFetcher.<String, byte[], KafkaEventMessage>builder()
                 .pollTimeout(300)
                 .build();
 

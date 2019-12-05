@@ -17,35 +17,39 @@
 package org.axonframework.extensions.kafka.eventhandling.consumer;
 
 import org.apache.kafka.clients.consumer.Consumer;
+import org.axonframework.common.Registration;
 
 /**
  * Interface describing the component responsible for fetching messages from a Kafka topic through a {@link Consumer}.
  *
- * @param <E> the element type the {@link org.apache.kafka.clients.consumer.ConsumerRecords} will be converted in to by
- *            the {@link RecordConverter} and consumed by the {@link RecordConsumer}
  * @param <K> the key of the {@link org.apache.kafka.clients.consumer.ConsumerRecords} produced in the {@link Consumer}
  *            and used in the {@link RecordConverter}
  * @param <V> the value type of {@link org.apache.kafka.clients.consumer.ConsumerRecords} produced in the {@link
  *            Consumer} and used in the {@link RecordConverter}
+ * @param <E> the element type the {@link org.apache.kafka.clients.consumer.ConsumerRecords} will be converted in to by
+ *            the {@link RecordConverter} and consumed by the {@link EventConsumer}
  * @author Nakul Mishra
  * @author Steven van Beelen
  * @since 4.0
  */
-public interface Fetcher<E, K, V> {
+public interface Fetcher<K, V, E> {
 
     /**
      * Instruct this Fetcher to start polling message through the provided {@link Consumer}. After retrieval, the {@link
      * org.apache.kafka.clients.consumer.ConsumerRecords} will be converted by the given {@code recordConverter} and
-     * thereafter consumed by the given {@code recordConsumer}. A close handler will be returned to stop message
-     * consumption and conversion.
+     * there after consumed by the given {@code recordConsumer}. A {@link Registration} will be returned to cancel
+     * message consumption and conversion.
      *
      * @param consumer        the {@link Consumer} used to consume message from a Kafka topic
      * @param recordConverter a {@link RecordConverter} instance which will convert the "consumed" {@link
      *                        org.apache.kafka.clients.consumer.ConsumerRecords} in to a  List of {@code E}
-     * @param recordConsumer  a {@link RecordConsumer} instance which will consume the converted records
-     * @return a close handler of type {@link Runnable} to stop the {@link Fetcher}
+     * @param eventConsumer   a {@link EventConsumer} instance which will consume the converted records
+     * @return a close handler of type {@link org.axonframework.common.Registration} to stop the {@link Fetcher}
+     * operation
      */
-    Runnable poll(Consumer<K, V> consumer, RecordConverter<E, K, V> recordConverter, RecordConsumer<E> recordConsumer);
+    Registration poll(Consumer<K, V> consumer,
+                      RecordConverter<K, V, E> recordConverter,
+                      EventConsumer<E> eventConsumer);
 
     /**
      * Shuts the fetcher down, closing any resources used by this fetcher.

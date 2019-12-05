@@ -19,6 +19,7 @@ package org.axonframework.extensions.kafka.eventhandling.consumer;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.axonframework.common.AxonConfigurationException;
+import org.axonframework.common.Registration;
 import org.axonframework.common.stream.BlockingStream;
 import org.axonframework.eventhandling.TrackedEventMessage;
 import org.axonframework.eventhandling.TrackingToken;
@@ -50,7 +51,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
     private final String topic;
     private final String groupId;
     private final ConsumerFactory<K, V> consumerFactory;
-    private final Fetcher<KafkaEventMessage, K, V> fetcher;
+    private final Fetcher<K, V, KafkaEventMessage> fetcher;
     private final KafkaMessageConverter<K, V> messageConverter;
     private final Supplier<Buffer<KafkaEventMessage>> bufferFactory;
 
@@ -62,6 +63,8 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
      * SortedKafkaMessageBuffer} constructor. The {@code groupId}, {@link ConsumerFactory} and {@link Fetcher} are
      * <b>hard requirements</b> and as such should be provided.
      *
+     * @param <K> the key of the {@link ConsumerRecords} to consume, fetch and convert
+     * @param <V> the value type of {@link ConsumerRecords} to consume, fetch and convert
      * @return a Builder to be able to create an {@link StreamableKafkaMessageSource}
      */
     public static <K, V> Builder<K, V> builder() {
@@ -110,7 +113,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
         }
 
         Buffer<KafkaEventMessage> buffer = bufferFactory.get();
-        Runnable closeHandler =
+        Registration closeHandler =
                 fetcher.poll(consumer, new TrackingRecordConverter<>(messageConverter, token), buffer::putAll);
         return new KafkaMessageStream(buffer, closeHandler);
     }
@@ -131,7 +134,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
         private String topic = "Axon.Events";
         private String groupId;
         private ConsumerFactory<K, V> consumerFactory;
-        private Fetcher<KafkaEventMessage, K, V> fetcher;
+        private Fetcher<K, V, KafkaEventMessage> fetcher;
         @SuppressWarnings("unchecked")
         private KafkaMessageConverter<K, V> messageConverter =
                 (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder().serializer(
@@ -201,7 +204,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
          * @param fetcher the {@link Fetcher} used to poll, convert and consume {@link ConsumerRecords} with
          * @return the current Builder instance, for fluent interfacing
          */
-        public Builder<K, V> fetcher(Fetcher<KafkaEventMessage, K, V> fetcher) {
+        public Builder<K, V> fetcher(Fetcher<K, V, KafkaEventMessage> fetcher) {
             assertNonNull(fetcher, "Fetcher may not be null");
             this.fetcher = fetcher;
             return this;
