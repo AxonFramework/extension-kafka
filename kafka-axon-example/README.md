@@ -32,10 +32,10 @@ From a Kafka Message Source perspective, there are several options you have, as 
 event messages can be Subscribing or Tracking (aka push or pull).
 Thus, the application can run in 4 different modes, for which the following profiles can be used:
 
-* `subscribing-producer`
-* `tracking-producer`
-* `subscribing-consumer`
-* `tracking-consumer`
+  * `subscribing-producer`
+  * `tracking-producer`
+  * `subscribing-consumer`
+  * `tracking-consumer`
  
 If not specified, a subscribing producer and tracking consumer will be used.
 To activate these modes, please use Spring profiles in the run configuration like so:
