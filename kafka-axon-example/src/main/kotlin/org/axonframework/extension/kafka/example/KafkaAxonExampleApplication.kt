@@ -137,7 +137,7 @@ class SubscribingConfiguration {
             kafkaMessageSourceConfigurer: KafkaMessageSourceConfigurer
     ): SubscribableKafkaMessageSource<String, ByteArray> {
         val subscribableKafkaMessageSource = SubscribableKafkaMessageSource.builder<String, ByteArray>()
-                .topic(kafkaProperties.defaultTopic)
+                .topics(listOf(kafkaProperties.defaultTopic))
                 .groupId("kafka-group")
                 .consumerFactory(consumerFactory)
                 .fetcher(fetcher)

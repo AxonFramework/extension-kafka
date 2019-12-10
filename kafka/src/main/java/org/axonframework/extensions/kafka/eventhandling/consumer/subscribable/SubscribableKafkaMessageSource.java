@@ -31,6 +31,7 @@ import org.axonframework.serialization.xml.XStreamSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -68,7 +69,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
 
     private static final Logger logger = LoggerFactory.getLogger(SubscribableKafkaMessageSource.class);
 
-    private final String topic;
+    private final List<String> topics;
     private final String groupId;
     private final ConsumerFactory<K, V> consumerFactory;
     private final Fetcher<K, V, EventMessage<?>> fetcher;
@@ -82,9 +83,10 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
     /**
      * Instantiate a Builder to be able to create a {@link SubscribableKafkaMessageSource}.
      * <p>
-     * The {@code topic} is defaulted to {@code "Axon.Events"} and the {@link KafkaMessageConverter} to a {@link
-     * DefaultKafkaMessageConverter} using the {@link XStreamSerializer}. The {@code groupId}, {@link ConsumerFactory}
-     * and {@link Fetcher} are <b>hard requirements</b> and as such should be provided.
+     * The {@code topics} list is defaulted to single entry of {@code "Axon.Events"} and the {@link
+     * KafkaMessageConverter} to a {@link DefaultKafkaMessageConverter} using the {@link XStreamSerializer}. The {@code
+     * groupId}, {@link ConsumerFactory} and {@link Fetcher} are <b>hard requirements</b> and as such should be
+     * provided.
      *
      * @param <K> the key of the {@link ConsumerRecords} to consume, fetch and convert
      * @param <V> the value type of {@link ConsumerRecords} to consume, fetch and convert
@@ -104,7 +106,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
     @SuppressWarnings("WeakerAccess")
     protected SubscribableKafkaMessageSource(Builder<K, V> builder) {
         builder.validate();
-        this.topic = builder.topic;
+        this.topics = Collections.unmodifiableList(builder.topics);
         this.groupId = builder.groupId;
         this.consumerFactory = builder.consumerFactory;
         this.fetcher = builder.fetcher;
@@ -143,8 +145,8 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
     }
 
     /**
-     * Start polling the {@code topic} configured through {@link Builder#topic(String)} with a {@link Consumer} build by
-     * the {@link ConsumerFactory} per subscribed Event Processor.
+     * Start polling the {@code topics} configured through {@link Builder#topics(List)}/{@link Builder#addTopic(String)}
+     * with a {@link Consumer} build by the {@link ConsumerFactory} per subscribed Event Processor.
      * <p>
      * This operation should be called <b>only</b> if all desired Event Processors have been subscribed (through the
      * {@link #subscribe(java.util.function.Consumer)} method).
@@ -204,16 +206,17 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
     /**
      * Builder class to instantiate an {@link SubscribableKafkaMessageSource}.
      * <p>
-     * The {@code topic} is defaulted to {@code "Axon.Events"} and the {@link KafkaMessageConverter} to a {@link
-     * DefaultKafkaMessageConverter} using the {@link XStreamSerializer}. The {@code groupId}, {@link ConsumerFactory}
-     * and {@link Fetcher} are <b>hard requirements</b> and as such should be provided.
+     * The {@code topics} list is defaulted to single entry of {@code "Axon.Events"} and the {@link
+     * KafkaMessageConverter} to a {@link DefaultKafkaMessageConverter} using the {@link XStreamSerializer}. The {@code
+     * groupId}, {@link ConsumerFactory} and {@link Fetcher} are <b>hard requirements</b> and as such should be
+     * provided.
      *
      * @param <K> the key of the {@link ConsumerRecords} to consume, fetch and convert
      * @param <V> the value type of {@link ConsumerRecords} to consume, fetch and convert
      */
     public static class Builder<K, V> {
 
-        private String topic = "Axon.Events";
+        private List<String> topics = Collections.singletonList("Axon.Events");
         private String groupId;
         private ConsumerFactory<K, V> consumerFactory;
         private Fetcher<K, V, EventMessage<?>> fetcher;
@@ -225,15 +228,28 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
         private boolean startOnFirstSubscription = false;
 
         /**
-         * Set the Kafka {@code topic} to read {@link org.axonframework.eventhandling.EventMessage}s from. Defaults to
+         * Set the Kafka {@code topics} to read {@link org.axonframework.eventhandling.EventMessage}s from. Defaults to
          * {@code Axon.Events}.
          *
-         * @param topic the Kafka {@code topic} to read {@link org.axonframework.eventhandling.EventMessage}s from
+         * @param topics the Kafka {@code topics} to read {@link org.axonframework.eventhandling.EventMessage}s from
          * @return the current Builder instance, for fluent interfacing
          */
-        public Builder<K, V> topic(String topic) {
+        public Builder<K, V> topics(List<String> topics) {
+            assertThat(topics, topicList -> Objects.nonNull(topicList) && !topicList.isEmpty(),
+                       "The topics may not be null or empty");
+            this.topics = new ArrayList<>(topics);
+            return this;
+        }
+
+        /**
+         * Add a Kafka {@code topic} to read {@link org.axonframework.eventhandling.EventMessage}s from.
+         *
+         * @param topic the Kafka {@code topic} to add to the list of topics
+         * @return the current Builder instance, for fluent interfacing
+         */
+        public Builder<K, V> addTopic(String topic) {
             assertThat(topic, name -> Objects.nonNull(name) && !"".equals(name), "The topic may not be null or empty");
-            this.topic = topic;
+            topics.add(topic);
             return this;
         }
 
