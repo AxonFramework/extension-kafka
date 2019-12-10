@@ -114,17 +114,51 @@ class SubscribableKafkaMessageSourceTest {
     }
 
     @Test
+    void testBuildWithInvalidConsumerCountThrowsAxonConfigurationException() {
+        assertThrows(
+                AxonConfigurationException.class, () -> SubscribableKafkaMessageSource.builder().consumerCount(0)
+        );
+    }
+
+    @Test
     void testBuildingWhilstMissingRequiredFieldsShouldThrowAxonConfigurationException() {
         assertThrows(AxonConfigurationException.class, () -> SubscribableKafkaMessageSource.builder().build());
     }
 
     @Test
-    void testCancelingSubscribedEventProcessorRunsConnectedCloseHandler() {
-        AtomicBoolean closedEventProcessor = new AtomicBoolean(false);
+    void testAutoStartInitiatesProcessingOnFirstEventProcessor() {
+        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(NO_OP_FETCHER_REGISTRATION);
+
+        SubscribableKafkaMessageSource<String, String> testSubject = SubscribableKafkaMessageSource.<String, String>builder()
+                .topics(Collections.singletonList(TEST_TOPIC))
+                .groupId(DEFAULT_GROUP_ID)
+                .consumerFactory(consumerFactory)
+                .fetcher(fetcher)
+                .autoStart()
+                .build();
+
+        testSubject.subscribe(NO_OP_EVENT_PROCESSOR);
+
+        verify(consumerFactory, times(1)).createConsumer(DEFAULT_GROUP_ID);
+        verify(mockConsumer, times(1)).subscribe(Collections.singletonList(TEST_TOPIC));
+        verify(fetcher).poll(eq(mockConsumer), any(), any());
+    }
+
+    @Test
+    void testCancelingSubscribedEventProcessorRunsConnectedCloseHandlerWhenAutoStartIsOn() {
+        AtomicBoolean closedFetcherRegistration = new AtomicBoolean(false);
         when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(() -> {
-            closedEventProcessor.set(true);
+            closedFetcherRegistration.set(true);
             return true;
         });
+
+        SubscribableKafkaMessageSource<String, String> testSubject = SubscribableKafkaMessageSource.<String, String>builder()
+                .topics(Collections.singletonList(TEST_TOPIC))
+                .groupId(DEFAULT_GROUP_ID)
+                .consumerFactory(consumerFactory)
+                .fetcher(fetcher)
+                .autoStart() // This enables auto close
+                .build();
 
         Registration registration = testSubject.subscribe(NO_OP_EVENT_PROCESSOR);
         testSubject.start();
@@ -133,26 +167,7 @@ class SubscribableKafkaMessageSourceTest {
         verify(mockConsumer).subscribe(Collections.singletonList(TEST_TOPIC));
 
         assertTrue(registration.cancel());
-        assertTrue(closedEventProcessor.get());
-    }
-
-    @Test
-    void testStartOnFirstSubscriptionInitiatesProcessingOnFirstEventProcessor() {
-        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(NO_OP_FETCHER_REGISTRATION);
-
-        SubscribableKafkaMessageSource<String, String> testSubject = SubscribableKafkaMessageSource.<String, String>builder()
-                .topics(Collections.singletonList(TEST_TOPIC))
-                .groupId(DEFAULT_GROUP_ID)
-                .consumerFactory(consumerFactory)
-                .fetcher(fetcher)
-                .startOnFirstSubscription()
-                .build();
-
-        testSubject.subscribe(NO_OP_EVENT_PROCESSOR);
-
-        verify(consumerFactory, times(1)).createConsumer(DEFAULT_GROUP_ID);
-        verify(mockConsumer, times(1)).subscribe(Collections.singletonList(TEST_TOPIC));
-        verify(fetcher).poll(eq(mockConsumer), any(), any());
+        assertTrue(closedFetcherRegistration.get());
     }
 
     @Test
@@ -193,25 +208,31 @@ class SubscribableKafkaMessageSourceTest {
     }
 
     @Test
-    void testStartBuildsConsumersForEverySubscribedEventProcessor() {
+    void testStartBuildsConsumersUpToConsumerCount() {
+        int expectedNumberOfConsumers = 2;
+
         when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(NO_OP_FETCHER_REGISTRATION);
 
-        java.util.function.Consumer<List<? extends EventMessage<?>>> testEventProcessorOne = eventMessages -> {
-        };
-        testSubject.subscribe(testEventProcessorOne);
-        java.util.function.Consumer<List<? extends EventMessage<?>>> testEventProcessorTwo = eventMessages -> {
-        };
-        testSubject.subscribe(testEventProcessorTwo);
+        SubscribableKafkaMessageSource<String, String> testSubject = SubscribableKafkaMessageSource.<String, String>builder()
+                .topics(Collections.singletonList(TEST_TOPIC))
+                .groupId(DEFAULT_GROUP_ID)
+                .consumerFactory(consumerFactory)
+                .fetcher(fetcher)
+                .consumerCount(expectedNumberOfConsumers)
+                .build();
 
+        testSubject.subscribe(NO_OP_EVENT_PROCESSOR);
         testSubject.start();
 
-        verify(consumerFactory, times(2)).createConsumer(DEFAULT_GROUP_ID);
-        verify(mockConsumer, times(2)).subscribe(Collections.singletonList(TEST_TOPIC));
-        verify(fetcher, times(2)).poll(eq(mockConsumer), any(), any());
+        verify(consumerFactory, times(expectedNumberOfConsumers)).createConsumer(DEFAULT_GROUP_ID);
+        verify(mockConsumer, times(expectedNumberOfConsumers)).subscribe(Collections.singletonList(TEST_TOPIC));
+        verify(fetcher, times(expectedNumberOfConsumers)).poll(eq(mockConsumer), any(), any());
     }
 
     @Test
-    void testCloseRunsCloseHandlerPerSubscribedEventProcessor() {
+    void testCloseRunsCloseHandlerPerConsumerCount() {
+        int expectedNumberOfConsumers = 2;
+
         AtomicBoolean closedEventProcessorOne = new AtomicBoolean(false);
         AtomicBoolean closedEventProcessorTwo = new AtomicBoolean(false);
         when(fetcher.poll(eq(mockConsumer), any(), any()))
@@ -224,19 +245,21 @@ class SubscribableKafkaMessageSourceTest {
                     return true;
                 });
 
-        java.util.function.Consumer<List<? extends EventMessage<?>>> testEventProcessorOne = eventMessages -> {
-        };
-        testSubject.subscribe(testEventProcessorOne);
-        java.util.function.Consumer<List<? extends EventMessage<?>>> testEventProcessorTwo = eventMessages -> {
-        };
-        testSubject.subscribe(testEventProcessorTwo);
-        testSubject.start();
+        SubscribableKafkaMessageSource<String, String> testSubject = SubscribableKafkaMessageSource.<String, String>builder()
+                .topics(Collections.singletonList(TEST_TOPIC))
+                .groupId(DEFAULT_GROUP_ID)
+                .consumerFactory(consumerFactory)
+                .fetcher(fetcher)
+                .autoStart()
+                .consumerCount(expectedNumberOfConsumers)
+                .build();
 
+        testSubject.subscribe(NO_OP_EVENT_PROCESSOR);
         testSubject.close();
 
-        verify(consumerFactory, times(2)).createConsumer(DEFAULT_GROUP_ID);
-        verify(mockConsumer, times(2)).subscribe(Collections.singletonList(TEST_TOPIC));
-        verify(fetcher, times(2)).poll(eq(mockConsumer), any(), any());
+        verify(consumerFactory, times(expectedNumberOfConsumers)).createConsumer(DEFAULT_GROUP_ID);
+        verify(mockConsumer, times(expectedNumberOfConsumers)).subscribe(Collections.singletonList(TEST_TOPIC));
+        verify(fetcher, times(expectedNumberOfConsumers)).poll(eq(mockConsumer), any(), any());
 
         assertTrue(closedEventProcessorOne.get());
         assertTrue(closedEventProcessorTwo.get());
