@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.axonframework.extensions.kafka.eventhandling.consumer.tracking;
+package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

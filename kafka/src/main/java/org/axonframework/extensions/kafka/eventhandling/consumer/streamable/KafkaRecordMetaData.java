@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.axonframework.extensions.kafka.eventhandling.consumer.tracking;
+package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
 /**
  * An interface for messages originating from Kafka capable of providing information about their source.

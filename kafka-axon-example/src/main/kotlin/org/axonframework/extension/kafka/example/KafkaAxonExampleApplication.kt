@@ -27,7 +27,7 @@ import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher
 import org.axonframework.extensions.kafka.eventhandling.consumer.subscribable.SubscribableKafkaMessageSource
-import org.axonframework.extensions.kafka.eventhandling.consumer.tracking.StreamableKafkaMessageSource
+import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.StreamableKafkaMessageSource
 import org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode
 import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducerFactory
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory

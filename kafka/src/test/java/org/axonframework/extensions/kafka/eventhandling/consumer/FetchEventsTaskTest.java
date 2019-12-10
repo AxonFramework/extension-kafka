@@ -20,7 +20,7 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.axonframework.common.AxonConfigurationException;
-import org.axonframework.extensions.kafka.eventhandling.consumer.tracking.KafkaEventMessage;
+import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.KafkaEventMessage;
 import org.junit.jupiter.api.*;
 import org.mockito.verification.*;
 

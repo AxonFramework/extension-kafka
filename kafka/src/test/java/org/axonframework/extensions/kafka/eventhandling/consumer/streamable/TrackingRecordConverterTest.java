@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.axonframework.extensions.kafka.eventhandling.consumer.tracking;
+package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;

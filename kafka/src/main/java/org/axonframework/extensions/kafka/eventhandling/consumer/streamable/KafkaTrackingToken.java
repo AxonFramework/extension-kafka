@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.axonframework.extensions.kafka.eventhandling.consumer.tracking;
+package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;

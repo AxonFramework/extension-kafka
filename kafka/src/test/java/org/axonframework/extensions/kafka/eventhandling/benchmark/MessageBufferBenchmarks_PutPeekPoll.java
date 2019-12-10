@@ -17,8 +17,8 @@
 package org.axonframework.extensions.kafka.eventhandling.benchmark;
 
 import org.axonframework.eventhandling.EventMessage;
-import org.axonframework.extensions.kafka.eventhandling.consumer.tracking.KafkaEventMessage;
-import org.axonframework.extensions.kafka.eventhandling.consumer.tracking.SortedKafkaMessageBuffer;
+import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.KafkaEventMessage;
+import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.SortedKafkaMessageBuffer;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
