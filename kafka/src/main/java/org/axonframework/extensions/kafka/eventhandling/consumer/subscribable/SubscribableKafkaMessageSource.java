@@ -33,12 +33,12 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -50,15 +50,16 @@ import static org.axonframework.common.BuilderUtils.assertThat;
 /**
  * A {@link SubscribableMessageSource} implementation using Kafka's {@link Consumer} API to poll {@link
  * ConsumerRecords}. These records will be converted with a {@link KafkaMessageConverter} and given to the Event
- * Processor attached to the Consumer, added through the {@link #subscribe(java.util.function.Consumer)} method.
+ * Processors subscribed to this source through the {@link #subscribe(java.util.function.Consumer)} method.
  * <p>
  * This approach allows the usage of Kafka's idea of load partitioning (through several Consumer instances in a Consumer
- * Groups) and resetting by adjusting a Consumer's offset. To share the load of a topic, several Event Processors
- * belonging to a group can be added through {@link #subscribe(java.util.function.Consumer)} operation, as each will get
- * it's own Consumer instances connected to the same Consumer Group.
+ * Groups) and resetting by adjusting a Consumer's offset. To share the load of a topic within a single application, the
+ * {@link Builder#consumerCount(int)} can be increased to have multiple Consumer instances for this source, as each is
+ * connected to the same Consumer Group. Running several instances of an application will essential have the same effect
+ * when it comes to multi-threading event consumption.
  * <p>
  * If Axon's approach of segregating the event stream and replaying is desired, use the {@link
- * org.axonframework.extensions.kafka.eventhandling.consumer.tracking.StreamableKafkaMessageSource} instead.
+ * org.axonframework.extensions.kafka.eventhandling.consumer.streamable.StreamableKafkaMessageSource} instead.
  *
  * @param <K> the key of the {@link ConsumerRecords} to consume, fetch and convert
  * @param <V> the value type of {@link ConsumerRecords} to consume, fetch and convert
@@ -74,10 +75,11 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
     private final ConsumerFactory<K, V> consumerFactory;
     private final Fetcher<K, V, EventMessage<?>> fetcher;
     private final KafkaMessageConverter<K, V> messageConverter;
-    private final boolean startOnFirstSubscription;
+    private final boolean autoStart;
+    private final int consumerCount;
 
     private final Set<java.util.function.Consumer<List<? extends EventMessage<?>>>> eventProcessors = new CopyOnWriteArraySet<>();
-    private final Map<java.util.function.Consumer<List<? extends EventMessage<?>>>, Registration> fetcherRegistrations = new HashMap<>();
+    private final List<Registration> fetcherRegistrations = new CopyOnWriteArrayList<>();
     private final AtomicBoolean inProgress = new AtomicBoolean(false);
 
     /**
@@ -111,14 +113,15 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
         this.consumerFactory = builder.consumerFactory;
         this.fetcher = builder.fetcher;
         this.messageConverter = builder.messageConverter;
-        this.startOnFirstSubscription = builder.startOnFirstSubscription;
+        this.autoStart = builder.autoStart;
+        this.consumerCount = builder.consumerCount;
     }
 
     /**
      * {@inheritDoc}
      * <p/>
-     * Any subscribed Event Processor will be placed in the same Consumer Group Id with it's own {@link Consumer}
-     * instances polling records.
+     * Any subscribed Event Processor will be placed in the same Consumer Group, defined through the (mandatory) {@link
+     * Builder#groupId(String)} method.
      */
     @Override
     public Registration subscribe(java.util.function.Consumer<List<? extends EventMessage<?>>> eventProcessor) {
@@ -128,15 +131,19 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
             logger.info("Event Processor [{}] not added. It was already subscribed", eventProcessor);
         }
 
-        if (startOnFirstSubscription && !inProgress.get()) {
+        if (autoStart) {
+            logger.info("Starting event consumption as auto start is enabled");
             start();
         }
 
         return () -> {
             if (eventProcessors.remove(eventProcessor)) {
                 logger.debug("Event Processor [{}] unsubscribed successfully", eventProcessor);
-                Registration fetcherRegistration = fetcherRegistrations.remove(eventProcessor);
-                return fetcherRegistration == null || fetcherRegistration.cancel();
+                if (eventProcessors.isEmpty() && autoStart) {
+                    logger.info("Closing event consumption as auto start is enabled");
+                    close();
+                }
+                return true;
             } else {
                 logger.info("Event Processor [{}] not removed. It was already unsubscribed", eventProcessor);
                 return false;
@@ -146,15 +153,17 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
 
     /**
      * Start polling the {@code topics} configured through {@link Builder#topics(List)}/{@link Builder#addTopic(String)}
-     * with a {@link Consumer} build by the {@link ConsumerFactory} per subscribed Event Processor.
+     * with a {@link Consumer} build by the {@link ConsumerFactory}.
      * <p>
      * This operation should be called <b>only</b> if all desired Event Processors have been subscribed (through the
      * {@link #subscribe(java.util.function.Consumer)} method).
      */
     public void start() {
-        inProgress.set(true);
+        if (inProgress.getAndSet(true)) {
+            return;
+        }
 
-        eventProcessors.forEach(eventProcessor -> {
+        for (int consumerIndex = 0; consumerIndex < consumerCount; consumerIndex++) {
             Consumer<K, V> consumer = consumerFactory.createConsumer(groupId);
             consumer.subscribe(topics);
 
@@ -165,28 +174,21 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
                                                     .filter(Optional::isPresent)
                                                     .map(Optional::get)
                                                     .collect(Collectors.toList()),
-                    eventMessages -> {
-                        if (eventMessages.isEmpty()) {
-                            return;
-                        }
-                        eventProcessor.accept(eventMessages);
-                    }
+                    eventMessages -> eventProcessors.forEach(eventProcessor -> eventProcessor.accept(eventMessages))
             );
-            fetcherRegistrations.put(eventProcessor, closeConsumer);
-        });
+            fetcherRegistrations.add(closeConsumer);
+        }
     }
 
-
     /**
-     * Close off this {@link SubscribableMessageSource} ensuring all used {@link Consumer}s per subscribed Event
-     * Processor are closed.
+     * Close off this {@link SubscribableMessageSource} ensuring all used {@link Consumer}s are closed.
      */
     public void close() {
         if (fetcherRegistrations.isEmpty()) {
             logger.debug("No Event Processors have been subscribed who's Consumers should be closed");
             return;
         }
-        fetcherRegistrations.values().forEach(Registration::close);
+        fetcherRegistrations.forEach(Registration::close);
         inProgress.set(false);
     }
 
@@ -212,7 +214,8 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
                 (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder().serializer(
                         XStreamSerializer.builder().build()
                 ).build();
-        private boolean startOnFirstSubscription = false;
+        private boolean autoStart = false;
+        private int consumerCount = 1;
 
         /**
          * Set the Kafka {@code topics} to read {@link org.axonframework.eventhandling.EventMessage}s from. Defaults to
@@ -314,12 +317,27 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
 
         /**
          * Toggles on that after the first {@link #subscribe(java.util.function.Consumer)} operation, the {@link
-         * #start()} method of this source will be called. By default this is behaviour is turned off.
+         * #start()} method of this source will be called. Once all registered Consumer operations are removed, this
+         * setting will close the source. By default this is behaviour is turned off.
          *
          * @return the current Builder instance, for fluent interfacing
          */
-        public Builder<K, V> startOnFirstSubscription() {
-            startOnFirstSubscription = true;
+        public Builder<K, V> autoStart() {
+            autoStart = true;
+            return this;
+        }
+
+        /**
+         * Sets the number of {@link Consumer} instances to create when this {@link SubscribableMessageSource} starts
+         * consuming events. Default to {@code 1}.
+         *
+         * @param consumerCount the number of {@link Consumer} instances to create when this {@link
+         *                      SubscribableMessageSource} starts consuming events
+         * @return the current Builder instance, for fluent interfacing
+         */
+        public Builder<K, V> consumerCount(int consumerCount) {
+            assertThat(consumerCount, count -> count > 0, "The consumer count must be a positive, none zero number");
+            this.consumerCount = consumerCount;
             return this;
         }
 
