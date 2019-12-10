@@ -177,8 +177,15 @@ class SubscribableKafkaMessageSourceTest {
         testTopics.add("topicOne");
         testTopics.add("topicTwo");
 
+        SubscribableKafkaMessageSource<String, String> testSubject = SubscribableKafkaMessageSource.<String, String>builder()
+                .topics(testTopics)
+                .groupId(DEFAULT_GROUP_ID)
+                .consumerFactory(consumerFactory)
+                .fetcher(fetcher)
+                .build();
+
         testSubject.subscribe(NO_OP_EVENT_PROCESSOR);
-        testSubject.start(testTopics);
+        testSubject.start();
 
         verify(consumerFactory).createConsumer(DEFAULT_GROUP_ID);
         verify(mockConsumer).subscribe(testTopics);
