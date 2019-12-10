@@ -122,6 +122,21 @@ class FetchEventsTaskTest {
     }
 
     @Test
+    void testFetchEventsTaskPollsDoesNotCallEventConsumerForZeroConvertedEvents() {
+        VerificationMode atLeastOnceWithTimeout = timeout(TIMEOUT_MILLIS).atLeastOnce();
+        when(testRecordConverter.convert(any())).thenReturn(Collections.emptyList());
+
+        Thread taskRunner = new Thread(testSubject);
+        taskRunner.start();
+
+        verify(testConsumer, atLeastOnceWithTimeout).poll(testPollTimeout);
+        verify(testRecordConverter, atLeastOnceWithTimeout).convert(consumerRecords);
+        verifyZeroInteractions(testEventConsumer);
+
+        taskRunner.interrupt();
+    }
+
+    @Test
     void testCloseCallsProvidedCloseHandler() {
         Thread taskRunner = new Thread(testSubject);
         taskRunner.start();
