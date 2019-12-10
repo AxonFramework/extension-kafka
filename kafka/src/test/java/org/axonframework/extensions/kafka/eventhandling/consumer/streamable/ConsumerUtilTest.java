@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.axonframework.extensions.kafka.eventhandling.consumer.tracking;
+package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static java.util.Collections.emptyMap;
 import static kafka.utils.TestUtils.pollUntilAtLeastNumRecords;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.axonframework.extensions.kafka.eventhandling.consumer.tracking.ConsumerUtil.seek;
+import static org.axonframework.extensions.kafka.eventhandling.consumer.streamable.ConsumerUtil.seek;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.consumerFactory;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.producerFactory;

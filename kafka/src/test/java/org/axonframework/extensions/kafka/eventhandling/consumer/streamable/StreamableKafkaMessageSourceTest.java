@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.axonframework.extensions.kafka.eventhandling.consumer.tracking;
+package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.axonframework.common.AxonConfigurationException;
@@ -28,7 +28,7 @@ import org.mockito.*;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.axonframework.extensions.kafka.eventhandling.consumer.tracking.KafkaTrackingToken.emptyToken;
+import static org.axonframework.extensions.kafka.eventhandling.consumer.streamable.KafkaTrackingToken.emptyToken;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;

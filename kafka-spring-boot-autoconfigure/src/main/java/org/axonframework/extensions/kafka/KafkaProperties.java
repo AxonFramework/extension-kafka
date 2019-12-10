@@ -277,7 +277,7 @@ public class KafkaProperties {
         /**
          * Controls the default message source type which will be responsible for consuming records from Kafka and
          * providing them to an Event Processor. Defaults to {@link EventProcessorMode#TRACKING}, which will instantiate
-         * a {@link org.axonframework.extensions.kafka.eventhandling.consumer.tracking.StreamableKafkaMessageSource}.
+         * a {@link org.axonframework.extensions.kafka.eventhandling.consumer.streamable.StreamableKafkaMessageSource}.
          */
         private EventProcessorMode eventProcessorMode = EventProcessorMode.TRACKING;
 
@@ -742,7 +742,7 @@ public class KafkaProperties {
         SUBSCRIBING,
         /**
          * Use a {@link org.axonframework.eventhandling.TrackingEventProcessor} to publish messages. A {@link
-         * org.axonframework.extensions.kafka.eventhandling.consumer.tracking.StreamableKafkaMessageSource} will be
+         * org.axonframework.extensions.kafka.eventhandling.consumer.streamable.StreamableKafkaMessageSource} will be
          * created for consuming messages.
          */
         TRACKING

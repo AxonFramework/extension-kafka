@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.axonframework.extensions.kafka.eventhandling.consumer.tracking;
+package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
 import org.apache.kafka.common.TopicPartition;
 import org.assertj.core.util.Lists;
@@ -32,7 +32,7 @@ import static java.util.stream.Collectors.toSet;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertNotSame;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.axonframework.extensions.kafka.eventhandling.consumer.tracking.KafkaTrackingToken.*;
+import static org.axonframework.extensions.kafka.eventhandling.consumer.streamable.KafkaTrackingToken.*;
 
 /**
  * Tests for the {@link KafkaTrackingToken}.

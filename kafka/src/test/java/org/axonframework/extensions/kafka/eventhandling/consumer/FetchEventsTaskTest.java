@@ -20,7 +20,7 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.axonframework.common.AxonConfigurationException;
-import org.axonframework.extensions.kafka.eventhandling.consumer.tracking.KafkaEventMessage;
+import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.KafkaEventMessage;
 import org.junit.jupiter.api.*;
 import org.mockito.verification.*;
 
@@ -117,6 +117,21 @@ class FetchEventsTaskTest {
         verify(testConsumer, atLeastOnceWithTimeout).poll(testPollTimeout);
         verify(testRecordConverter, atLeastOnceWithTimeout).convert(consumerRecords);
         verify(testEventConsumer, atLeastOnceWithTimeout).consume(Collections.singletonList(kafkaEventMessage));
+
+        taskRunner.interrupt();
+    }
+
+    @Test
+    void testFetchEventsTaskPollsDoesNotCallEventConsumerForZeroConvertedEvents() {
+        VerificationMode atLeastOnceWithTimeout = timeout(TIMEOUT_MILLIS).atLeastOnce();
+        when(testRecordConverter.convert(any())).thenReturn(Collections.emptyList());
+
+        Thread taskRunner = new Thread(testSubject);
+        taskRunner.start();
+
+        verify(testConsumer, atLeastOnceWithTimeout).poll(testPollTimeout);
+        verify(testRecordConverter, atLeastOnceWithTimeout).convert(consumerRecords);
+        verifyZeroInteractions(testEventConsumer);
 
         taskRunner.interrupt();
     }
