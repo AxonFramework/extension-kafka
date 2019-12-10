@@ -30,7 +30,9 @@ You can start the application by running `java -jar ./kafka-axon-example/target/
 
 From a Kafka Message Source perspective, there are several options you have, as both consumption and production of 
 event messages can be Subscribing or Tracking (aka push or pull).
-Thus, the application can run in 4 different modes, for which the following profiles can be used:
+Thus, the application can run in four different modes due to the possibility to define a producer
+ and consumer event processing mode.
+At this stage the following profiles can be used:
 
   * `subscribing-producer`
   * `tracking-producer`

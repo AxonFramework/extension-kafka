@@ -65,7 +65,7 @@ class SubscribableKafkaMessageSourceTest {
         fetcher = mock(Fetcher.class);
 
         testSubject = SubscribableKafkaMessageSource.<String, String>builder()
-                .topic(TEST_TOPIC)
+                .topics(Collections.singletonList(TEST_TOPIC))
                 .groupId(DEFAULT_GROUP_ID)
                 .consumerFactory(consumerFactory)
                 .fetcher(fetcher)
@@ -78,8 +78,13 @@ class SubscribableKafkaMessageSourceTest {
     }
 
     @Test
-    void testBuildWithInvalidTokenThrowsAxonConfigurationException() {
-        assertThrows(AxonConfigurationException.class, () -> SubscribableKafkaMessageSource.builder().topic(null));
+    void testBuildWithInvalidTopicsThrowsAxonConfigurationException() {
+        assertThrows(AxonConfigurationException.class, () -> SubscribableKafkaMessageSource.builder().topics(null));
+    }
+
+    @Test
+    void testBuildWithInvalidTopicThrowsAxonConfigurationException() {
+        assertThrows(AxonConfigurationException.class, () -> SubscribableKafkaMessageSource.builder().addTopic(null));
     }
 
     @Test
@@ -136,7 +141,7 @@ class SubscribableKafkaMessageSourceTest {
         when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(NO_OP_FETCHER_REGISTRATION);
 
         SubscribableKafkaMessageSource<String, String> testSubject = SubscribableKafkaMessageSource.<String, String>builder()
-                .topic(TEST_TOPIC)
+                .topics(Collections.singletonList(TEST_TOPIC))
                 .groupId(DEFAULT_GROUP_ID)
                 .consumerFactory(consumerFactory)
                 .fetcher(fetcher)
@@ -172,8 +177,15 @@ class SubscribableKafkaMessageSourceTest {
         testTopics.add("topicOne");
         testTopics.add("topicTwo");
 
+        SubscribableKafkaMessageSource<String, String> testSubject = SubscribableKafkaMessageSource.<String, String>builder()
+                .topics(testTopics)
+                .groupId(DEFAULT_GROUP_ID)
+                .consumerFactory(consumerFactory)
+                .fetcher(fetcher)
+                .build();
+
         testSubject.subscribe(NO_OP_EVENT_PROCESSOR);
-        testSubject.start(testTopics);
+        testSubject.start();
 
         verify(consumerFactory).createConsumer(DEFAULT_GROUP_ID);
         verify(mockConsumer).subscribe(testTopics);
