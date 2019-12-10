@@ -272,7 +272,7 @@ public class KafkaProperties {
         /**
          * Additional consumer-specific properties used to configure the client.
          */
-        private final Map<String, String> properties = new HashMap<>();
+        private Map<String, String> properties = new HashMap<>();
 
         /**
          * Controls the default message source type which will be responsible for consuming records from Kafka and
@@ -388,6 +388,7 @@ public class KafkaProperties {
         @SuppressWarnings({"Duplicates", "WeakerAccess"})
         public Map<String, Object> buildProperties() {
             Map<String, Object> properties = new HashMap<>();
+
             if (this.autoCommitInterval != null) {
                 properties.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, this.autoCommitInterval);
             }
@@ -438,7 +439,10 @@ public class KafkaProperties {
             if (this.maxPollRecords != null) {
                 properties.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, this.maxPollRecords);
             }
-            properties.putAll(this.properties);
+            if (!CollectionUtils.isEmpty(this.properties)) {
+                properties.putAll(this.properties);
+            }
+
             return properties;
         }
     }
@@ -544,7 +548,7 @@ public class KafkaProperties {
         /**
          * Additional producer-specific properties used to configure the client.
          */
-        private final Map<String, String> properties = new HashMap<>();
+        private Map<String, String> properties = new HashMap<>();
 
         /**
          * Controls the mode of event processor responsible for sending messages to Kafka. Depending on this, different
@@ -654,6 +658,7 @@ public class KafkaProperties {
         @SuppressWarnings({"Duplicates", "WeakerAccess"})
         public Map<String, Object> buildProperties() {
             Map<String, Object> properties = new HashMap<>();
+
             if (this.acks != null) {
                 properties.put(ProducerConfig.ACKS_CONFIG, this.acks);
             }
@@ -698,7 +703,10 @@ public class KafkaProperties {
             if (this.valueSerializer != null) {
                 properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, this.valueSerializer);
             }
-            properties.putAll(this.properties);
+            if (!CollectionUtils.isEmpty(this.properties)) {
+                properties.putAll(this.properties);
+            }
+
             return properties;
         }
     }
