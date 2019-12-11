@@ -1,10 +1,11 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2019. Axon Framework
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.axonframework.extensions.kafka.eventhandling.consumer;
+package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
@@ -31,7 +32,6 @@ import java.util.Collections;
  * @author Steven van Beelen
  * @since 4.0
  */
-@SuppressWarnings("WeakerAccess")
 public abstract class ConsumerUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(ConsumerUtil.class);
@@ -64,7 +64,7 @@ public abstract class ConsumerUtil {
                     return;
                 }
 
-                logger.debug("Seeking offsets for Consumer corresponding to the partitiosn in token: [{}]", token);
+                logger.debug("Seeking offsets for Consumer corresponding to the partitions in token: [{}]", token);
 
                 token.partitionPositions().forEach(
                         (partition, offset) -> consumer.seek(KafkaTrackingToken.partition(topic, partition), offset + 1)

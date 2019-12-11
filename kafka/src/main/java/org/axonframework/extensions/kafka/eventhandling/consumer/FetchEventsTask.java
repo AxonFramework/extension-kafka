@@ -85,7 +85,9 @@ class FetchEventsTask<K, V, E> implements Runnable {
                 logger.debug("Fetched [{}] number of ConsumerRecords", records.count());
                 List<E> convertedMessages = recordConverter.convert(records);
                 try {
-                    eventConsumer.consume(convertedMessages);
+                    if (!convertedMessages.isEmpty()) {
+                        eventConsumer.consume(convertedMessages);
+                    }
                 } catch (InterruptedException e) {
                     logger.debug("Event Consumer thread was interrupted. Shutting down", e);
                     running.set(false);

@@ -28,8 +28,17 @@ mvn clean package -f ./kafka-axon-example
  
 You can start the application by running `java -jar ./kafka-axon-example/target/axon-kafka-example.jar`.
 
-The application runs in two different modes demonstrating publishing
- of events to Kafka in subscribing or tracking modes. 
-To activate these modes,
- please use Spring profiles by providing a command line parameter `--spring.profiles.active=subscribing` 
- and `--spring.profiles.active=tracking` respectively.   
+From a Kafka Message Source perspective, there are several options you have, as both consumption and production of 
+event messages can be Subscribing or Tracking (aka push or pull).
+Thus, the application can run in four different modes due to the possibility to define a producer
+ and consumer event processing mode.
+At this stage the following profiles can be used:
+
+  * `subscribing-producer`
+  * `tracking-producer`
+  * `subscribing-consumer`
+  * `tracking-consumer`
+ 
+If not specified, a subscribing producer and tracking consumer will be used.
+To activate these modes, please use Spring profiles in the run configuration like so:
+ `--spring.profiles.active=tracking-producer,subscribing-consumer`

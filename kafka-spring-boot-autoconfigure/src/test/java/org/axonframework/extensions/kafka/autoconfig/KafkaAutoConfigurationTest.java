@@ -35,7 +35,7 @@ import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
-import org.axonframework.extensions.kafka.eventhandling.consumer.StreamableKafkaMessageSource;
+import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.StreamableKafkaMessageSource;
 import org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode;
 import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher;
@@ -47,6 +47,7 @@ import org.axonframework.serialization.Serializer;
 import org.axonframework.serialization.xml.XStreamSerializer;
 import org.axonframework.spring.config.AxonConfiguration;
 import org.junit.jupiter.api.*;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -101,7 +102,10 @@ class KafkaAutoConfigurationTest {
             assertEquals("foo", producerFactory.transactionIdPrefix());
             assertEquals(StringSerializer.class, producerConfigs.get(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG));
             assertEquals(ByteArraySerializer.class, producerConfigs.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG));
-            assertEquals(KafkaProperties.EventProcessorMode.SUBSCRIBING, kafkaProperties.getEventProcessorMode());
+            assertEquals(
+                    KafkaProperties.EventProcessorMode.SUBSCRIBING,
+                    kafkaProperties.getProducer().getEventProcessorMode()
+            );
 
             // Consumer assertions
             Map<String, Object> consumerConfigs =
@@ -260,11 +264,14 @@ class KafkaAutoConfigurationTest {
                                   // Minimal Required Properties
                                   "axon.kafka.default-topic=testTopic",
                                   "axon.kafka.producer.transaction-id-prefix=foo",
-                                  // Event Handling Mode
-                                  "axon.kafka.event-processor-mode=TRACKING"
+                                  // Event Producing Mode
+                                  "axon.kafka.producer.event-processor-mode=TRACKING"
                           ).run(context -> {
             KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
-            assertEquals(KafkaProperties.EventProcessorMode.TRACKING, kafkaProperties.getEventProcessorMode());
+            assertEquals(
+                    KafkaProperties.EventProcessorMode.TRACKING,
+                    kafkaProperties.getProducer().getEventProcessorMode()
+            );
             assertNotNull(context.getBean(KafkaEventPublisher.class));
 
             EventProcessingConfigurer eventProcessingConfigurer = context.getBean(EventProcessingConfigurer.class);
@@ -283,11 +290,14 @@ class KafkaAutoConfigurationTest {
                                   // Minimal Required Properties
                                   "axon.kafka.default-topic=testTopic",
                                   "axon.kafka.producer.transaction-id-prefix=foo",
-                                  // Event Handling Mode
-                                  "axon.kafka.event-processor-mode=SUBSCRIBING"
+                                  // Event Producing Mode
+                                  "axon.kafka.producer.event-processor-mode=SUBSCRIBING"
                           ).run(context -> {
             KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
-            assertEquals(KafkaProperties.EventProcessorMode.SUBSCRIBING, kafkaProperties.getEventProcessorMode());
+            assertEquals(
+                    KafkaProperties.EventProcessorMode.SUBSCRIBING,
+                    kafkaProperties.getProducer().getEventProcessorMode()
+            );
             assertNotNull(context.getBean(KafkaEventPublisher.class));
 
             EventProcessingConfigurer eventProcessingConfigurer = context.getBean(EventProcessingConfigurer.class);
@@ -296,6 +306,46 @@ class KafkaAutoConfigurationTest {
                     .registerListenerInvocationErrorHandler(eq(DEFAULT_PROCESSING_GROUP), any());
             verify(eventProcessingConfigurer).assignHandlerInstancesMatching(eq(DEFAULT_PROCESSING_GROUP), any());
             verify(eventProcessingConfigurer).registerSubscribingEventProcessor(DEFAULT_PROCESSING_GROUP);
+        });
+    }
+
+    @Test
+    void testKafkaPropertiesTrackingConsumerMode() {
+        this.contextRunner.withUserConfiguration(TestConfiguration.class)
+                          .withPropertyValues(
+                                  // Minimal Required Properties
+                                  "axon.kafka.default-topic=testTopic",
+                                  "axon.kafka.producer.transaction-id-prefix=foo",
+                                  // Event Consumption Mode
+                                  "axon.kafka.consumer.event-processor-mode=TRACKING"
+                          ).run(context -> {
+            KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
+            assertEquals(
+                    KafkaProperties.EventProcessorMode.TRACKING,
+                    kafkaProperties.getConsumer().getEventProcessorMode()
+            );
+            assertNotNull(context.getBean(StreamableKafkaMessageSource.class));
+        });
+    }
+
+    @Test
+    void testKafkaPropertiesSubscribingConsumerMode() {
+        this.contextRunner.withUserConfiguration(TestConfiguration.class)
+                          .withPropertyValues(
+                                  // Minimal Required Properties
+                                  "axon.kafka.default-topic=testTopic",
+                                  "axon.kafka.producer.transaction-id-prefix=foo",
+                                  // Event Consumption Mode
+                                  "axon.kafka.consumer.event-processor-mode=SUBSCRIBING"
+                          ).run(context -> {
+            KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
+            assertEquals(
+                    KafkaProperties.EventProcessorMode.SUBSCRIBING,
+                    kafkaProperties.getConsumer().getEventProcessorMode()
+            );
+            assertThrows(
+                    NoSuchBeanDefinitionException.class, () -> context.getBean(StreamableKafkaMessageSource.class)
+            );
         });
     }
 

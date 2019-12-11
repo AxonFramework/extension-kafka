@@ -13,7 +13,7 @@
  * uncompilable code).)
  */
 
-package org.axonframework.extensions.kafka.eventhandling.consumer;
+package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;

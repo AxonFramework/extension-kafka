@@ -14,19 +14,21 @@
  * limitations under the License.
  */
 
-package org.axonframework.extensions.kafka.eventhandling.consumer;
+package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.common.stream.BlockingStream;
 import org.axonframework.eventhandling.TrackedEventMessage;
 import org.axonframework.eventhandling.TrackingToken;
+import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
+import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
 import org.junit.jupiter.api.*;
 import org.mockito.*;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.axonframework.extensions.kafka.eventhandling.consumer.KafkaTrackingToken.emptyToken;
+import static org.axonframework.extensions.kafka.eventhandling.consumer.streamable.KafkaTrackingToken.emptyToken;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;

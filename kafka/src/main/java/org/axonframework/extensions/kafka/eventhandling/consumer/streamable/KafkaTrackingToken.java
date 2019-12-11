@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2019. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.axonframework.extensions.kafka.eventhandling.consumer;
+package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -52,7 +52,6 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
      * @return a new tracking token based on the given {@code partitionPositions}
      */
     @JsonCreator
-    @SuppressWarnings("WeakerAccess")
     public static KafkaTrackingToken newInstance(
             @JsonProperty("partitionPositions") Map<Integer, Long> partitionPositions) {
         return new KafkaTrackingToken(partitionPositions);
@@ -63,7 +62,6 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
      *
      * @return an empty {@link KafkaTrackingToken} instance
      */
-    @SuppressWarnings("WeakerAccess")
     public static KafkaTrackingToken emptyToken() {
         return newInstance(new HashMap<>());
     }
@@ -91,6 +89,7 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
      * @param topic the topic for which {@link TopicPartition} instances should be created
      * @return a {@link Collection} of {@link TopicPartition}s for each {@code partition} present in {@code this} token
      */
+    @SuppressWarnings("WeakerAccess")
     public Collection<TopicPartition> partitions(String topic) {
         return partitionPositions.keySet()
                                  .stream()
@@ -164,8 +163,9 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
         KafkaTrackingToken otherToken = (KafkaTrackingToken) other;
 
         return otherToken.partitionPositions
-                         .entrySet().stream()
-                         .allMatch(position -> position.getValue() <= this.partitionPositions.getOrDefault(position.getKey(), -1L));
+                .entrySet().stream()
+                .allMatch(position -> position.getValue() <= this.partitionPositions
+                        .getOrDefault(position.getKey(), -1L));
     }
 
     /**

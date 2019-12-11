@@ -1,10 +1,11 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2019. Axon Framework
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.axonframework.extensions.kafka.eventhandling.consumer;
+package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
@@ -53,7 +54,6 @@ public interface Buffer<E> {
      * @param unit    a {@link TimeUnit} determining how to interpret the {@code timeout} parameter
      * @return the first message of this buffer, or {@code null} if the specified waiting time elapses before a message
      * is available
-     *
      * @throws InterruptedException if interrupted while waiting to poll an element
      */
     E poll(long timeout, TimeUnit unit) throws InterruptedException;
@@ -62,7 +62,6 @@ public interface Buffer<E> {
      * Retrieves and removes the first messages of this buffer, waiting if necessary until a message becomes available.
      *
      * @return the first message of this buffer
-     *
      * @throws InterruptedException if interrupted while waiting to take the first element
      */
     E take() throws InterruptedException;
@@ -94,8 +93,8 @@ public interface Buffer<E> {
      * constraints) accept without blocking. This is always equal to the initial capacity of this buffer less the
      * current {@code size} of this buffer.
      * <p/>
-     * Note that you <em>cannot</em> always tell if an attempt to insert an element will succeed by inspecting
-     * {@code remainingCapacity} because it may be the case that another thread is about to insert or remove an element.
+     * Note that you <em>cannot</em> always tell if an attempt to insert an element will succeed by inspecting {@code
+     * remainingCapacity} because it may be the case that another thread is about to insert or remove an element.
      *
      * @return the remaining capacity of this buffer
      */

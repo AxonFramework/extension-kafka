@@ -26,9 +26,9 @@ import org.axonframework.extensions.kafka.eventhandling.consumer.AsyncFetcher;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
-import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaEventMessage;
-import org.axonframework.extensions.kafka.eventhandling.consumer.SortedKafkaMessageBuffer;
-import org.axonframework.extensions.kafka.eventhandling.consumer.StreamableKafkaMessageSource;
+import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.KafkaEventMessage;
+import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.SortedKafkaMessageBuffer;
+import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.StreamableKafkaMessageSource;
 import org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode;
 import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher;
@@ -131,7 +131,7 @@ public class KafkaAutoConfiguration {
                                          eventHandler -> eventHandler.getClass().equals(KafkaEventPublisher.class)
                                  );
 
-        KafkaProperties.EventProcessorMode processorMode = kafkaProperties.getEventProcessorMode();
+        KafkaProperties.EventProcessorMode processorMode = kafkaProperties.getProducer().getEventProcessorMode();
         if (processorMode == KafkaProperties.EventProcessorMode.SUBSCRIBING) {
             eventProcessingConfigurer.registerSubscribingEventProcessor(DEFAULT_PROCESSING_GROUP);
         } else if (processorMode == KafkaProperties.EventProcessorMode.TRACKING) {
@@ -160,6 +160,7 @@ public class KafkaAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnBean({ConsumerFactory.class, KafkaMessageConverter.class, Fetcher.class})
+    @ConditionalOnProperty(value = "axon.kafka.consumer.event-processor-mode", havingValue = "TRACKING")
     public StreamableKafkaMessageSource<String, byte[]> streamableKafkaMessageSource(
             ConsumerFactory<String, byte[]> kafkaConsumerFactory,
             Fetcher<String, byte[], KafkaEventMessage> kafkaFetcher,

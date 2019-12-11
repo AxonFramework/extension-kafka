@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2019. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-package org.axonframework.extensions.kafka.eventhandling.consumer;
-
+package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -152,7 +151,7 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
     }
 
     /**
-     * Put blocks interruptibly if full
+     * Put blocks interruptible if full
      */
     public void testBlockingPut() {
         final SortedKafkaMessageBuffer<KafkaEventMessage> buff = new SortedKafkaMessageBuffer<>(SIZE);

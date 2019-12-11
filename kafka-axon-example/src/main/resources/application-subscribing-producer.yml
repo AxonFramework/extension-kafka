@@ -1,0 +1,4 @@
+axon:
+  kafka:
+    producer:
+      event-processor-mode: subscribing

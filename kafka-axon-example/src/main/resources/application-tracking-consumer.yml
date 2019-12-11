@@ -1,0 +1,4 @@
+axon:
+  kafka:
+    consumer:
+      event-processor-mode: tracking

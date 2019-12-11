@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.axonframework.extensions.kafka.eventhandling.consumer;
+package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -25,6 +25,9 @@ import org.axonframework.eventhandling.TrackedEventMessage;
 import org.axonframework.eventhandling.TrackingToken;
 import org.axonframework.extensions.kafka.eventhandling.DefaultKafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
+import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
+import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
+import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
 import org.axonframework.messaging.StreamableMessageSource;
 import org.axonframework.serialization.xml.XStreamSerializer;
 import org.slf4j.Logger;
