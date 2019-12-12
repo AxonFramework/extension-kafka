@@ -40,7 +40,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-import static org.axonframework.common.Assert.isTrue;
 import static org.axonframework.common.BuilderUtils.assertNonNull;
 import static org.axonframework.common.BuilderUtils.assertThat;
 
@@ -111,15 +110,9 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
      * The stream is filled by polling {@link ConsumerRecords} from the specified {@code topic} with the {@link
      * Fetcher}. The provided {@code trackingToken} is required to be of type {@link KafkaTrackingToken}.
      */
-    @SuppressWarnings("ConstantConditions") // Verified TrackingToken type through `Assert.isTrue` operation
     @Override
     public BlockingStream<TrackedEventMessage<?>> openStream(TrackingToken trackingToken) {
-        isTrue(trackingToken == null || trackingToken instanceof KafkaTrackingToken,
-               () -> "Incompatible token type provided.");
-        KafkaTrackingToken token = ((KafkaTrackingToken) trackingToken);
-        if (KafkaTrackingToken.isEmpty(token)) {
-            token = KafkaTrackingToken.emptyToken();
-        }
+        KafkaTrackingToken token = KafkaTrackingToken.from(trackingToken);
         TrackingRecordConverter<K, V> recordConverter = new TrackingRecordConverter<>(messageConverter, token);
 
         String groupId = buildConsumerGroupId();
