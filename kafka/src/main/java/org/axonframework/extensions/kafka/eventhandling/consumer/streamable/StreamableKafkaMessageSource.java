@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.invoke.MethodHandles;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -116,19 +117,21 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
         isTrue(trackingToken == null || trackingToken instanceof KafkaTrackingToken,
                () -> "Incompatible token type provided.");
         KafkaTrackingToken token = ((KafkaTrackingToken) trackingToken);
+        if (KafkaTrackingToken.isEmpty(token)) {
+            token = KafkaTrackingToken.emptyToken();
+        }
+        TrackingRecordConverter<K, V> recordConverter = new TrackingRecordConverter<>(messageConverter, token);
 
         String groupId = buildConsumerGroupId();
         logger.debug("Consumer Group Id [{}] will start consuming from topic [{}]", groupId, topic);
         Consumer<K, V> consumer = consumerFactory.createConsumer(groupId);
-        ConsumerUtil.seek(topic, consumer, token);
-
-        if (KafkaTrackingToken.isEmpty(token)) {
-            token = KafkaTrackingToken.emptyToken();
-        }
+        consumer.subscribe(
+                Collections.singletonList(topic),
+                new TrackingTokenConsumerRebalanceListener<>(consumer, recordConverter::currentToken)
+        );
 
         Buffer<KafkaEventMessage> buffer = bufferFactory.get();
-        Registration closeHandler =
-                fetcher.poll(consumer, new TrackingRecordConverter<>(messageConverter, token), buffer::putAll);
+        Registration closeHandler = fetcher.poll(consumer, recordConverter, buffer::putAll);
         return new KafkaMessageStream(buffer, closeHandler);
     }
 
