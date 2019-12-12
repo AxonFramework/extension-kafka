@@ -34,12 +34,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.invoke.MethodHandles;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-import static org.axonframework.common.Assert.isTrue;
 import static org.axonframework.common.BuilderUtils.assertNonNull;
 import static org.axonframework.common.BuilderUtils.assertThat;
 
@@ -110,25 +110,21 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
      * The stream is filled by polling {@link ConsumerRecords} from the specified {@code topic} with the {@link
      * Fetcher}. The provided {@code trackingToken} is required to be of type {@link KafkaTrackingToken}.
      */
-    @SuppressWarnings("ConstantConditions") // Verified TrackingToken type through `Assert.isTrue` operation
     @Override
     public BlockingStream<TrackedEventMessage<?>> openStream(TrackingToken trackingToken) {
-        isTrue(trackingToken == null || trackingToken instanceof KafkaTrackingToken,
-               () -> "Incompatible token type provided.");
-        KafkaTrackingToken token = ((KafkaTrackingToken) trackingToken);
+        KafkaTrackingToken token = KafkaTrackingToken.from(trackingToken);
+        TrackingRecordConverter<K, V> recordConverter = new TrackingRecordConverter<>(messageConverter, token);
 
         String groupId = buildConsumerGroupId();
         logger.debug("Consumer Group Id [{}] will start consuming from topic [{}]", groupId, topic);
         Consumer<K, V> consumer = consumerFactory.createConsumer(groupId);
-        ConsumerUtil.seek(topic, consumer, token);
-
-        if (KafkaTrackingToken.isEmpty(token)) {
-            token = KafkaTrackingToken.emptyToken();
-        }
+        consumer.subscribe(
+                Collections.singletonList(topic),
+                new TrackingTokenConsumerRebalanceListener<>(consumer, recordConverter::currentToken)
+        );
 
         Buffer<KafkaEventMessage> buffer = bufferFactory.get();
-        Registration closeHandler =
-                fetcher.poll(consumer, new TrackingRecordConverter<>(messageConverter, token), buffer::putAll);
+        Registration closeHandler = fetcher.poll(consumer, recordConverter, buffer::putAll);
         return new KafkaMessageStream(buffer, closeHandler);
     }
 

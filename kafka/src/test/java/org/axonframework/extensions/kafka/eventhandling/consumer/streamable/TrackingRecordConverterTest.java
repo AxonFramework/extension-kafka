@@ -26,7 +26,6 @@ import org.junit.jupiter.api.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage;
@@ -53,25 +52,29 @@ class TrackingRecordConverterTest {
     void setUp() {
         //noinspection unchecked
         messageConverter = mock(KafkaMessageConverter.class);
-        when(messageConverter.readKafkaMessage(any()))
-                .thenAnswer(it -> Optional.of(asEventMessage(((ConsumerRecord) it.getArgument(0)).value())));
+        //noinspection unchecked
+        when(messageConverter.readKafkaMessage(any())).thenAnswer(
+                it -> Optional.of(asEventMessage(((ConsumerRecord<String, String>) it.getArgument(0)).value()))
+        );
 
         testSubject = new TrackingRecordConverter<>(messageConverter, KafkaTrackingToken.emptyToken());
     }
 
     @Test
     void testProvidingNullTokenThrowsAssertionException() {
-        //noinspection unchecked
+        //noinspection unchecked,rawtypes
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new TrackingRecordConverter(mock(KafkaMessageConverter.class), null)
+                () -> new TrackingRecordConverter<>(mock(KafkaMessageConverter.class), null)
         );
     }
 
     @Test
     void testConverterConvertsRecordsAndTracksProgress() {
         int expectedNumberOfRecords = 42;
-        int expectedOffset = expectedNumberOfRecords - 1;
+        long expectedOffset = expectedNumberOfRecords - 1;
+        KafkaTrackingToken expectedCurrentToken =
+                KafkaTrackingToken.newInstance(Collections.singletonMap(TEST_PARTITION, expectedOffset));
 
         ConsumerRecords<String, String> testRecords = buildConsumerRecords(expectedNumberOfRecords);
 
@@ -84,11 +87,19 @@ class TrackingRecordConverterTest {
         assertEquals(TEST_PARTITION, lastResult.partition());
         assertEquals(expectedOffset, lastResult.offset());
 
-        TrackingToken lastResultToken = lastResult.value().trackingToken();
-        assertTrue(lastResultToken instanceof KafkaTrackingToken);
-        Map<Integer, Long> partitionPositions = ((KafkaTrackingToken) lastResultToken).partitionPositions();
-        assertEquals(1, partitionPositions.size());
-        assertEquals(expectedOffset, partitionPositions.get(TEST_PARTITION));
+        KafkaTrackingToken resultCurrentToken = testSubject.currentToken();
+        assertEquals(expectedCurrentToken, resultCurrentToken);
+    }
+
+    @Test
+    void testCurrentTokenReturnsTheGivenTokenIfNoConversionHasTakenPlace() {
+        KafkaTrackingToken expectedToken = KafkaTrackingToken.emptyToken();
+        TrackingRecordConverter<String, String> testSubject =
+                new TrackingRecordConverter<>(messageConverter, expectedToken);
+
+        KafkaTrackingToken resultToken = testSubject.currentToken();
+
+        assertEquals(expectedToken, resultToken);
     }
 
     private static ConsumerRecords<String, String> buildConsumerRecords(int numberOfRecords) {

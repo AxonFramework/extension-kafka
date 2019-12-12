@@ -22,11 +22,7 @@ import org.apache.kafka.common.TopicPartition;
 import org.axonframework.eventhandling.TrackingToken;
 
 import java.io.Serializable;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
@@ -43,6 +39,10 @@ import static org.axonframework.common.Assert.isTrue;
 public class KafkaTrackingToken implements TrackingToken, Serializable {
 
     private final Map<Integer, Long> partitionPositions;
+
+    private KafkaTrackingToken(Map<Integer, Long> partitionPositions) {
+        this.partitionPositions = Collections.unmodifiableMap(new HashMap<>(partitionPositions));
+    }
 
     /**
      * Returns a new {@link KafkaTrackingToken} instance based on the given {@code partitionPositions}.
@@ -66,8 +66,53 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
         return newInstance(new HashMap<>());
     }
 
-    private KafkaTrackingToken(Map<Integer, Long> partitionPositions) {
-        this.partitionPositions = Collections.unmodifiableMap(new HashMap<>(partitionPositions));
+    /**
+     * Create a {@link TopicPartition} based on the given {@code topic} and {@code partitionNumber}.
+     *
+     * @param topic           the topic for which a {@link TopicPartition} should be created
+     * @param partitionNumber the partition number for which a {@link TopicPartition} should be created
+     * @return a {@link TopicPartition} based on the given {@code topic} and {@code partitionNumber}
+     */
+    public static TopicPartition partition(String topic, int partitionNumber) {
+        return new TopicPartition(topic, partitionNumber);
+    }
+
+    /**
+     * Verify whether the given {@code token} is not empty, thus whether it contains partition-offset pairs.
+     *
+     * @param token the {@link KafkaTrackingToken} to verify for not being empty
+     * @return {@code true} if the given {@code token} contains partition-offset pairs and {@code false} if it doesn't
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static boolean isNotEmpty(KafkaTrackingToken token) {
+        return !isEmpty(token);
+    }
+
+    /**
+     * Verify whether the given {@code token} is {@code null} or contains zero partition-offset pairs.
+     *
+     * @param token the {@link KafkaTrackingToken} to verify for being empty
+     * @return {@code true} if the given {@code token} is {@code null} or empty and {@code false} if it isn't
+     */
+    public static boolean isEmpty(KafkaTrackingToken token) {
+        return token == null || token.partitionPositions.isEmpty();
+    }
+
+    /**
+     * Attempts to convert the given {@code trackingToken} to a KafkaTrackingToken. If {@code null}, an empty
+     * KafkaTrackingToken is returned, otherwise a cast is attempted.
+     * <p>
+     * The returned value is never {@code null}.
+     *
+     * @param trackingToken The token to convert
+     * @return a KafkaTrackingToken instances representing the same position as the given {@code trackingToken}
+     * @throws IllegalArgumentException if the given {@code trackingToken} is non-null and of an unsupported type
+     */
+    @SuppressWarnings("ConstantConditions")
+    public static KafkaTrackingToken from(TrackingToken trackingToken) {
+        isTrue(trackingToken == null || trackingToken instanceof KafkaTrackingToken,
+                () -> "Incompatible token type provided.");
+        return trackingToken == null ? KafkaTrackingToken.emptyToken() : (KafkaTrackingToken) trackingToken;
     }
 
     /**
@@ -92,20 +137,9 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
     @SuppressWarnings("WeakerAccess")
     public Collection<TopicPartition> partitions(String topic) {
         return partitionPositions.keySet()
-                                 .stream()
-                                 .map(partition -> partition(topic, partition))
-                                 .collect(Collectors.toList());
-    }
-
-    /**
-     * Create a {@link TopicPartition} based on the given {@code topic} and {@code partitionNumber}.
-     *
-     * @param topic           the topic for which a {@link TopicPartition} should be created
-     * @param partitionNumber the partition number for which a {@link TopicPartition} should be created
-     * @return a {@link TopicPartition} based on the given {@code topic} and {@code partitionNumber}
-     */
-    public static TopicPartition partition(String topic, int partitionNumber) {
-        return new TopicPartition(topic, partitionNumber);
+                .stream()
+                .map(partition -> partition(topic, partition))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -148,11 +182,11 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
         token.partitionPositions().forEach(intersection::putIfAbsent);
 
         intersection.keySet()
-                    .forEach(partitionNumber -> intersection.put(partitionNumber, boundsFunction.apply(
-                            this.partitionPositions().getOrDefault(partitionNumber, 0L),
-                            token.partitionPositions().getOrDefault(partitionNumber, 0L))
+                .forEach(partitionNumber -> intersection.put(partitionNumber, boundsFunction.apply(
+                        this.partitionPositions().getOrDefault(partitionNumber, 0L),
+                        token.partitionPositions().getOrDefault(partitionNumber, 0L))
 
-                    ));
+                ));
         return intersection;
     }
 
@@ -166,27 +200,6 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
                 .entrySet().stream()
                 .allMatch(position -> position.getValue() <= this.partitionPositions
                         .getOrDefault(position.getKey(), -1L));
-    }
-
-    /**
-     * Verify whether the given {@code token} is not empty, thus whether it contains partition-offset pairs.
-     *
-     * @param token the {@link KafkaTrackingToken} to verify for not being empty
-     * @return {@code true} if the given {@code token} contains partition-offset pairs and {@code false} if it doesn't
-     */
-    @SuppressWarnings("WeakerAccess")
-    public static boolean isNotEmpty(KafkaTrackingToken token) {
-        return !isEmpty(token);
-    }
-
-    /**
-     * Verify whether the given {@code token} is {@code null} or contains zero partition-offset pairs.
-     *
-     * @param token the {@link KafkaTrackingToken} to verify for being empty
-     * @return {@code true} if the given {@code token} is {@code null} or empty and {@code false} if it isn't
-     */
-    public static boolean isEmpty(KafkaTrackingToken token) {
-        return token == null || token.partitionPositions.isEmpty();
     }
 
     @Override

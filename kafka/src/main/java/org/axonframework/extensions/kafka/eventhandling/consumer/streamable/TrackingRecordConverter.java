@@ -80,4 +80,13 @@ public class TrackingRecordConverter<K, V> implements RecordConverter<K, V, Kafk
         }
         return eventMessages;
     }
+
+    /**
+     * Return the current state of the {@link KafkaTrackingToken} this converter updates
+     *
+     * @return the current state of the {@link KafkaTrackingToken} this converter updates
+     */
+    public KafkaTrackingToken currentToken() {
+        return currentToken;
+    }
 }

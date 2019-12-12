@@ -24,13 +24,13 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.Buffer;
-import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.ConsumerUtil;
 import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.KafkaEventMessage;
 import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.KafkaRecordMetaData;
 import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.KafkaTrackingToken;
 import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.SortedKafkaMessageBuffer;
 import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.StreamableKafkaMessageSource;
 import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.TrackingRecordConverter;
+import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.TrackingTokenConsumerRebalanceListener;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.*;
@@ -162,7 +162,10 @@ class AsyncFetcherTest {
         KafkaTrackingToken testStartToken = KafkaTrackingToken.newInstance(testPartitionPositions);
 
         Consumer<String, String> testConsumer = consumerFactory(kafkaBroker).createConsumer(DEFAULT_GROUP_ID);
-        ConsumerUtil.seek(testTopic, testConsumer, testStartToken);
+        testConsumer.subscribe(
+                Collections.singletonList(testTopic),
+                new TrackingTokenConsumerRebalanceListener<>(testConsumer, () -> testStartToken)
+        );
 
         testSubject.poll(
                 testConsumer,
