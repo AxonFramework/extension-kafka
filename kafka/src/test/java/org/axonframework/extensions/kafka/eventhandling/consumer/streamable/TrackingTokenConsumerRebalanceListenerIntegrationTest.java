@@ -23,16 +23,18 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
-import org.junit.*;
-import org.junit.runner.*;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import scala.Function1;
 import scala.collection.Seq;
 
+import java.time.Duration;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -40,19 +42,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static java.util.Collections.emptyMap;
 import static kafka.utils.TestUtils.pollUntilAtLeastNumRecords;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.axonframework.extensions.kafka.eventhandling.consumer.streamable.ConsumerUtil.seek;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.consumerFactory;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.producerFactory;
 import static org.springframework.kafka.test.utils.KafkaTestUtils.getRecords;
 
 /***
- * Tests for the {@link ConsumerUtil} class asserting utilization of the class.
+ * Integration tests spinning up a Kafka Broker to verify whether the {@link TrackingTokenConsumerRebalanceListener}
+ * starts a seek operation on the expected offsets from a {@link Consumer#poll(Duration)} perspective.
  *
  * @author Nakul Mishra
  * @author Steven van Beelen
  */
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @DirtiesContext
 @EmbeddedKafka(
         topics = {
@@ -63,7 +65,7 @@ import static org.springframework.kafka.test.utils.KafkaTestUtils.getRecords;
         },
         partitions = 5
 )
-public class ConsumerUtilTest {
+class TrackingTokenConsumerRebalanceListenerIntegrationTest {
 
     private static final String RECORD_BODY = "foo";
     private static final Function1<ConsumerRecord<byte[], byte[]>, Object> COUNT_ALL = record -> true;
@@ -74,43 +76,19 @@ public class ConsumerUtilTest {
     private ProducerFactory<String, String> producerFactory;
     private ConsumerFactory<String, String> consumerFactory;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         producerFactory = producerFactory(kafkaBroker);
         consumerFactory = consumerFactory(kafkaBroker);
     }
 
-    @After
-    public void tearDown() {
+    @AfterEach
+    void tearDown() {
         producerFactory.shutDown();
     }
 
-    @SuppressWarnings("ConstantConditions")
     @Test
-    public void testSeekUsingNullTokenConsumerStartsAtPositionZero() {
-        String topic = "testSeekUsing_NullToken_ConsumerStartsAtPositionZero";
-        int numberOfPartitions = kafkaBroker.getPartitionsPerTopic();
-        int recordsPerPartitions = 1;
-        publishRecordsOnPartitions(producerFactory.createProducer(), topic, recordsPerPartitions, numberOfPartitions);
-
-        int expectedRecordCount = numberOfPartitions * recordsPerPartitions;
-        AtomicInteger recordCounter = new AtomicInteger();
-        KafkaTrackingToken testToken = null;
-
-        Consumer<?, ?> testSubject = consumerFactory.createConsumer(DEFAULT_GROUP_ID);
-        seek(topic, testSubject, testToken);
-
-        getRecords(testSubject).forEach(record -> {
-            assertThat(record.offset()).isZero();
-            recordCounter.getAndIncrement();
-        });
-        assertThat(recordCounter.get()).isEqualTo(expectedRecordCount);
-
-        testSubject.close();
-    }
-
-    @Test
-    public void testSeekUsingEmptyTokenConsumerStartsAtPositionZero() {
+    void testSeekUsingEmptyTokenConsumerStartsAtPositionZero() {
         String topic = "testSeekUsing_EmptyToken_ConsumerStartsAtPositionZero";
         int numberOfPartitions = kafkaBroker.getPartitionsPerTopic();
         int recordsPerPartitions = 1;
@@ -120,21 +98,24 @@ public class ConsumerUtilTest {
         AtomicInteger recordCounter = new AtomicInteger();
         KafkaTrackingToken testToken = KafkaTrackingToken.newInstance(emptyMap());
 
-        Consumer<?, ?> testSubject = consumerFactory.createConsumer(DEFAULT_GROUP_ID);
-        seek(topic, testSubject, testToken);
+        Consumer<?, ?> testConsumer = consumerFactory.createConsumer(DEFAULT_GROUP_ID);
+        testConsumer.subscribe(
+                Collections.singletonList(topic),
+                new TrackingTokenConsumerRebalanceListener<>(testConsumer, () -> testToken)
+        );
 
-        getRecords(testSubject).forEach(record -> {
+        getRecords(testConsumer).forEach(record -> {
             assertThat(record.offset()).isZero();
             recordCounter.getAndIncrement();
         });
         assertThat(recordCounter.get()).isEqualTo(expectedRecordCount);
 
-        testSubject.close();
+        testConsumer.close();
     }
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testSeekUsingExistingTokenConsumerStartsAtSpecificPosition() {
+    void testSeekUsingExistingTokenConsumerStartsAtSpecificPosition() {
         String topic = "testSeekUsing_ExistingToken_ConsumerStartsAtSpecificPosition";
         int recordsPerPartitions = 10;
         publishRecordsOnPartitions(
@@ -152,21 +133,23 @@ public class ConsumerUtilTest {
         //  their offsets will increase given the published number of `recordsPerPartitions`
         int numberOfRecordsToConsume = 26;
 
-        Consumer<?, ?> testSubject = consumerFactory.createConsumer(DEFAULT_GROUP_ID);
-        seek(topic, testSubject, testToken);
+        Consumer<?, ?> testConsumer = consumerFactory.createConsumer(DEFAULT_GROUP_ID);
+        testConsumer.subscribe(
+                Collections.singletonList(topic),
+                new TrackingTokenConsumerRebalanceListener<>(testConsumer, () -> testToken)
+        );
 
         Seq<ConsumerRecord<byte[], byte[]>> resultRecords =
-                pollUntilAtLeastNumRecords((KafkaConsumer<byte[], byte[]>) testSubject, numberOfRecordsToConsume);
+                pollUntilAtLeastNumRecords((KafkaConsumer<byte[], byte[]>) testConsumer, numberOfRecordsToConsume);
         resultRecords.foreach(resultRecord -> assertThat(resultRecord.offset())
                 .isGreaterThan(partitionPositions.get(resultRecord.partition())));
         assertThat(resultRecords.count(COUNT_ALL)).isEqualTo(numberOfRecordsToConsume);
 
-        testSubject.close();
+        testConsumer.close();
     }
 
-    @SuppressWarnings("unchecked")
     @Test
-    public void testSeekUsingExistingTokenConsumerStartsAtSpecificPositionAndCanContinueReadingNewRecords() {
+    void testSeekUsingExistingTokenConsumerStartsAtSpecificPositionAndCanContinueReadingNewRecords() {
         String topic = "testSeekUsing_ExistingToken_ConsumerStartsAtSpecificPosition_AndCanContinueReadingNewRecords";
         int recordsPerPartitions = 10;
         Producer<String, String> testProducer = producerFactory.createProducer();
@@ -185,23 +168,28 @@ public class ConsumerUtilTest {
         //  their offsets will increase given the published number of `recordsPerPartitions`
         int numberOfRecordsToConsume = 26;
 
-        Consumer<?, ?> testSubject = consumerFactory.createConsumer(DEFAULT_GROUP_ID);
-        seek(topic, testSubject, testToken);
+        Consumer<?, ?> testConsumer = consumerFactory.createConsumer(DEFAULT_GROUP_ID);
+        testConsumer.subscribe(
+                Collections.singletonList(topic),
+                new TrackingTokenConsumerRebalanceListener<>(testConsumer, () -> testToken)
+        );
 
+        //noinspection unchecked
         Seq<ConsumerRecord<byte[], byte[]>> resultRecords =
-                pollUntilAtLeastNumRecords((KafkaConsumer<byte[], byte[]>) testSubject, numberOfRecordsToConsume);
+                pollUntilAtLeastNumRecords((KafkaConsumer<byte[], byte[]>) testConsumer, numberOfRecordsToConsume);
         resultRecords.foreach(resultRecord -> assertThat(resultRecord.offset())
                 .isGreaterThan(partitionPositions.get(resultRecord.partition())));
         assertThat(resultRecords.count(COUNT_ALL)).isEqualTo(numberOfRecordsToConsume);
 
         publishNewRecords(testProducer, topic);
         int secondNumberOfRecords = 4; // The `publishNewRecords(Producer, String)` produces 4 new records
-        resultRecords = pollUntilAtLeastNumRecords((KafkaConsumer<byte[], byte[]>) testSubject, secondNumberOfRecords);
+        //noinspection unchecked
+        resultRecords = pollUntilAtLeastNumRecords((KafkaConsumer<byte[], byte[]>) testConsumer, secondNumberOfRecords);
 
         resultRecords.foreach(resultRecord -> assertThat(resultRecord.offset()).isEqualTo(10));
         assertThat(resultRecords.count(COUNT_ALL)).isEqualTo(secondNumberOfRecords);
 
-        testSubject.close();
+        testConsumer.close();
     }
 
     private static void publishRecordsOnPartitions(Producer<String, String> producer,
