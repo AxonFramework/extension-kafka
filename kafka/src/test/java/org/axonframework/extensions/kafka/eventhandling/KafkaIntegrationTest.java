@@ -41,6 +41,7 @@ import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage;
@@ -106,7 +107,7 @@ class KafkaIntegrationTest {
     void testPublishAndReadMessages() throws Exception {
         StreamableKafkaMessageSource<String, byte[]> streamableMessageSource =
                 StreamableKafkaMessageSource.<String, byte[]>builder()
-                        .topic("integration")
+                        .topics(Collections.singletonList("integration"))
                         .consumerFactory(consumerFactory)
                         .fetcher(fetcher)
                         .build();
