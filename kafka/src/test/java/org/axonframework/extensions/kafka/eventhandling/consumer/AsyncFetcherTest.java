@@ -153,13 +153,13 @@ class AsyncFetcherTest {
         SortedKafkaMessageBuffer<KafkaEventMessage> testBuffer =
                 new LatchedSortedKafkaMessageBuffer<>(expectedNumberOfMessages, messageCounter);
 
-        Map<Integer, Long> testPartitionPositions = new HashMap<>();
-        testPartitionPositions.put(0, 5L);
-        testPartitionPositions.put(1, 1L);
-        testPartitionPositions.put(2, 9L);
-        testPartitionPositions.put(3, 4L);
-        testPartitionPositions.put(4, 0L);
-        KafkaTrackingToken testStartToken = KafkaTrackingToken.newInstance(testPartitionPositions);
+        Map<TopicPartition, Long> testTopicPartitionPositions = new HashMap<>();
+        testTopicPartitionPositions.put(new TopicPartition(testTopic, 0), 5L);
+        testTopicPartitionPositions.put(new TopicPartition(testTopic, 1), 1L);
+        testTopicPartitionPositions.put(new TopicPartition(testTopic, 2), 9L);
+        testTopicPartitionPositions.put(new TopicPartition(testTopic, 3), 4L);
+        testTopicPartitionPositions.put(new TopicPartition(testTopic, 4), 0L);
+        KafkaTrackingToken testStartToken = KafkaTrackingToken.newInstance(testTopicPartitionPositions);
 
         Consumer<String, String> testConsumer = consumerFactory(kafkaBroker).createConsumer(DEFAULT_GROUP_ID);
         testConsumer.subscribe(

@@ -71,7 +71,8 @@ public class TrackingRecordConverter<K, V> implements RecordConverter<K, V, Kafk
         List<KafkaEventMessage> eventMessages = new ArrayList<>(records.count());
         for (ConsumerRecord<K, V> record : records) {
             messageConverter.readKafkaMessage(record).ifPresent(eventMessage -> {
-                KafkaTrackingToken nextToken = currentToken.advancedTo(record.partition(), record.offset());
+                KafkaTrackingToken nextToken =
+                        currentToken.advancedTo(record.topic(), record.partition(), record.offset());
                 logger.debug("Advancing token from [{}] to [{}]", currentToken, nextToken);
 
                 currentToken = nextToken;
