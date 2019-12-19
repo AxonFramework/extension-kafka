@@ -43,11 +43,11 @@ class TrackingTokenConsumerRebalanceListenerTest {
         long testOffsetForPartitionOne = 10L;
         long testOffsetForPartitionTwo = 15L;
 
-        Map<TopicPartition, Long> testTopicPartitionPositions = new HashMap<>();
-        testTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 0), testOffsetForPartitionZero);
-        testTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 1), testOffsetForPartitionOne);
-        testTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 2), testOffsetForPartitionTwo);
-        KafkaTrackingToken testToken = KafkaTrackingToken.newInstance(testTopicPartitionPositions);
+        Map<TopicPartition, Long> testPositions = new HashMap<>();
+        testPositions.put(new TopicPartition(TEST_TOPIC, 0), testOffsetForPartitionZero);
+        testPositions.put(new TopicPartition(TEST_TOPIC, 1), testOffsetForPartitionOne);
+        testPositions.put(new TopicPartition(TEST_TOPIC, 2), testOffsetForPartitionTwo);
+        KafkaTrackingToken testToken = KafkaTrackingToken.newInstance(testPositions);
 
         TopicPartition testPartitionZero = new TopicPartition(TEST_TOPIC, 0);
         TopicPartition testPartitionOne = new TopicPartition(TEST_TOPIC, 1);

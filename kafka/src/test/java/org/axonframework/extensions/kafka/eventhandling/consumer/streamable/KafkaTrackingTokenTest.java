@@ -89,7 +89,7 @@ class KafkaTrackingTokenTest {
 
     @Test
     void testTokenIsHumanReadable() {
-        assertEquals("KafkaTrackingToken{partitionPositions={0=0}}", nonEmptyToken().toString());
+        assertEquals("KafkaTrackingToken{positions={topic-0=0}}", nonEmptyToken().toString());
     }
 
     private static KafkaTrackingToken nonEmptyToken() {
@@ -98,36 +98,36 @@ class KafkaTrackingTokenTest {
 
     @Test
     void testAdvanceToLaterTimestamp() {
-        Map<TopicPartition, Long> testTopicPartitionPositions = new HashMap<>();
-        testTopicPartitionPositions.put(TEST_TOPIC_PARTITION, 0L);
-        testTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 1), 0L);
-        KafkaTrackingToken testToken = newInstance(testTopicPartitionPositions);
+        Map<TopicPartition, Long> testPositions = new HashMap<>();
+        testPositions.put(TEST_TOPIC_PARTITION, 0L);
+        testPositions.put(new TopicPartition(TEST_TOPIC, 1), 0L);
+        KafkaTrackingToken testToken = newInstance(testPositions);
 
         KafkaTrackingToken testSubject = testToken.advancedTo(TEST_TOPIC, TEST_PARTITION, 1L);
 
         assertNotSame(testSubject, testToken);
-        assertEquals(Long.valueOf(1), testSubject.tokenPartitionPositions().get(TEST_TOPIC_PARTITION));
+        assertEquals(Long.valueOf(1), testSubject.positions().get(TEST_TOPIC_PARTITION));
         assertKnownEventIds(testSubject, TEST_TOPIC_PARTITION, new TopicPartition(TEST_TOPIC, 1));
     }
 
     @Test
     void testAdvanceToOlderTimestamp() {
-        Map<TopicPartition, Long> testTopicPartitionPositions = new HashMap<>();
-        testTopicPartitionPositions.put(TEST_TOPIC_PARTITION, 1L);
-        testTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 1), 0L);
-        KafkaTrackingToken testToken = newInstance(testTopicPartitionPositions);
+        Map<TopicPartition, Long> testPositions = new HashMap<>();
+        testPositions.put(TEST_TOPIC_PARTITION, 1L);
+        testPositions.put(new TopicPartition(TEST_TOPIC, 1), 0L);
+        KafkaTrackingToken testToken = newInstance(testPositions);
 
         KafkaTrackingToken testSubject = testToken.advancedTo(TEST_TOPIC, TEST_PARTITION, 0L);
 
         assertNotSame(testSubject, testToken);
-        assertEquals(Long.valueOf(0), testSubject.tokenPartitionPositions().get(TEST_TOPIC_PARTITION));
+        assertEquals(Long.valueOf(0), testSubject.positions().get(TEST_TOPIC_PARTITION));
         assertKnownEventIds(testSubject, TEST_TOPIC_PARTITION, new TopicPartition(TEST_TOPIC, 1));
     }
 
     private static void assertKnownEventIds(KafkaTrackingToken token, TopicPartition... expectedKnownIds) {
         assertEquals(
                 Stream.of(expectedKnownIds).collect(toSet()),
-                new HashSet<>(token.tokenPartitionPositions().keySet())
+                new HashSet<>(token.positions().keySet())
         );
     }
 
@@ -144,54 +144,54 @@ class KafkaTrackingTokenTest {
 
     @Test
     void testUpperBound() {
-        Map<TopicPartition, Long> firstTopicPartitionPositions = new HashMap<>();
-        firstTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 0), 0L);
-        firstTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 1), 10L);
-        firstTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 2), 2L);
-        firstTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 3), 2L);
-        KafkaTrackingToken first = newInstance(firstTopicPartitionPositions);
+        Map<TopicPartition, Long> firstPositions = new HashMap<>();
+        firstPositions.put(new TopicPartition(TEST_TOPIC, 0), 0L);
+        firstPositions.put(new TopicPartition(TEST_TOPIC, 1), 10L);
+        firstPositions.put(new TopicPartition(TEST_TOPIC, 2), 2L);
+        firstPositions.put(new TopicPartition(TEST_TOPIC, 3), 2L);
+        KafkaTrackingToken first = newInstance(firstPositions);
 
-        Map<TopicPartition, Long> secondTopicPartitionPositions = new HashMap<>();
-        secondTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 0), 10L);
-        secondTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 1), 1L);
-        secondTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 2), 2L);
-        secondTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 4), 3L);
-        KafkaTrackingToken second = newInstance(secondTopicPartitionPositions);
+        Map<TopicPartition, Long> secondPositions = new HashMap<>();
+        secondPositions.put(new TopicPartition(TEST_TOPIC, 0), 10L);
+        secondPositions.put(new TopicPartition(TEST_TOPIC, 1), 1L);
+        secondPositions.put(new TopicPartition(TEST_TOPIC, 2), 2L);
+        secondPositions.put(new TopicPartition(TEST_TOPIC, 4), 3L);
+        KafkaTrackingToken second = newInstance(secondPositions);
 
-        Map<TopicPartition, Long> expectedTopicPartitionPositions = new HashMap<>();
-        expectedTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 0), 10L);
-        expectedTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 1), 10L);
-        expectedTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 2), 2L);
-        expectedTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 3), 2L);
-        expectedTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 4), 3L);
-        KafkaTrackingToken expected = newInstance(expectedTopicPartitionPositions);
+        Map<TopicPartition, Long> expectedPositions = new HashMap<>();
+        expectedPositions.put(new TopicPartition(TEST_TOPIC, 0), 10L);
+        expectedPositions.put(new TopicPartition(TEST_TOPIC, 1), 10L);
+        expectedPositions.put(new TopicPartition(TEST_TOPIC, 2), 2L);
+        expectedPositions.put(new TopicPartition(TEST_TOPIC, 3), 2L);
+        expectedPositions.put(new TopicPartition(TEST_TOPIC, 4), 3L);
+        KafkaTrackingToken expected = newInstance(expectedPositions);
 
         assertEquals(expected, first.upperBound(second));
     }
 
     @Test
     void testLowerBound() {
-        Map<TopicPartition, Long> firstTopicPartitionPositions = new HashMap<>();
-        firstTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 0), 0L);
-        firstTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 1), 10L);
-        firstTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 2), 2L);
-        firstTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 3), 2L);
-        KafkaTrackingToken first = newInstance(firstTopicPartitionPositions);
+        Map<TopicPartition, Long> firstPositions = new HashMap<>();
+        firstPositions.put(new TopicPartition(TEST_TOPIC, 0), 0L);
+        firstPositions.put(new TopicPartition(TEST_TOPIC, 1), 10L);
+        firstPositions.put(new TopicPartition(TEST_TOPIC, 2), 2L);
+        firstPositions.put(new TopicPartition(TEST_TOPIC, 3), 2L);
+        KafkaTrackingToken first = newInstance(firstPositions);
 
-        Map<TopicPartition, Long> secondTopicPartitionPositions = new HashMap<>();
-        secondTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 0), 10L);
-        secondTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 1), 1L);
-        secondTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 2), 2L);
-        secondTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 4), 3L);
-        KafkaTrackingToken second = newInstance(secondTopicPartitionPositions);
+        Map<TopicPartition, Long> secondPositions = new HashMap<>();
+        secondPositions.put(new TopicPartition(TEST_TOPIC, 0), 10L);
+        secondPositions.put(new TopicPartition(TEST_TOPIC, 1), 1L);
+        secondPositions.put(new TopicPartition(TEST_TOPIC, 2), 2L);
+        secondPositions.put(new TopicPartition(TEST_TOPIC, 4), 3L);
+        KafkaTrackingToken second = newInstance(secondPositions);
 
-        Map<TopicPartition, Long> expectedTopicPartitionPositions = new HashMap<>();
-        expectedTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 0), 0L);
-        expectedTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 1), 1L);
-        expectedTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 2), 2L);
-        expectedTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 3), 0L);
-        expectedTopicPartitionPositions.put(new TopicPartition(TEST_TOPIC, 4), 0L);
-        KafkaTrackingToken expected = newInstance(expectedTopicPartitionPositions);
+        Map<TopicPartition, Long> expectedPositions = new HashMap<>();
+        expectedPositions.put(new TopicPartition(TEST_TOPIC, 0), 0L);
+        expectedPositions.put(new TopicPartition(TEST_TOPIC, 1), 1L);
+        expectedPositions.put(new TopicPartition(TEST_TOPIC, 2), 2L);
+        expectedPositions.put(new TopicPartition(TEST_TOPIC, 3), 0L);
+        expectedPositions.put(new TopicPartition(TEST_TOPIC, 4), 0L);
+        KafkaTrackingToken expected = newInstance(expectedPositions);
 
         assertEquals(expected, first.lowerBound(second));
     }
@@ -208,23 +208,15 @@ class KafkaTrackingTokenTest {
     void testRelationOfCoversAndUpperBounds() {
         Random random = new Random();
         for (int i = 0; i <= 10; i++) {
-            Map<TopicPartition, Long> firstTopicPartitionPositions = new HashMap<>();
-            firstTopicPartitionPositions.put(
-                    new TopicPartition(TEST_TOPIC, random.nextInt(2)), (long) random.nextInt(4) + 1
-            );
-            firstTopicPartitionPositions.put(
-                    new TopicPartition(TEST_TOPIC, random.nextInt(2)), (long) random.nextInt(4) + 1
-            );
-            KafkaTrackingToken first = newInstance(firstTopicPartitionPositions);
+            Map<TopicPartition, Long> firstPositions = new HashMap<>();
+            firstPositions.put(new TopicPartition(TEST_TOPIC, random.nextInt(2)), (long) random.nextInt(4) + 1);
+            firstPositions.put(new TopicPartition(TEST_TOPIC, random.nextInt(2)), (long) random.nextInt(4) + 1);
+            KafkaTrackingToken first = newInstance(firstPositions);
 
-            Map<TopicPartition, Long> secondTopicPartitionPositions = new HashMap<>();
-            secondTopicPartitionPositions.put(
-                    new TopicPartition(TEST_TOPIC, random.nextInt(2)), (long) random.nextInt(4) + 1
-            );
-            secondTopicPartitionPositions.put(
-                    new TopicPartition(TEST_TOPIC, random.nextInt(2)), (long) random.nextInt(4) + 1
-            );
-            KafkaTrackingToken second = newInstance(secondTopicPartitionPositions);
+            Map<TopicPartition, Long> secondPositions = new HashMap<>();
+            secondPositions.put(new TopicPartition(TEST_TOPIC, random.nextInt(2)), (long) random.nextInt(4) + 1);
+            secondPositions.put(new TopicPartition(TEST_TOPIC, random.nextInt(2)), (long) random.nextInt(4) + 1);
+            KafkaTrackingToken second = newInstance(secondPositions);
 
             if (first.upperBound(second).equals(first)) {
                 assertTrue(first.covers(second),

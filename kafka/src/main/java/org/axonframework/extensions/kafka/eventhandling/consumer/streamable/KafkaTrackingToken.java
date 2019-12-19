@@ -40,23 +40,22 @@ import static org.axonframework.common.Assert.isTrue;
  */
 public class KafkaTrackingToken implements TrackingToken, Serializable {
 
-    private final Map<TopicPartition, Long> tokenPartitionPositions;
+    private final Map<TopicPartition, Long> positions;
 
-    private KafkaTrackingToken(Map<TopicPartition, Long> tokenPartitionPositions) {
-        this.tokenPartitionPositions = Collections.unmodifiableMap(new HashMap<>(tokenPartitionPositions));
+    private KafkaTrackingToken(Map<TopicPartition, Long> positions) {
+        this.positions = Collections.unmodifiableMap(new HashMap<>(positions));
     }
 
     /**
      * Returns a new {@link KafkaTrackingToken} instance based on the given {@code partitionPositions}.
      *
-     * @param tokenPartitionPositions a {@link Map} from {@link Integer} to {@link Long}, specifying the offset of every
+     * @param positions a {@link Map} from {@link Integer} to {@link Long}, specifying the offset of every
      *                                partition
      * @return a new tracking token based on the given {@code partitionPositions}
      */
     @JsonCreator
-    public static KafkaTrackingToken newInstance(
-            @JsonProperty("tokenPartitionPositions") Map<TopicPartition, Long> tokenPartitionPositions) {
-        return new KafkaTrackingToken(tokenPartitionPositions);
+    public static KafkaTrackingToken newInstance(@JsonProperty("positions") Map<TopicPartition, Long> positions) {
+        return new KafkaTrackingToken(positions);
     }
 
     /**
@@ -85,7 +84,7 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
      * @return {@code true} if the given {@code token} is {@code null} or empty and {@code false} if it isn't
      */
     public static boolean isEmpty(KafkaTrackingToken token) {
-        return token == null || token.tokenPartitionPositions.isEmpty();
+        return token == null || token.positions.isEmpty();
     }
 
     /**
@@ -111,8 +110,8 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
      *
      * @return the {@link TopicPartition}/offset {@link Map} stored in this {@link TrackingToken}
      */
-    public Map<TopicPartition, Long> tokenPartitionPositions() {
-        return tokenPartitionPositions;
+    public Map<TopicPartition, Long> positions() {
+        return positions;
     }
 
     /**
@@ -134,9 +133,9 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
     }
 
     private KafkaTrackingToken advancedTo(TopicPartition topicPartition, long offset) {
-        Map<TopicPartition, Long> updatedPartitionPositions = new HashMap<>(tokenPartitionPositions());
-        updatedPartitionPositions.put(topicPartition, offset);
-        return new KafkaTrackingToken(updatedPartitionPositions);
+        Map<TopicPartition, Long> updatedPositions = new HashMap<>(positions());
+        updatedPositions.put(topicPartition, offset);
+        return new KafkaTrackingToken(updatedPositions);
     }
 
     @Override
@@ -154,13 +153,13 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
     }
 
     private Map<TopicPartition, Long> bounds(KafkaTrackingToken other, BiFunction<Long, Long, Long> boundsFunction) {
-        Map<TopicPartition, Long> intersection = new HashMap<>(tokenPartitionPositions());
-        other.tokenPartitionPositions().forEach(intersection::putIfAbsent);
+        Map<TopicPartition, Long> intersection = new HashMap<>(positions());
+        other.positions().forEach(intersection::putIfAbsent);
 
         intersection.keySet()
                     .forEach(topicPartition -> intersection.put(topicPartition, boundsFunction.apply(
-                            this.tokenPartitionPositions().getOrDefault(topicPartition, 0L),
-                            other.tokenPartitionPositions().getOrDefault(topicPartition, 0L))
+                            this.positions().getOrDefault(topicPartition, 0L),
+                            other.positions().getOrDefault(topicPartition, 0L))
                     ));
         return intersection;
     }
@@ -171,13 +170,13 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
         //noinspection ConstantConditions - Verified cast through `Assert.isTrue` operation
         KafkaTrackingToken otherToken = (KafkaTrackingToken) other;
 
-        return otherToken.tokenPartitionPositions()
+        return otherToken.positions()
                          .entrySet().stream()
                          .allMatch(offsetsEntry -> match(offsetsEntry.getKey(), offsetsEntry.getValue()));
     }
 
     private boolean match(TopicPartition otherTopicPartition, long otherOffset) {
-        return otherOffset <= this.tokenPartitionPositions().getOrDefault(otherTopicPartition, -1L);
+        return otherOffset <= this.positions().getOrDefault(otherTopicPartition, -1L);
     }
 
     @Override
@@ -189,18 +188,18 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
             return false;
         }
         KafkaTrackingToken that = (KafkaTrackingToken) o;
-        return Objects.equals(tokenPartitionPositions, that.tokenPartitionPositions);
+        return Objects.equals(positions, that.positions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(tokenPartitionPositions);
+        return Objects.hash(positions);
     }
 
     @Override
     public String toString() {
         return "KafkaTrackingToken{" +
-                "tokenPartitionPositions=" + tokenPartitionPositions +
+                "positions=" + positions +
                 '}';
     }
 }

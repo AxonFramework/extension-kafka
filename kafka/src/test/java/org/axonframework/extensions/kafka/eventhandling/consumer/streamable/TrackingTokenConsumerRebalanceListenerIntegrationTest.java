@@ -122,13 +122,13 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest {
                 producerFactory.createProducer(), topic, recordsPerPartitions, kafkaBroker.getPartitionsPerTopic()
         );
 
-        Map<TopicPartition, Long> topicPartitionPositions = new HashMap<>();
-        topicPartitionPositions.put(new TopicPartition(topic, 0), 5L);
-        topicPartitionPositions.put(new TopicPartition(topic, 1), 1L);
-        topicPartitionPositions.put(new TopicPartition(topic, 2), 9L);
-        topicPartitionPositions.put(new TopicPartition(topic, 3), 4L);
-        topicPartitionPositions.put(new TopicPartition(topic, 4), 0L);
-        KafkaTrackingToken testToken = KafkaTrackingToken.newInstance(topicPartitionPositions);
+        Map<TopicPartition, Long> positions = new HashMap<>();
+        positions.put(new TopicPartition(topic, 0), 5L);
+        positions.put(new TopicPartition(topic, 1), 1L);
+        positions.put(new TopicPartition(topic, 2), 9L);
+        positions.put(new TopicPartition(topic, 3), 4L);
+        positions.put(new TopicPartition(topic, 4), 0L);
+        KafkaTrackingToken testToken = KafkaTrackingToken.newInstance(positions);
         // This number corresponds to the steps the five partition's
         //  their offsets will increase given the published number of `recordsPerPartitions`
         int numberOfRecordsToConsume = 26;
@@ -143,7 +143,7 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest {
                 pollUntilAtLeastNumRecords((KafkaConsumer<byte[], byte[]>) testConsumer, numberOfRecordsToConsume);
         resultRecords.foreach(resultRecord -> {
             TopicPartition resultTopicPartition = new TopicPartition(resultRecord.topic(), resultRecord.partition());
-            assertTrue(resultRecord.offset() > topicPartitionPositions.get(resultTopicPartition));
+            assertTrue(resultRecord.offset() > positions.get(resultTopicPartition));
             // This ugly stuff is needed since I have to deal with a scala.collection.Seq
             return null;
         });
@@ -161,13 +161,13 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest {
                 testProducer, topic, recordsPerPartitions, kafkaBroker.getPartitionsPerTopic()
         );
 
-        Map<TopicPartition, Long> topicPartitionPositions = new HashMap<>();
-        topicPartitionPositions.put(new TopicPartition(topic, 0), 5L);
-        topicPartitionPositions.put(new TopicPartition(topic, 1), 1L);
-        topicPartitionPositions.put(new TopicPartition(topic, 2), 9L);
-        topicPartitionPositions.put(new TopicPartition(topic, 3), 4L);
-        topicPartitionPositions.put(new TopicPartition(topic, 4), 0L);
-        KafkaTrackingToken testToken = KafkaTrackingToken.newInstance(topicPartitionPositions);
+        Map<TopicPartition, Long> positions = new HashMap<>();
+        positions.put(new TopicPartition(topic, 0), 5L);
+        positions.put(new TopicPartition(topic, 1), 1L);
+        positions.put(new TopicPartition(topic, 2), 9L);
+        positions.put(new TopicPartition(topic, 3), 4L);
+        positions.put(new TopicPartition(topic, 4), 0L);
+        KafkaTrackingToken testToken = KafkaTrackingToken.newInstance(positions);
         // This number corresponds to the steps the five partition's
         //  their offsets will increase given the published number of `recordsPerPartitions`
         int numberOfRecordsToConsume = 26;
@@ -183,7 +183,7 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest {
                 pollUntilAtLeastNumRecords((KafkaConsumer<byte[], byte[]>) testConsumer, numberOfRecordsToConsume);
         resultRecords.foreach(resultRecord -> {
             TopicPartition resultTopicPartition = new TopicPartition(resultRecord.topic(), resultRecord.partition());
-            assertTrue(resultRecord.offset() > topicPartitionPositions.get(resultTopicPartition));
+            assertTrue(resultRecord.offset() > positions.get(resultTopicPartition));
             // This ugly stuff is needed since I have to deal with a scala.collection.Seq
             return null;
         });
