@@ -43,6 +43,7 @@ class TrackingRecordConverterTest {
 
     private static final String TEST_TOPIC = "some-topic";
     private static final int TEST_PARTITION = 0;
+    private static final TopicPartition TEST_TOPIC_PARTITION = new TopicPartition(TEST_TOPIC, TEST_PARTITION);
 
     private KafkaMessageConverter<String, String> messageConverter;
 
@@ -74,7 +75,7 @@ class TrackingRecordConverterTest {
         int expectedNumberOfRecords = 42;
         long expectedOffset = expectedNumberOfRecords - 1;
         KafkaTrackingToken expectedCurrentToken =
-                KafkaTrackingToken.newInstance(Collections.singletonMap(TEST_PARTITION, expectedOffset));
+                KafkaTrackingToken.newInstance(Collections.singletonMap(TEST_TOPIC_PARTITION, expectedOffset));
 
         ConsumerRecords<String, String> testRecords = buildConsumerRecords(expectedNumberOfRecords);
 

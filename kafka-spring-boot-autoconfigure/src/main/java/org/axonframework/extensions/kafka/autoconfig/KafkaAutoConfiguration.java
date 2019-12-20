@@ -47,6 +47,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.Collections;
 import java.util.Map;
 
 import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher.DEFAULT_PROCESSING_GROUP;
@@ -167,7 +168,7 @@ public class KafkaAutoConfiguration {
             KafkaMessageConverter<String, byte[]> kafkaMessageConverter
     ) {
         return StreamableKafkaMessageSource.<String, byte[]>builder()
-                .topic(properties.getDefaultTopic())
+                .topics(Collections.singletonList(properties.getDefaultTopic()))
                 .consumerFactory(kafkaConsumerFactory)
                 .fetcher(kafkaFetcher)
                 .messageConverter(kafkaMessageConverter)

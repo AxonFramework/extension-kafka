@@ -76,12 +76,11 @@ public class TrackingTokenConsumerRebalanceListener<K, V> implements ConsumerReb
     public void onPartitionsAssigned(Collection<TopicPartition> assignedPartitions) {
         KafkaTrackingToken currentToken = tokenSupplier.get();
         assignedPartitions.forEach(assignedPartition -> {
-            int partition = assignedPartition.partition();
-            Map<Integer, Long> tokenPartitionPositions = currentToken.partitionPositions();
+            Map<TopicPartition, Long> tokenPartitionPositions = currentToken.positions();
 
             long offset = 0L;
-            if (tokenPartitionPositions.containsKey(partition)) {
-                offset = tokenPartitionPositions.get(partition) + 1;
+            if (tokenPartitionPositions.containsKey(assignedPartition)) {
+                offset = tokenPartitionPositions.get(assignedPartition) + 1;
             }
             consumer.seek(assignedPartition, offset);
         });

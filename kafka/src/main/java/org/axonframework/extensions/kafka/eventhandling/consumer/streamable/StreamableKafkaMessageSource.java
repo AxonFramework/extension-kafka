@@ -34,7 +34,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -60,7 +62,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
 
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-    private final String topic;
+    private final List<String> topics;
     private final String groupIdPrefix;
     private final Supplier<String> groupIdSuffixFactory;
     private final ConsumerFactory<K, V> consumerFactory;
@@ -71,11 +73,11 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
     /**
      * Instantiate a Builder to be able to create a {@link StreamableKafkaMessageSource}.
      * <p>
-     * The {@code topic} is defaulted to {@code "Axon.Events"}, {@code groupIdPrefix} defaults to {@code
-     * "Axon.Streamable.Consumer-"} and it's {@code groupIdSuffixFactory} to a {@link UUID#randomUUID()} operation, the
-     * {@link KafkaMessageConverter} to a {@link DefaultKafkaMessageConverter} using the {@link XStreamSerializer} and
-     * the {@code bufferFactory} the {@link SortedKafkaMessageBuffer} constructor. The {@link ConsumerFactory} and
-     * {@link Fetcher} are <b>hard requirements</b> and as such should be provided.
+     * The {@code topics} list is defaulted to single entry of {@code "Axon.Events"}, {@code groupIdPrefix} defaults to
+     * {@code "Axon.Streamable.Consumer-"} and it's {@code groupIdSuffixFactory} to a {@link UUID#randomUUID()}
+     * operation, the {@link KafkaMessageConverter} to a {@link DefaultKafkaMessageConverter} using the {@link
+     * XStreamSerializer} and the {@code bufferFactory} the {@link SortedKafkaMessageBuffer} constructor. The {@link
+     * ConsumerFactory} and {@link Fetcher} are <b>hard requirements</b> and as such should be provided.
      *
      * @param <K> the key of the {@link ConsumerRecords} to consume, fetch and convert
      * @param <V> the value type of {@link ConsumerRecords} to consume, fetch and convert
@@ -95,7 +97,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
      */
     protected StreamableKafkaMessageSource(Builder<K, V> builder) {
         builder.validate();
-        this.topic = builder.topic;
+        this.topics = Collections.unmodifiableList(builder.topics);
         this.groupIdPrefix = builder.groupIdPrefix;
         this.groupIdSuffixFactory = builder.groupIdSuffixFactory;
         this.consumerFactory = builder.consumerFactory;
@@ -116,10 +118,10 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
         TrackingRecordConverter<K, V> recordConverter = new TrackingRecordConverter<>(messageConverter, token);
 
         String groupId = buildConsumerGroupId();
-        logger.debug("Consumer Group Id [{}] will start consuming from topic [{}]", groupId, topic);
+        logger.debug("Consumer Group Id [{}] will start consuming from topics [{}]", groupId, topics);
         Consumer<K, V> consumer = consumerFactory.createConsumer(groupId);
         consumer.subscribe(
-                Collections.singletonList(topic),
+                topics,
                 new TrackingTokenConsumerRebalanceListener<>(consumer, recordConverter::currentToken)
         );
 
@@ -135,18 +137,18 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
     /**
      * Builder class to instantiate a {@link StreamableKafkaMessageSource}.
      * <p>
-     * The {@code topic} is defaulted to {@code "Axon.Events"}, {@code groupIdPrefix} defaults to {@code
-     * "Axon.Streamable.Consumer-"} and it's {@code groupIdSuffixFactory} to a {@link UUID#randomUUID()} operation, the
-     * {@link KafkaMessageConverter} to a {@link DefaultKafkaMessageConverter} using the {@link XStreamSerializer} and
-     * the {@code bufferFactory} the {@link SortedKafkaMessageBuffer} constructor. The {@link ConsumerFactory} and
-     * {@link Fetcher} are <b>hard requirements</b> and as such should be provided.
+     * The {@code topics} list is defaulted to single entry of {@code "Axon.Events"}, {@code groupIdPrefix} defaults to
+     * {@code "Axon.Streamable.Consumer-"} and it's {@code groupIdSuffixFactory} to a {@link UUID#randomUUID()}
+     * operation, the {@link KafkaMessageConverter} to a {@link DefaultKafkaMessageConverter} using the {@link
+     * XStreamSerializer} and the {@code bufferFactory} the {@link SortedKafkaMessageBuffer} constructor. The {@link
+     * ConsumerFactory} and {@link Fetcher} are <b>hard requirements</b> and as such should be provided.
      *
      * @param <K> the key of the {@link ConsumerRecords} to consume, fetch and convert
      * @param <V> the value type of {@link ConsumerRecords} to consume, fetch and convert
      */
     public static class Builder<K, V> {
 
-        private String topic = "Axon.Events";
+        private List<String> topics = Collections.singletonList("Axon.Events");
         private String groupIdPrefix = "Axon.Streamable.Consumer-";
         private Supplier<String> groupIdSuffixFactory = () -> UUID.randomUUID().toString();
         private ConsumerFactory<K, V> consumerFactory;
@@ -159,15 +161,28 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
         private Supplier<Buffer<KafkaEventMessage>> bufferFactory = SortedKafkaMessageBuffer::new;
 
         /**
-         * Set the Kafka {@code topic} to read {@link org.axonframework.eventhandling.EventMessage}s from. Defaults to
+         * Set the Kafka {@code topics} to read {@link org.axonframework.eventhandling.EventMessage}s from. Defaults to
          * {@code Axon.Events}.
          *
-         * @param topic the Kafka {@code topic} to read {@link org.axonframework.eventhandling.EventMessage}s from
+         * @param topics the Kafka {@code topics} to read {@link org.axonframework.eventhandling.EventMessage}s from
          * @return the current Builder instance, for fluent interfacing
          */
-        public Builder<K, V> topic(String topic) {
+        public Builder<K, V> topics(List<String> topics) {
+            assertThat(topics, topicList -> Objects.nonNull(topicList) && !topicList.isEmpty(),
+                       "The topics may not be null or empty");
+            this.topics = new ArrayList<>(topics);
+            return this;
+        }
+
+        /**
+         * Add a Kafka {@code topic} to read {@link org.axonframework.eventhandling.EventMessage}s from.
+         *
+         * @param topic the Kafka {@code topic} to add to the list of topics
+         * @return the current Builder instance, for fluent interfacing
+         */
+        public Builder<K, V> addTopic(String topic) {
             assertThat(topic, name -> Objects.nonNull(name) && !"".equals(name), "The topic may not be null or empty");
-            this.topic = topic;
+            topics.add(topic);
             return this;
         }
 

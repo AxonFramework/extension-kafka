@@ -68,8 +68,13 @@ class StreamableKafkaMessageSourceTest {
     }
 
     @Test
-    void testBuildingWithInvalidTopicShouldThrowAxonConfigurationException() {
-        assertThrows(AxonConfigurationException.class, () -> StreamableKafkaMessageSource.builder().topic(null));
+    void testBuildingWithInvalidTopicsShouldThrowAxonConfigurationException() {
+        assertThrows(AxonConfigurationException.class, () -> StreamableKafkaMessageSource.builder().topics(null));
+    }
+
+    @Test
+    void testBuildWithInvalidTopicThrowsAxonConfigurationException() {
+        assertThrows(AxonConfigurationException.class, () -> StreamableKafkaMessageSource.builder().addTopic(null));
     }
 
     @Test

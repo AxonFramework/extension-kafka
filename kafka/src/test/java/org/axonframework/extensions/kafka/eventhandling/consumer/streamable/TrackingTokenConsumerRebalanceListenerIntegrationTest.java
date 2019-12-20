@@ -21,6 +21,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.TopicPartition;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
 import org.junit.jupiter.api.*;
@@ -41,10 +42,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.Collections.emptyMap;
 import static kafka.utils.TestUtils.pollUntilAtLeastNumRecords;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.consumerFactory;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.producerFactory;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.kafka.test.utils.KafkaTestUtils.getRecords;
 
 /***
@@ -58,7 +59,6 @@ import static org.springframework.kafka.test.utils.KafkaTestUtils.getRecords;
 @DirtiesContext
 @EmbeddedKafka(
         topics = {
-                "testSeekUsing_NullToken_ConsumerStartsAtPositionZero",
                 "testSeekUsing_EmptyToken_ConsumerStartsAtPositionZero",
                 "testSeekUsing_ExistingToken_ConsumerStartsAtSpecificPosition",
                 "testSeekUsing_ExistingToken_ConsumerStartsAtSpecificPosition_AndCanContinueReadingNewRecords"
@@ -105,10 +105,10 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest {
         );
 
         getRecords(testConsumer).forEach(record -> {
-            assertThat(record.offset()).isZero();
+            assertEquals(0, record.offset());
             recordCounter.getAndIncrement();
         });
-        assertThat(recordCounter.get()).isEqualTo(expectedRecordCount);
+        assertEquals(expectedRecordCount, recordCounter.get());
 
         testConsumer.close();
     }
@@ -122,13 +122,13 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest {
                 producerFactory.createProducer(), topic, recordsPerPartitions, kafkaBroker.getPartitionsPerTopic()
         );
 
-        Map<Integer, Long> partitionPositions = new HashMap<>();
-        partitionPositions.put(0, 5L);
-        partitionPositions.put(1, 1L);
-        partitionPositions.put(2, 9L);
-        partitionPositions.put(3, 4L);
-        partitionPositions.put(4, 0L);
-        KafkaTrackingToken testToken = KafkaTrackingToken.newInstance(partitionPositions);
+        Map<TopicPartition, Long> positions = new HashMap<>();
+        positions.put(new TopicPartition(topic, 0), 5L);
+        positions.put(new TopicPartition(topic, 1), 1L);
+        positions.put(new TopicPartition(topic, 2), 9L);
+        positions.put(new TopicPartition(topic, 3), 4L);
+        positions.put(new TopicPartition(topic, 4), 0L);
+        KafkaTrackingToken testToken = KafkaTrackingToken.newInstance(positions);
         // This number corresponds to the steps the five partition's
         //  their offsets will increase given the published number of `recordsPerPartitions`
         int numberOfRecordsToConsume = 26;
@@ -141,9 +141,13 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest {
 
         Seq<ConsumerRecord<byte[], byte[]>> resultRecords =
                 pollUntilAtLeastNumRecords((KafkaConsumer<byte[], byte[]>) testConsumer, numberOfRecordsToConsume);
-        resultRecords.foreach(resultRecord -> assertThat(resultRecord.offset())
-                .isGreaterThan(partitionPositions.get(resultRecord.partition())));
-        assertThat(resultRecords.count(COUNT_ALL)).isEqualTo(numberOfRecordsToConsume);
+        resultRecords.foreach(resultRecord -> {
+            TopicPartition resultTopicPartition = new TopicPartition(resultRecord.topic(), resultRecord.partition());
+            assertTrue(resultRecord.offset() > positions.get(resultTopicPartition));
+            // This ugly stuff is needed since I have to deal with a scala.collection.Seq
+            return null;
+        });
+        assertEquals(numberOfRecordsToConsume, resultRecords.count(COUNT_ALL));
 
         testConsumer.close();
     }
@@ -157,13 +161,13 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest {
                 testProducer, topic, recordsPerPartitions, kafkaBroker.getPartitionsPerTopic()
         );
 
-        Map<Integer, Long> partitionPositions = new HashMap<>();
-        partitionPositions.put(0, 5L);
-        partitionPositions.put(1, 1L);
-        partitionPositions.put(2, 9L);
-        partitionPositions.put(3, 4L);
-        partitionPositions.put(4, 0L);
-        KafkaTrackingToken testToken = KafkaTrackingToken.newInstance(partitionPositions);
+        Map<TopicPartition, Long> positions = new HashMap<>();
+        positions.put(new TopicPartition(topic, 0), 5L);
+        positions.put(new TopicPartition(topic, 1), 1L);
+        positions.put(new TopicPartition(topic, 2), 9L);
+        positions.put(new TopicPartition(topic, 3), 4L);
+        positions.put(new TopicPartition(topic, 4), 0L);
+        KafkaTrackingToken testToken = KafkaTrackingToken.newInstance(positions);
         // This number corresponds to the steps the five partition's
         //  their offsets will increase given the published number of `recordsPerPartitions`
         int numberOfRecordsToConsume = 26;
@@ -177,17 +181,25 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest {
         //noinspection unchecked
         Seq<ConsumerRecord<byte[], byte[]>> resultRecords =
                 pollUntilAtLeastNumRecords((KafkaConsumer<byte[], byte[]>) testConsumer, numberOfRecordsToConsume);
-        resultRecords.foreach(resultRecord -> assertThat(resultRecord.offset())
-                .isGreaterThan(partitionPositions.get(resultRecord.partition())));
-        assertThat(resultRecords.count(COUNT_ALL)).isEqualTo(numberOfRecordsToConsume);
+        resultRecords.foreach(resultRecord -> {
+            TopicPartition resultTopicPartition = new TopicPartition(resultRecord.topic(), resultRecord.partition());
+            assertTrue(resultRecord.offset() > positions.get(resultTopicPartition));
+            // This ugly stuff is needed since I have to deal with a scala.collection.Seq
+            return null;
+        });
+        assertEquals(numberOfRecordsToConsume, resultRecords.count(COUNT_ALL));
 
         publishNewRecords(testProducer, topic);
         int secondNumberOfRecords = 4; // The `publishNewRecords(Producer, String)` produces 4 new records
         //noinspection unchecked
         resultRecords = pollUntilAtLeastNumRecords((KafkaConsumer<byte[], byte[]>) testConsumer, secondNumberOfRecords);
 
-        resultRecords.foreach(resultRecord -> assertThat(resultRecord.offset()).isEqualTo(10));
-        assertThat(resultRecords.count(COUNT_ALL)).isEqualTo(secondNumberOfRecords);
+        resultRecords.foreach(resultRecord -> {
+            assertEquals(10, resultRecord.offset());
+            // This ugly stuff is needed since I have to deal with a scala.collection.Seq
+            return null;
+        });
+        assertEquals(secondNumberOfRecords, resultRecords.count(COUNT_ALL));
 
         testConsumer.close();
     }
