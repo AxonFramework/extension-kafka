@@ -21,6 +21,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.invoke.MethodHandles;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -42,7 +43,7 @@ import static org.axonframework.common.ObjectUtils.getOrDefault;
  */
 class FetchEventsTask<K, V, E> implements Runnable {
 
-    private static final Logger logger = LoggerFactory.getLogger(FetchEventsTask.class);
+    private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private final Consumer<K, V> consumer;
     private final Duration pollTimeout;
@@ -100,6 +101,7 @@ class FetchEventsTask<K, V, E> implements Runnable {
             running.set(false);
             closeHandler.accept(this);
             consumer.close();
+            logger.info("Fetch events task and used Consumer instance [{}] have been closed", consumer);
         }
     }
 
@@ -107,6 +109,7 @@ class FetchEventsTask<K, V, E> implements Runnable {
      * Shutdown this {@link FetchEventsTask}.
      */
     public void close() {
+        logger.info("Closing down FetchEventsTask using Consumer [{}]", consumer);
         this.running.set(false);
     }
 }

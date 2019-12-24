@@ -19,7 +19,10 @@ package org.axonframework.extensions.kafka.eventhandling.consumer;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.axonframework.common.AxonThreadFactory;
 import org.axonframework.common.Registration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.lang.invoke.MethodHandles;
 import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,6 +47,8 @@ import static org.axonframework.common.BuilderUtils.assertThat;
  * @since 4.0
  */
 public class AsyncFetcher<K, V, E> implements Fetcher<K, V, E> {
+
+    private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private static final int DEFAULT_POLL_TIMEOUT_MS = 5_000;
 
@@ -100,6 +105,7 @@ public class AsyncFetcher<K, V, E> implements Fetcher<K, V, E> {
 
     @Override
     public void shutdown() {
+        logger.info("Shutting down AsyncFetcher");
         activeFetchers.forEach(FetchEventsTask::close);
         if (requirePoolShutdown) {
             executorService.shutdown();
