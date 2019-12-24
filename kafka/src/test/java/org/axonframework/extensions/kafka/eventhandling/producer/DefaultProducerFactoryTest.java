@@ -21,13 +21,13 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.KafkaException;
 import org.axonframework.common.AxonConfigurationException;
-import org.junit.*;
-import org.junit.runner.*;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -38,12 +38,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.IntStream;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode.NONE;
 import static org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode.TRANSACTIONAL;
 import static org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducerFactory.builder;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.*;
-import static org.junit.Assume.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -52,7 +52,7 @@ import static org.mockito.Mockito.*;
  * @author Nakul Mishra
  * @author Steven van Beelen
  */
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @DirtiesContext
 @EmbeddedKafka(
         topics = {
@@ -65,55 +65,75 @@ import static org.mockito.Mockito.*;
         count = 3,
         ports = {0, 0, 0}
 )
-public class DefaultProducerFactoryTest {
+class DefaultProducerFactoryTest {
 
     @SuppressWarnings("SpringJavaAutowiredMembersInspection")
     @Autowired
     private EmbeddedKafkaBroker kafkaBroker;
 
     @Test
-    public void testDefaultConfirmationMode() {
-        assertThat(builder().configuration(empty()).build().confirmationMode()).isEqualTo(NONE);
+    void testDefaultConfirmationMode() {
+        assertEquals(builder().configuration(empty()).build().confirmationMode(), NONE);
     }
 
     @Test
-    public void testDefaultConfirmationModeForTransactionalProducer() {
-        assertThat(transactionalProducerFactory(kafkaBroker, "foo").confirmationMode()).isEqualTo(TRANSACTIONAL);
-    }
-
-    @Test(expected = AxonConfigurationException.class)
-    public void testConfiguringInvalidCacheSize() {
-        builder().configuration(minimal(kafkaBroker)).producerCacheSize(-1).build();
-    }
-
-    @Test(expected = AxonConfigurationException.class)
-    public void testConfiguringInvalidTimeout() {
-        builder().configuration(minimal(kafkaBroker)).closeTimeout(-1, ChronoUnit.SECONDS).build();
-    }
-
-    @Test(expected = AxonConfigurationException.class)
-    public void testConfiguringInvalidTimeoutUnit() {
-        builder().configuration(minimal(kafkaBroker)).closeTimeout(1, null).build();
-    }
-
-    @Test(expected = AxonConfigurationException.class)
-    public void testConfiguringInvalidCloseTimeout() {
-        builder().configuration(minimal(kafkaBroker)).closeTimeout(Duration.ofSeconds(-1)).build();
+    void testDefaultConfirmationModeForTransactionalProducer() {
+        assertEquals(transactionalProducerFactory(kafkaBroker, "foo").confirmationMode(), TRANSACTIONAL);
     }
 
     @Test
-    public void testProducerCreation() {
+    void testConfiguringInvalidCacheSize() {
+        assertThrows(
+                AxonConfigurationException.class,
+                () -> builder().configuration(minimal(kafkaBroker)).producerCacheSize(-1).build()
+        );
+    }
+
+    @Test
+    void testConfiguringInvalidTimeout() {
+        assertThrows(
+                AxonConfigurationException.class,
+                () -> builder().configuration(minimal(kafkaBroker)).closeTimeout(-1, ChronoUnit.SECONDS).build()
+        );
+    }
+
+    @Test
+    void testConfiguringInvalidTimeoutUnit() {
+        assertThrows(
+                AxonConfigurationException.class,
+                () -> builder().configuration(minimal(kafkaBroker)).closeTimeout(1, null).build()
+        );
+    }
+
+    @Test
+    void testConfiguringInvalidCloseTimeout() {
+        assertThrows(
+                AxonConfigurationException.class,
+                () -> builder().configuration(minimal(kafkaBroker)).closeTimeout(Duration.ofSeconds(-1)).build()
+        );
+    }
+
+    @Test
+    void testConfiguringInvalidTransactionalIdPrefix() {
+        assertThrows(
+                AxonConfigurationException.class,
+                () -> builder().transactionalIdPrefix(null).build()
+        );
+    }
+
+    @Test
+    void testProducerCreation() {
         ProducerFactory<String, String> producerFactory = producerFactory(kafkaBroker);
         Producer<String, String> testProducer = producerFactory.createProducer();
 
-        assertThat(testProducer.metrics()).isNotEmpty();
-        assertThat(testProducer.partitionsFor("testProducerCreation")).isNotEmpty();
+        assertFalse(testProducer.metrics().isEmpty());
+        assertFalse(testProducer.partitionsFor("testProducerCreation").isEmpty());
 
         cleanup(producerFactory, testProducer);
     }
 
     @Test
-    public void testCachingProducerInstances() {
+    void testCachingProducerInstances() {
         ProducerFactory<String, String> producerFactory = producerFactory(kafkaBroker);
         List<Producer<String, String>> testProducers = new ArrayList<>();
         testProducers.add(producerFactory.createProducer());
@@ -121,7 +141,7 @@ public class DefaultProducerFactoryTest {
         Producer<String, String> firstProducer = testProducers.get(0);
         IntStream.range(0, 10).forEach(x -> {
             Producer<String, String> copy = producerFactory.createProducer();
-            assertThat(copy).isEqualTo(firstProducer);
+            assertEquals(firstProducer, copy);
             testProducers.add(copy);
         });
 
@@ -129,7 +149,7 @@ public class DefaultProducerFactoryTest {
     }
 
     @Test
-    public void testSendingMessagesUsingMultipleProducers() throws ExecutionException, InterruptedException {
+    void testSendingMessagesUsingMultipleProducers() throws ExecutionException, InterruptedException {
         ProducerFactory<String, String> producerFactory = producerFactory(kafkaBroker);
         List<Producer<String, String>> testProducers = new ArrayList<>();
         String testTopic = "testSendingMessagesUsingMultipleProducers";
@@ -149,10 +169,10 @@ public class DefaultProducerFactoryTest {
     }
 
     @Test
-    public void testTransactionalProducerCreation() {
+    void testTransactionalProducerCreation() {
         assumeFalse(
-                "Transactional producers not supported on Windows",
-                System.getProperty("os.name").contains("Windows")
+                System.getProperty("os.name").contains("Windows"),
+                "Transactional producers not supported on Windows"
         );
 
         ProducerFactory<String, String> producerFactory = transactionalProducerFactory(kafkaBroker, "xyz");
@@ -160,13 +180,13 @@ public class DefaultProducerFactoryTest {
 
         testProducer.beginTransaction();
         testProducer.commitTransaction();
-        assertThat(testProducer.metrics()).isNotEmpty();
+        assertFalse(testProducer.metrics().isEmpty());
 
         cleanup(producerFactory, testProducer);
     }
 
     @Test
-    public void testCachingTransactionalProducerInstances() {
+    void testCachingTransactionalProducerInstances() {
         ProducerFactory<String, String> producerFactory = transactionalProducerFactory(kafkaBroker, "bar");
         List<Producer<String, String>> testProducers = new ArrayList<>();
         testProducers.add(producerFactory.createProducer());
@@ -174,14 +194,14 @@ public class DefaultProducerFactoryTest {
         Producer<String, String> firstProducer = testProducers.get(0);
         IntStream.range(0, 10).forEach(x -> {
             Producer<String, String> copy = producerFactory.createProducer();
-            assertThat(copy).isNotEqualTo(firstProducer);
+            assertNotEquals(firstProducer, copy);
         });
 
         cleanup(producerFactory, testProducers);
     }
 
     @Test
-    public void testSendingMessagesUsingMultipleTransactionalProducers()
+    void testSendingMessagesUsingMultipleTransactionalProducers()
             throws ExecutionException, InterruptedException {
         ProducerFactory<String, String> producerFactory = transactionalProducerFactory(kafkaBroker, "xyz");
         List<Producer<String, String>> testProducers = new ArrayList<>();
@@ -200,11 +220,11 @@ public class DefaultProducerFactoryTest {
         cleanup(producerFactory, testProducers);
     }
 
-    @Test(expected = KafkaException.class)
-    public void testTransactionalProducerBehaviorOnCommittingAnAbortedTransaction() {
+    @Test
+    void testTransactionalProducerBehaviorOnCommittingAnAbortedTransaction() {
         assumeFalse(
-                "Transactional producers not supported on Windows",
-                System.getProperty("os.name").contains("Windows")
+                System.getProperty("os.name").contains("Windows"),
+                "Transactional producers not supported on Windows"
         );
 
         ProducerFactory<String, String> producerFactory = transactionalProducerFactory(kafkaBroker, "xyz");
@@ -214,17 +234,17 @@ public class DefaultProducerFactoryTest {
             testProducer.beginTransaction();
             send(testProducer, "testTransactionalProducerBehaviorOnCommittingAnAbortedTransaction", "bar");
             testProducer.abortTransaction();
-            testProducer.commitTransaction();
+            assertThrows(KafkaException.class, testProducer::commitTransaction);
         } finally {
             cleanup(producerFactory, testProducer);
         }
     }
 
-    @Test(expected = KafkaException.class)
-    public void testTransactionalProducerBehaviorOnSendingOffsetsWhenTransactionIsClosed() {
+    @Test
+    void testTransactionalProducerBehaviorOnSendingOffsetsWhenTransactionIsClosed() {
         assumeFalse(
-                "Transactional producers not supported on Windows",
-                System.getProperty("os.name").contains("Windows")
+                System.getProperty("os.name").contains("Windows"),
+                "Transactional producers not supported on Windows"
         );
 
         ProducerFactory<String, String> producerFactory = transactionalProducerFactory(kafkaBroker, "xyz");
@@ -232,14 +252,14 @@ public class DefaultProducerFactoryTest {
 
         testProducer.beginTransaction();
         testProducer.commitTransaction();
-        testProducer.sendOffsetsToTransaction(Collections.emptyMap(), "foo");
+        assertThrows(KafkaException.class, () -> testProducer.sendOffsetsToTransaction(Collections.emptyMap(), "foo"));
 
         cleanup(producerFactory, testProducer);
     }
 
 
     @Test
-    public void testClosingProducerShouldReturnItToCache() {
+    void testClosingProducerShouldReturnItToCache() {
         ProducerFactory<Object, Object> pf = builder()
                 .producerCacheSize(2)
                 .configuration(minimalTransactional(kafkaBroker))
@@ -249,12 +269,12 @@ public class DefaultProducerFactoryTest {
         first.close();
         Producer<Object, Object> second = pf.createProducer();
         second.close();
-        assertThat(second).isEqualTo(first);
+        assertEquals(first, second);
         pf.shutDown();
     }
 
     @Test
-    public void testUsingCallbackWhilePublishingMessages() throws ExecutionException, InterruptedException {
+    void testUsingCallbackWhilePublishingMessages() throws ExecutionException, InterruptedException {
         Callback cb = mock(Callback.class);
         ProducerFactory<String, String> pf = producerFactory(kafkaBroker);
         Producer<String, String> producer = pf.createProducer();
@@ -282,7 +302,7 @@ public class DefaultProducerFactoryTest {
     private static void assertOffsets(List<Future<RecordMetadata>> results)
             throws InterruptedException, ExecutionException {
         for (Future<RecordMetadata> result : results) {
-            assertThat(result.get().offset()).isGreaterThanOrEqualTo(0);
+            assertTrue(result.get().offset() >= 0);
         }
     }
 }

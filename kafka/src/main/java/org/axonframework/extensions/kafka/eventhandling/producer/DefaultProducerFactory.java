@@ -423,6 +423,7 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder<K, V> transactionalIdPrefix(String transactionIdPrefix) {
+            assertNonNull(transactionIdPrefix, "The transactionalIdPrefix may not be null");
             this.transactionIdPrefix = transactionIdPrefix;
             return this.confirmationMode(ConfirmationMode.TRANSACTIONAL);
         }
