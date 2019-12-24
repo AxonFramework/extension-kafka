@@ -37,6 +37,8 @@ import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory
 import org.axonframework.serialization.Serializer;
 import org.axonframework.spring.config.AxonConfiguration;
 import org.axonframework.springboot.autoconfig.AxonAutoConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -47,8 +49,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.lang.invoke.MethodHandles;
 import java.util.Collections;
-import java.util.Map;
 
 import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher.DEFAULT_PROCESSING_GROUP;
 
@@ -65,6 +67,8 @@ import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEve
 @EnableConfigurationProperties(KafkaProperties.class)
 public class KafkaAutoConfiguration {
 
+    private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+
     private final KafkaProperties properties;
 
     public KafkaAutoConfiguration(KafkaProperties properties) {
@@ -80,18 +84,31 @@ public class KafkaAutoConfiguration {
 
     @Bean("axonKafkaProducerFactory")
     @ConditionalOnMissingBean
-    @ConditionalOnProperty("axon.kafka.producer.transaction-id-prefix")
     public ProducerFactory<String, byte[]> kafkaProducerFactory() {
-        Map<String, Object> producer = properties.buildProducerProperties();
+        ConfirmationMode confirmationMode = properties.getPublisher().getConfirmationMode();
         String transactionIdPrefix = properties.getProducer().getTransactionIdPrefix();
-        if (transactionIdPrefix == null) {
-            throw new IllegalStateException("transactionalIdPrefix cannot be empty");
+
+        DefaultProducerFactory.Builder<String, byte[]> builder = DefaultProducerFactory.<String, byte[]>builder()
+                .configuration(properties.buildProducerProperties())
+                .confirmationMode(confirmationMode);
+
+        if (isNonEmptyString(transactionIdPrefix)) {
+            builder.transactionalIdPrefix(transactionIdPrefix)
+                   .confirmationMode(ConfirmationMode.TRANSACTIONAL);
+            if (!confirmationMode.isTransactional()) {
+                logger.warn(
+                        "The confirmation mode is set to [{}], whilst a transactional id prefix is present. "
+                                + "The transactional id prefix overwrites the confirmation mode choice to TRANSACTIONAL",
+                        confirmationMode
+                );
+            }
         }
-        return DefaultProducerFactory.<String, byte[]>builder()
-                .configuration(producer)
-                .confirmationMode(ConfirmationMode.TRANSACTIONAL)
-                .transactionalIdPrefix(transactionIdPrefix)
-                .build();
+
+        return builder.build();
+    }
+
+    private boolean isNonEmptyString(String s) {
+        return s != null && !s.equals("");
     }
 
     @ConditionalOnMissingBean
@@ -127,9 +144,9 @@ public class KafkaAutoConfiguration {
                                  .registerListenerInvocationErrorHandler(
                                          DEFAULT_PROCESSING_GROUP, configuration -> PropagatingErrorHandler.instance()
                                  )
-                                 .assignHandlerInstancesMatching(
+                                 .assignHandlerTypesMatching(
                                          DEFAULT_PROCESSING_GROUP,
-                                         eventHandler -> eventHandler.getClass().equals(KafkaEventPublisher.class)
+                                         clazz -> clazz.isAssignableFrom(KafkaEventPublisher.class)
                                  );
 
         KafkaProperties.EventProcessorMode processorMode = kafkaProperties.getProducer().getEventProcessorMode();
