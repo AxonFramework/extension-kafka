@@ -19,7 +19,10 @@ package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.common.TopicPartition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.lang.invoke.MethodHandles;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -39,6 +42,8 @@ import java.util.function.Supplier;
  * @since 4.0
  */
 public class TrackingTokenConsumerRebalanceListener<K, V> implements ConsumerRebalanceListener {
+
+    private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private final Consumer<K, V> consumer;
     private final Supplier<KafkaTrackingToken> tokenSupplier;
@@ -82,6 +87,8 @@ public class TrackingTokenConsumerRebalanceListener<K, V> implements ConsumerReb
             if (tokenPartitionPositions.containsKey(assignedPartition)) {
                 offset = tokenPartitionPositions.get(assignedPartition) + 1;
             }
+
+            logger.info("Seeking topic-partition [{}] with offset [{}]", assignedPartition, offset);
             consumer.seek(assignedPartition, offset);
         });
     }
