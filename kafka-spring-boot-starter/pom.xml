@@ -15,19 +15,17 @@
   ~ limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.axonframework.extensions.kafka</groupId>
         <artifactId>axon-kafka-parent</artifactId>
-        <version>4.0-SNAPSHOT</version>
+        <version>4.0-RC3</version>
     </parent>
 
     <artifactId>axon-kafka-spring-boot-starter</artifactId>
-    <version>4.0-SNAPSHOT</version>
+    <version>4.0-RC3</version>
 
     <name>Axon Framework Kafka Extension - Spring Boot Starter</name>
     <description>Spring Boot Starter module for the Axon Kafka Extension</description>
