@@ -14,7 +14,8 @@ cache:
 
 script:
   - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent verify sonar:sonar -B -Dsonar.projectKey=AxonFramework_extension-kafka
-  - jdk_switcher use openjdk11
+  - export JAVA_HOME=$HOME/openjdk11
+  - $TRAVIS_BUILD_DIR/install-jdk.sh --install openjdk11 --target $JAVA_HOME
   - mvn clean verify -B
 #  - mvn clean verify -B -P ossrh
 
