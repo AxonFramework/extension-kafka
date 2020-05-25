@@ -4,7 +4,7 @@ sudo: required
 
 jdk:
   - openjdk8
-  - openjdk11
+#  - openjdk11
 
 install: true
 
@@ -13,8 +13,17 @@ cache:
     - $HOME/.m2
 
 script:
+  - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent verify sonar:sonar -B -Dsonar.projectKey=AxonFramework_extension-kafka
+  - jdk_switcher use openjdk11
   - mvn clean verify -B
+#  - mvn clean verify -B -P ossrh
 
 notifications:
   slack:
     secure: d1HN9GBeH0e6EsHjNkPVXgBaFCYqbvjkZv9GUkpWnyjNYP5V1snSk6sO4X6ONttydgzfbElZTOfrgDzRTgWJ76iDMxAPccFPY7dmGcpw8/2TOjwP6H6yEitiiZcWR9fssTM2Li2WQtuGkwaVBhw15JNABzEsexxqXC+Cu48yUfA=
+
+addons:
+  sonarcloud:
+    organization: "axonframework"
+    token:
+      secure: "cS6GecHod8X1EjDggVutgTQyKu1aQhCWnOz4KqDkxI7+u3HMwBLcJCxSctEhL0FhTp47tuB76ep/DyG/5clvvmMoY+05Qym/PJFh/qEL1LQhmcDQD3liNflbt5d3p1DaEWX4EPI5WyLVm3Y3lZlQWfW6WClIXrGRKfaUzrqaXU0="
