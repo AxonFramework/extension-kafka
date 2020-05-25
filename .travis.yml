@@ -15,6 +15,8 @@ cache:
 
 script:
   - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent verify sonar:sonar -B -Dsonar.projectKey=AxonFramework_extension-kafka
+  - source /opt/jdk_switcher/jdk_switcher.sh
+  - source ~/.jdk_switcher_rc
   - jdk_switcher use openjdk11
   - mvn clean verify -B
 
