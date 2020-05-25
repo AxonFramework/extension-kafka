@@ -20,6 +20,12 @@ script:
 #  - jdk_switcher use openjdk11
 #  - mvn clean verify -B
   - ls -laF ~
+  - ls -laF bin
+  - java -version
+  - echo ${JAVA_HOME}
+  - ls -l $(dirname ${JAVA_HOME})
+  - type jdk_switcher
+  - type install-jdk.sh
 
 notifications:
   slack:
