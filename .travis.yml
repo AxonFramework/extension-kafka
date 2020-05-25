@@ -14,18 +14,11 @@ cache:
     - $HOME/.m2
 
 script:
-#  - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent verify sonar:sonar -B -Dsonar.projectKey=AxonFramework_extension-kafka
-#  - source /opt/jdk_switcher/jdk_switcher.sh
-#  - source ~/.jdk_switcher_rc
-#  - jdk_switcher use openjdk11
-#  - mvn clean verify -B
-  - ls -laF ~
-  - ls -laF bin
   - java -version
-  - echo ${JAVA_HOME}
-  - ls -l $(dirname ${JAVA_HOME})
-  - type jdk_switcher
-  - type install-jdk.sh
+  - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent verify sonar:sonar -B -Dsonar.projectKey=AxonFramework_extension-kafka
+  - export JAVA_HOME=$(dirname ${JAVA_HOME})/openjdk11
+  - java -version
+  - mvn clean verify -B
 
 notifications:
   slack:
