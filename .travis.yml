@@ -15,7 +15,7 @@ cache:
 
 script:
   - mvn -version
-  - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent verify sonar:sonar -B -Dsonar.projectKey=AxonFramework_extension-kafka
+  - mvn -B -Pcoverage clean verify sonar:sonar -Dsonar.projectKey=AxonFramework_extension-kafka
   - JAVA_HOME=$(dirname ${JAVA_HOME})/openjdk11 mvn -version
   - JAVA_HOME=$(dirname ${JAVA_HOME})/openjdk11 mvn clean verify -B
 
