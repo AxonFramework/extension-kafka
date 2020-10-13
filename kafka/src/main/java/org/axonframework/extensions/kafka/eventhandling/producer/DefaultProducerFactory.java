@@ -16,6 +16,7 @@
 
 package org.axonframework.extensions.kafka.eventhandling.producer;
 
+import org.apache.kafka.clients.consumer.ConsumerGroupMetadata;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -76,8 +77,8 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
     /**
      * Instantiate a {@link DefaultProducerFactory} based on the fields contained in the {@link Builder}.
      * <p>
-     * Will assert that the {@code configuration} is not {@code null}, and will throw an
-     * {@link AxonConfigurationException} if it is {@code null}.
+     * Will assert that the {@code configuration} is not {@code null}, and will throw an {@link
+     * AxonConfigurationException} if it is {@code null}.
      *
      * @param builder the {@link Builder} used to instantiate a {@link DefaultProducerFactory} instance
      */
@@ -95,10 +96,9 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
     /**
      * Instantiate a Builder to be able to create a {@link DefaultProducerFactory}.
      * <p>
-     * The {@code closeTimeout} is defaulted to a {@link Duration#ofSeconds(long)} of {@code 30}, the
-     * {@code producerCacheSize} defaults to {@code 10} and the {@link ConfirmationMode} is defaulted to
-     * {@link ConfirmationMode#NONE}. The {@code configuration} is a <b>hard requirement</b> and as such should be
-     * provided.
+     * The {@code closeTimeout} is defaulted to a {@link Duration#ofSeconds(long)} of {@code 30}, the {@code
+     * producerCacheSize} defaults to {@code 10} and the {@link ConfirmationMode} is defaulted to {@link
+     * ConfirmationMode#NONE}. The {@code configuration} is a <b>hard requirement</b> and as such should be provided.
      *
      * @param <K> a generic type for the key of the {@link Producer} this {@link ProducerFactory} will create
      * @param <V> a generic type for the value of the {@link Producer} this {@link ProducerFactory} will create
@@ -185,8 +185,9 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
     }
 
     /**
-     * Abstract base class to apply the decorator pattern to a Kafka {@link Producer}. Implements all methods in the {@link Producer} interface by calling the
-     * wrapped delegate. Subclasses can override any of the methods to add their specific behaviour.
+     * Abstract base class to apply the decorator pattern to a Kafka {@link Producer}. Implements all methods in the
+     * {@link Producer} interface by calling the wrapped delegate. Subclasses can override any of the methods to add
+     * their specific behaviour.
      *
      * @param <K> record key type
      * @param <V> record value type
@@ -241,6 +242,13 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
         }
 
         @Override
+        public void sendOffsetsToTransaction(Map<TopicPartition, OffsetAndMetadata> offsets,
+                                             ConsumerGroupMetadata consumerGroupMetadata)
+                throws ProducerFencedException {
+            this.delegate.sendOffsetsToTransaction(offsets, consumerGroupMetadata);
+        }
+
+        @Override
         public void commitTransaction() throws ProducerFencedException {
             this.delegate.commitTransaction();
         }
@@ -267,8 +275,9 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
     }
 
     /**
-     * A decorator for a Kafka {@link Producer} that returns itself to an instance pool when {@link #close()} is called instead of actually closing the wrapped
-     * {@link Producer}. If the pool is already full (i.e. has the configured amount of idle producers), the wrapped producer is closed instead.
+     * A decorator for a Kafka {@link Producer} that returns itself to an instance pool when {@link #close()} is called
+     * instead of actually closing the wrapped {@link Producer}. If the pool is already full (i.e. has the configured
+     * amount of idle producers), the wrapped producer is closed instead.
      *
      * @param <K> record key type
      * @param <V> record value type
@@ -301,7 +310,8 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
     }
 
     /**
-     * A decorator for a Kafka {@link Producer} that ignores any calls to {@link #close()} so it can be reused and closed by any number of clients.
+     * A decorator for a Kafka {@link Producer} that ignores any calls to {@link #close()} so it can be reused and
+     * closed by any number of clients.
      *
      * @param <K> record key type
      * @param <V> record value type
@@ -326,10 +336,9 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
     /**
      * Builder class to instantiate a {@link DefaultProducerFactory}.
      * <p>
-     * The {@code closeTimeout} is defaulted to a {@link Duration#ofSeconds(long)} of {@code 30}, the
-     * {@code producerCacheSize} defaults to {@code 10} and the {@link ConfirmationMode} is defaulted to
-     * {@link ConfirmationMode#NONE}. The {@code configuration} is a <b>hard requirement</b> and as such should be
-     * provided.
+     * The {@code closeTimeout} is defaulted to a {@link Duration#ofSeconds(long)} of {@code 30}, the {@code
+     * producerCacheSize} defaults to {@code 10} and the {@link ConfirmationMode} is defaulted to {@link
+     * ConfirmationMode#NONE}. The {@code configuration} is a <b>hard requirement</b> and as such should be provided.
      *
      * @param <K> a generic type for the key of the {@link Producer} this {@link ProducerFactory} will create
      * @param <V> a generic type for the value of the {@link Producer} this {@link ProducerFactory} will create
@@ -343,11 +352,11 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
         private String transactionIdPrefix;
 
         /**
-         * Set the {@code closeTimeout} specifying how long to wait when {@link Producer#close(Duration)} is
-         * invoked. Defaults to a {@link Duration#ofSeconds(long)} of {@code 30}.
+         * Set the {@code closeTimeout} specifying how long to wait when {@link Producer#close(Duration)} is invoked.
+         * Defaults to a {@link Duration#ofSeconds(long)} of {@code 30}.
          *
-         * @param timeout      the time to wait before invoking {@link Producer#close(Duration)} in units of
-         *                     {@code temporalUnit}.
+         * @param timeout      the time to wait before invoking {@link Producer#close(Duration)} in units of {@code
+         *                     temporalUnit}.
          * @param temporalUnit a {@link TemporalUnit} determining how to interpret the {@code timeout} parameter
          * @return the current Builder instance, for fluent interfacing
          */
@@ -357,8 +366,8 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
         }
 
         /**
-         * Set the {@code closeTimeout} specifying how long to wait when {@link Producer#close(Duration)} is
-         * invoked. Defaults to a {@link Duration#ofSeconds(long)} of {@code 30}.
+         * Set the {@code closeTimeout} specifying how long to wait when {@link Producer#close(Duration)} is invoked.
+         * Defaults to a {@link Duration#ofSeconds(long)} of {@code 30}.
          *
          * @param closeTimeout the {@link Duration} to wait before invoking {@link Producer#close(Duration)}
          * @return the current Builder instance, for fluent interfacing
@@ -403,8 +412,8 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
         }
 
         /**
-         * Sets the {@link ConfirmationMode} for producing {@link Producer} instances. Defaults to
-         * {@link ConfirmationMode#NONE}.
+         * Sets the {@link ConfirmationMode} for producing {@link Producer} instances. Defaults to {@link
+         * ConfirmationMode#NONE}.
          *
          * @param confirmationMode the {@link ConfirmationMode} for producing {@link Producer} instances
          * @return the current Builder instance, for fluent interfacing
@@ -418,8 +427,8 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
         /**
          * Sets the prefix to generate the {@code transactional.id} required for transactional {@link Producer}s.
          *
-         * @param transactionIdPrefix a {@link String} specifying the prefix used to generate the
-         *                            {@code transactional.id} required for transactional {@link Producer}s
+         * @param transactionIdPrefix a {@link String} specifying the prefix used to generate the {@code
+         *                            transactional.id} required for transactional {@link Producer}s
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder<K, V> transactionalIdPrefix(String transactionIdPrefix) {

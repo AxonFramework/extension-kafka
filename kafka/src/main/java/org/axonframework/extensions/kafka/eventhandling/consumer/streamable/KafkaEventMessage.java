@@ -21,7 +21,6 @@ import org.axonframework.eventhandling.EventMessage;
 import org.axonframework.eventhandling.TrackedEventMessage;
 
 import java.util.Comparator;
-import javax.annotation.Nullable;
 
 import static org.axonframework.common.Assert.notNull;
 import static org.axonframework.eventhandling.EventUtils.asTrackedEventMessage;
@@ -112,7 +111,7 @@ public class KafkaEventMessage implements KafkaRecordMetaData<TrackedEventMessag
      * </ul>
      */
     @Override
-    public int compareTo(@Nullable KafkaEventMessage other) {
+    public int compareTo(KafkaEventMessage other) {
         return MESSAGE_COMPARATOR.compare(this, other);
     }
 
