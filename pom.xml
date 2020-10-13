@@ -64,7 +64,7 @@
         <junit.jupiter.version>5.7.0</junit.jupiter.version>
         <mockito.version>3.0.0</mockito.version>
 
-        <jacoco-maven-plugin.version>0.8.5</jacoco-maven-plugin.version>
+        <jacoco-maven-plugin.version>0.8.6</jacoco-maven-plugin.version>
     </properties>
 
     <dependencies>
