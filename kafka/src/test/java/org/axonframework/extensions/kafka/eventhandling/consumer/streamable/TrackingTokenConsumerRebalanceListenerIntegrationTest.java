@@ -140,7 +140,7 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest {
         );
 
         Seq<ConsumerRecord<byte[], byte[]>> resultRecords =
-                pollUntilAtLeastNumRecords((KafkaConsumer<byte[], byte[]>) testConsumer, numberOfRecordsToConsume);
+                pollUntilAtLeastNumRecords((KafkaConsumer<byte[], byte[]>) testConsumer, numberOfRecordsToConsume, 500);
         resultRecords.foreach(resultRecord -> {
             TopicPartition resultTopicPartition = new TopicPartition(resultRecord.topic(), resultRecord.partition());
             assertTrue(resultRecord.offset() > positions.get(resultTopicPartition));
@@ -180,7 +180,7 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest {
 
         //noinspection unchecked
         Seq<ConsumerRecord<byte[], byte[]>> resultRecords =
-                pollUntilAtLeastNumRecords((KafkaConsumer<byte[], byte[]>) testConsumer, numberOfRecordsToConsume);
+                pollUntilAtLeastNumRecords((KafkaConsumer<byte[], byte[]>) testConsumer, numberOfRecordsToConsume, 500);
         resultRecords.foreach(resultRecord -> {
             TopicPartition resultTopicPartition = new TopicPartition(resultRecord.topic(), resultRecord.partition());
             assertTrue(resultRecord.offset() > positions.get(resultTopicPartition));
@@ -192,7 +192,8 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest {
         publishNewRecords(testProducer, topic);
         int secondNumberOfRecords = 4; // The `publishNewRecords(Producer, String)` produces 4 new records
         //noinspection unchecked
-        resultRecords = pollUntilAtLeastNumRecords((KafkaConsumer<byte[], byte[]>) testConsumer, secondNumberOfRecords);
+        resultRecords =
+                pollUntilAtLeastNumRecords((KafkaConsumer<byte[], byte[]>) testConsumer, secondNumberOfRecords, 500);
 
         resultRecords.foreach(resultRecord -> {
             assertEquals(10, resultRecord.offset());
