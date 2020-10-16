@@ -44,7 +44,7 @@ class FetchEventsTaskTest {
 
     private ConsumerRecords<String, String> consumerRecords;
     private KafkaEventMessage kafkaEventMessage;
-    private AtomicBoolean expectedToBeClosed = new AtomicBoolean(false);
+    private final AtomicBoolean expectedToBeClosed = new AtomicBoolean(false);
 
     private Consumer<String, String> testConsumer;
     private Duration testPollTimeout;
@@ -97,11 +97,17 @@ class FetchEventsTaskTest {
     }
 
     @Test
-    void testFetchEventsTaskInterruptionClosesAsExpected() throws InterruptedException {
-        Thread taskRunner = new Thread(testSubject);
+    void testFetchEventsTaskInterruptionClosesAsExpected() {
+        EventConsumer<KafkaEventMessage> failingEventConsumer = events -> {
+            throw new InterruptedException();
+        };
+        FetchEventsTask<String, String, KafkaEventMessage> testSubjectWithFailingEventConsumer = new FetchEventsTask<>(
+                testConsumer, testPollTimeout, testRecordConverter, failingEventConsumer, testCloseHandler
+        );
+
+        Thread taskRunner = new Thread(testSubjectWithFailingEventConsumer);
         taskRunner.start();
 
-        doThrow(new InterruptedException()).when(testEventConsumer).consume(any());
 
         assertWithin(Duration.ofMillis(TIMEOUT_MILLIS), () -> assertTrue(expectedToBeClosed.get()));
         verify(testConsumer).close();
@@ -131,7 +137,7 @@ class FetchEventsTaskTest {
 
         verify(testConsumer, atLeastOnceWithTimeout).poll(testPollTimeout);
         verify(testRecordConverter, atLeastOnceWithTimeout).convert(consumerRecords);
-        verifyZeroInteractions(testEventConsumer);
+        verifyNoMoreInteractions(testEventConsumer);
 
         taskRunner.interrupt();
     }
