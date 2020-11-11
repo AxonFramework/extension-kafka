@@ -32,7 +32,7 @@
 
     <properties>
         <spring-kafka-test.version>2.6.2</spring-kafka-test.version>
-        <assertj-core.version>3.18.0</assertj-core.version>
+        <assertj-core.version>3.18.1</assertj-core.version>
         <jmh-core.version>1.26</jmh-core.version>
     </properties>
 
