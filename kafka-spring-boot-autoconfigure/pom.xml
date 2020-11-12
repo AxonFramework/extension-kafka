@@ -75,6 +75,14 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <!-- Required to override dependency in org.springframework.boot:spring-boot-starter:jar:2.3.5.RELEASE -->
+        <!-- The spring-boot-starter includes spring-core version 5.2.x, which causes a NoClassDefFoundError for the ConcurrentLruCache -->
+        <!-- This override should be removed as soon as spring-boot-starter uses the latest spring-core version -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <version>${spring.version}</version>
+            <artifactId>spring-core</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.kafka</groupId>
