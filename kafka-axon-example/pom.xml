@@ -33,7 +33,7 @@
         <kotlin.version>1.4.20</kotlin.version>
         <kotlin-logging.version>1.12.0</kotlin-logging.version>
         <spring-kafka.version>2.6.3</spring-kafka.version>
-        <jackson.version>2.11.3</jackson.version>
+        <jackson.version>2.12.0</jackson.version>
         <apache.kafka.version>2.3.0</apache.kafka.version>
     </properties>
 
