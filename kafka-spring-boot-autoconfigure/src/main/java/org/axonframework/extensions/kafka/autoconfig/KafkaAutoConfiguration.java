@@ -37,10 +37,12 @@ import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory
 import org.axonframework.serialization.Serializer;
 import org.axonframework.spring.config.AxonConfiguration;
 import org.axonframework.springboot.autoconfig.AxonAutoConfiguration;
+import org.axonframework.springboot.autoconfig.InfraConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -64,6 +66,7 @@ import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEve
 @Configuration
 @ConditionalOnClass(KafkaPublisher.class)
 @AutoConfigureAfter(AxonAutoConfiguration.class)
+@AutoConfigureBefore(InfraConfiguration.class)
 @EnableConfigurationProperties(KafkaProperties.class)
 public class KafkaAutoConfiguration {
 
