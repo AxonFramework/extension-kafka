@@ -63,10 +63,29 @@
             <artifactId>axon-kafka-spring-boot-starter</artifactId>
             <version>${project.version}</version>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
             <version>${spring-kafka.version}</version>
+        </dependency>
+        <!-- Temporary dependency override from spring-kafka; required to coop with the fact spring-kafka isn't on 5.3.x yet -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
+        <!-- Temporary dependency override from spring-kafka; required to coop with the fact spring-kafka isn't on 5.3.x yet -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-messaging</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
+        <!-- Temporary dependency override from spring-kafka; required to coop with the fact spring-kafka isn't on 5.3.x yet -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-tx</artifactId>
+            <version>${spring.version}</version>
         </dependency>
 
         <dependency>
