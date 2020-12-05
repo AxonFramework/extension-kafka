@@ -152,6 +152,8 @@ public class KafkaAutoConfiguration {
                                          clazz -> clazz.isAssignableFrom(KafkaEventPublisher.class)
                                  );
 
+        eventProcessingConfigurer.assignHandlerInstancesMatching(DEFAULT_PROCESSING_GROUP, kafkaEventPublisher::equals);
+
         KafkaProperties.EventProcessorMode processorMode = kafkaProperties.getProducer().getEventProcessorMode();
         if (processorMode == KafkaProperties.EventProcessorMode.SUBSCRIBING) {
             eventProcessingConfigurer.registerSubscribingEventProcessor(DEFAULT_PROCESSING_GROUP);
