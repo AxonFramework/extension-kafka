@@ -1,7 +1,7 @@
 # Axon Framework - Kafka Extension 
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.axonframework.extensions.kafka/axon-kafka/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.axonframework.extensions.kafka/axon-kafka/)
 ![Build Status](https://github.com/AxonFramework/extension-kafka/workflows/Kafka%20Extension/badge.svg?branch=master)
-[![SonarCloud Gate Status](https://sonarcloud.io/api/project_badges/measure?project=AxonFramework_extension-kafka&metric=alert_status)](https://sonarcloud.io/dashboard?id=AxonFramework_extension-kafka)
+[![SonarCloud Status](https://sonarcloud.io/api/project_badges/measure?project=AxonFramework_extension-kafka&metric=alert_status)](https://sonarcloud.io/dashboard?id=AxonFramework_extension-kafka)
 
 _Note:_ This project is still in a beta stage with a 'release candidate' (two) being available.
 
