@@ -31,7 +31,7 @@
     </description>
 
     <properties>
-        <spring-kafka-test.version>2.6.4</spring-kafka-test.version>
+        <spring-kafka-test.version>2.6.5</spring-kafka-test.version>
         <assertj-core.version>3.18.1</assertj-core.version>
         <jmh-core.version>1.27</jmh-core.version>
     </properties>
