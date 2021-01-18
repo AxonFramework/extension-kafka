@@ -17,6 +17,7 @@
 package org.axonframework.extensions.kafka.eventhandling.producer;
 
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.errors.ProducerFencedException;
@@ -131,15 +132,18 @@ public class KafkaPublisherTest {
         testProducerFactory = ackProducerFactory(kafkaBroker, ByteArraySerializer.class);
         testConsumer = buildConsumer(testTopic);
         testSubject = buildPublisher(testTopic);
-        List<GenericDomainEventMessage<String>> testMessages = domainMessages("1234", 10);
+
+        int numberOfMessages = 10;
+        List<GenericDomainEventMessage<String>> testMessages = domainMessages("1234", numberOfMessages);
 
         eventBus.publish(testMessages);
 
-        assertThat(KafkaTestUtils.getRecords(testConsumer).count()).isEqualTo(testMessages.size());
+        ConsumerRecords<?, ?> consumedRecords = KafkaTestUtils.getRecords(testConsumer, 60000, numberOfMessages);
+        assertThat(consumedRecords.count()).isEqualTo(numberOfMessages);
         assertThat(testMessages).isEqualTo(monitor.getReceived());
         assertThat(monitor.failureCount()).isZero();
         assertThat(monitor.ignoreCount()).isZero();
-        assertThat(monitor.successCount()).isEqualTo(testMessages.size());
+        assertThat(monitor.successCount()).isEqualTo(numberOfMessages);
     }
 
     @SuppressWarnings("unchecked")
