@@ -27,7 +27,7 @@ import org.axonframework.serialization.FixedValueRevisionResolver;
 import org.axonframework.serialization.SerializedObject;
 import org.axonframework.serialization.SimpleSerializedType;
 import org.axonframework.serialization.xml.XStreamSerializer;
-import org.junit.*;
+import org.junit.jupiter.api.*;
 
 import static org.apache.kafka.clients.consumer.ConsumerRecord.NULL_SIZE;
 import static org.apache.kafka.common.record.RecordBatch.NO_TIMESTAMP;
@@ -56,7 +56,33 @@ public class DefaultKafkaMessageConverterTest {
     private DefaultKafkaMessageConverter testSubject;
     private XStreamSerializer serializer;
 
-    @Before
+    private static void assertEventMessage(EventMessage<?> actual, EventMessage<?> expected) {
+        assertThat(actual.getIdentifier()).isEqualTo(expected.getIdentifier());
+        assertEquals(actual.getPayloadType(), (expected.getPayloadType()));
+        assertThat(actual.getMetaData()).isEqualTo(expected.getMetaData());
+        assertThat(actual.getPayload()).isEqualTo(expected.getPayload());
+        assertThat(actual.getTimestamp().toEpochMilli()).isEqualTo(expected.getTimestamp().toEpochMilli());
+    }
+
+    private static EventMessage<Object> eventMessage() {
+        return asEventMessage("SomePayload").withMetaData(MetaData.with("key", "value"));
+    }
+
+    private static GenericDomainEventMessage<String> domainMessage() {
+        return new GenericDomainEventMessage<>(
+                "Stub", SOME_AGGREGATE_IDENTIFIER, 1L, "Payload", MetaData.with("key", "value")
+        );
+    }
+
+    private static ConsumerRecord<String, byte[]> toReceiverRecord(ProducerRecord<String, byte[]> message) {
+        ConsumerRecord<String, byte[]> receiverRecord = new ConsumerRecord<>(
+                SOME_TOPIC, SOME_PARTITION, SOME_OFFSET, message.key(), message.value()
+        );
+        message.headers().forEach(header -> receiverRecord.headers().add(header));
+        return receiverRecord;
+    }
+
+    @BeforeEach
     public void setUp() {
         serializer = XStreamSerializer.builder()
                                       .revisionResolver(new FixedValueRevisionResolver("stub-revision"))
@@ -181,35 +207,9 @@ public class DefaultKafkaMessageConverterTest {
         assertThat(actual.getType()).isEqualTo(expected.getType());
     }
 
-    private static void assertEventMessage(EventMessage<?> actual, EventMessage<?> expected) {
-        assertThat(actual.getIdentifier()).isEqualTo(expected.getIdentifier());
-        assertEquals(actual.getPayloadType(), (expected.getPayloadType()));
-        assertThat(actual.getMetaData()).isEqualTo(expected.getMetaData());
-        assertThat(actual.getPayload()).isEqualTo(expected.getPayload());
-        assertThat(actual.getTimestamp().toEpochMilli()).isEqualTo(expected.getTimestamp().toEpochMilli());
-    }
-
-    private static EventMessage<Object> eventMessage() {
-        return asEventMessage("SomePayload").withMetaData(MetaData.with("key", "value"));
-    }
-
-    private static GenericDomainEventMessage<String> domainMessage() {
-        return new GenericDomainEventMessage<>(
-                "Stub", SOME_AGGREGATE_IDENTIFIER, 1L, "Payload", MetaData.with("key", "value")
-        );
-    }
-
     private EventMessage<?> receiverMessage(ProducerRecord<String, byte[]> senderMessage) {
         return testSubject.readKafkaMessage(
                 toReceiverRecord(senderMessage)).orElseThrow(() -> new AssertionError("Expected valid message")
         );
-    }
-
-    private static ConsumerRecord<String, byte[]> toReceiverRecord(ProducerRecord<String, byte[]> message) {
-        ConsumerRecord<String, byte[]> receiverRecord = new ConsumerRecord<>(
-                SOME_TOPIC, SOME_PARTITION, SOME_OFFSET, message.key(), message.value()
-        );
-        message.headers().forEach(header -> receiverRecord.headers().add(header));
-        return receiverRecord;
     }
 }

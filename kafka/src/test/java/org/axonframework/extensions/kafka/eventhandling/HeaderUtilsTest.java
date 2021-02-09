@@ -25,7 +25,7 @@ import org.axonframework.eventhandling.GenericDomainEventMessage;
 import org.axonframework.messaging.MetaData;
 import org.axonframework.serialization.SerializedObject;
 import org.axonframework.serialization.SimpleSerializedType;
-import org.junit.*;
+import org.junit.jupiter.api.*;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -43,6 +43,7 @@ import static org.axonframework.extensions.kafka.eventhandling.HeaderUtils.*;
 import static org.axonframework.extensions.kafka.eventhandling.util.HeaderAssertUtil.assertDomainHeaders;
 import static org.axonframework.extensions.kafka.eventhandling.util.HeaderAssertUtil.assertEventHeaders;
 import static org.axonframework.messaging.Headers.MESSAGE_METADATA;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -66,9 +67,9 @@ public class HeaderUtilsTest {
         assertThat(value(new RecordHeaders(), "123")).isNull();
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testReadingValueFromNullHeaderShouldThrowException() {
-        value(null, "bar");
+        assertThrows(IllegalArgumentException.class, () -> value(null, "bar"));
     }
 
     @Test
@@ -167,9 +168,9 @@ public class HeaderUtilsTest {
         assertThat(doubleValue(target)).isEqualTo(expectedDouble);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testWritingNonPrimitiveJavaValueShouldThrowAnException() {
-        addHeader(new RecordHeaders(), "short", BigInteger.ZERO);
+        assertThrows(IllegalArgumentException.class, () -> addHeader(new RecordHeaders(), "short", BigInteger.ZERO));
     }
 
     @Test
@@ -213,9 +214,9 @@ public class HeaderUtilsTest {
         assertThat(keys(target)).isEqualTo(expectedKeys);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testExtractingKeysFromNullHeaderShouldThrowAnException() {
-        keys(null);
+        assertThrows(IllegalArgumentException.class, () -> keys(null));
     }
 
     @Test
@@ -229,14 +230,14 @@ public class HeaderUtilsTest {
         assertThat(extractKey(generateMetadataKey("foo"))).isEqualTo("foo");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testExtractingKeyNullMetadataKeyShouldThrowAnException() {
-        extractKey(null);
+        assertThrows(IllegalArgumentException.class, () -> extractKey(null));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testExtractingKeyNonExistingMetadataKeyShouldThrowAnException() {
-        extractKey("foo-bar-axon-metadata");
+        assertThrows(IllegalArgumentException.class, () -> extractKey("foo-bar-axon-metadata"));
     }
 
     @Test
@@ -251,9 +252,9 @@ public class HeaderUtilsTest {
         assertThat(extractAxonMetadata(target)).isEqualTo(expectedValue);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testExtractingAxonMetadataFromNullHeaderShouldThrowAnException() {
-        extractAxonMetadata(null);
+        assertThrows(IllegalArgumentException.class, () -> extractAxonMetadata(null));
     }
 
     @Test

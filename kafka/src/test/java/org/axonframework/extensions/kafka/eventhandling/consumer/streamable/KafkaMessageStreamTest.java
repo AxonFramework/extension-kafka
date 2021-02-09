@@ -20,7 +20,7 @@ import org.axonframework.common.Registration;
 import org.axonframework.eventhandling.GenericDomainEventMessage;
 import org.axonframework.eventhandling.GenericTrackedDomainEventMessage;
 import org.axonframework.messaging.MetaData;
-import org.junit.*;
+import org.junit.jupiter.api.*;
 
 import java.util.Arrays;
 import java.util.List;
@@ -40,6 +40,31 @@ import static org.mockito.Mockito.*;
 public class KafkaMessageStreamTest {
 
     private static final TimeUnit DEFAULT_TIMEOUT_UNIT = NANOSECONDS;
+
+    private static KafkaMessageStream emptyStream() {
+        Registration closeHandler = mock(Registration.class);
+        return new KafkaMessageStream(new SortedKafkaMessageBuffer<>(), closeHandler);
+    }
+
+    private static GenericTrackedDomainEventMessage<String> trackedDomainEvent(String aggregateId) {
+        return new GenericTrackedDomainEventMessage<>(null, domainMessage(aggregateId));
+    }
+
+    private static GenericDomainEventMessage<String> domainMessage(String aggregateId) {
+        return new GenericDomainEventMessage<>("Stub", aggregateId, 1L, "Payload", MetaData.with("key", "value"));
+    }
+
+    private static KafkaMessageStream stream(List<GenericTrackedDomainEventMessage<String>> messages)
+            throws InterruptedException {
+        SortedKafkaMessageBuffer<KafkaEventMessage> buffer = new SortedKafkaMessageBuffer<>(messages.size());
+
+        for (int i = 0; i < messages.size(); i++) {
+            buffer.put(new KafkaEventMessage(messages.get(i), 0, i, 1));
+        }
+
+        Registration closeHandler = mock(Registration.class);
+        return new KafkaMessageStream(buffer, closeHandler);
+    }
 
     @Test
     public void testPeekOnAnEmptyStreamShouldContainNoElement() {
@@ -144,30 +169,5 @@ public class KafkaMessageStreamTest {
         verify(closeHandler, never()).close();
         mock.close();
         verify(closeHandler).close();
-    }
-
-    private static KafkaMessageStream emptyStream() {
-        Registration closeHandler = mock(Registration.class);
-        return new KafkaMessageStream(new SortedKafkaMessageBuffer<>(), closeHandler);
-    }
-
-    private static GenericTrackedDomainEventMessage<String> trackedDomainEvent(String aggregateId) {
-        return new GenericTrackedDomainEventMessage<>(null, domainMessage(aggregateId));
-    }
-
-    private static GenericDomainEventMessage<String> domainMessage(String aggregateId) {
-        return new GenericDomainEventMessage<>("Stub", aggregateId, 1L, "Payload", MetaData.with("key", "value"));
-    }
-
-    private static KafkaMessageStream stream(List<GenericTrackedDomainEventMessage<String>> messages)
-            throws InterruptedException {
-        SortedKafkaMessageBuffer<KafkaEventMessage> buffer = new SortedKafkaMessageBuffer<>(messages.size());
-
-        for (int i = 0; i < messages.size(); i++) {
-            buffer.put(new KafkaEventMessage(messages.get(i), 0, i, 1));
-        }
-
-        Registration closeHandler = mock(Registration.class);
-        return new KafkaMessageStream(buffer, closeHandler);
     }
 }

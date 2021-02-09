@@ -20,14 +20,14 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.axonframework.common.AxonConfigurationException;
-import org.axonframework.extensions.kafka.eventhandling.AbstractKafkaIntegrationBaseTest;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
+import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import java.util.Collections;
 
@@ -35,7 +35,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.minimal;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.producerFactory;
-import static org.mockito.Mockito.mock;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
  * Tests for the {@link DefaultConsumerFactory}, asserting construction and utilization of the class.
@@ -43,33 +44,47 @@ import static org.mockito.Mockito.mock;
  * @author Nakul Mishra
  * @author Steven van Beelen
  */
-public class DefaultConsumerFactoryTest extends AbstractKafkaIntegrationBaseTest {
+@Testcontainers
+class DefaultConsumerFactoryTest {
+
+    @Container
+    private static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer(
+            DockerImageName.parse("confluentinc/cp-kafka:5.4.3"));
+
+    private static final String TEST_TOPIC = "testCreatedConsumer_ValidConfig_CanCommunicateToKafka";
+
     private ProducerFactory<String, String> producerFactory;
     private Consumer<?, ?> testConsumer;
 
-    @BeforeClass
-    public static void beforebefore() {
-        KafkaAdminUtils.createTopics(KAFKA_CONTAINER, new KafkaAdminUtils.KafkaTopicConfiguration("testCreatedConsumer_ValidConfig_CanCommunicateToKafka"));
+    @BeforeAll
+    static void before() {
+        KafkaAdminUtils.createTopics(KAFKA_CONTAINER, TEST_TOPIC);
     }
-    @Before
-    public void setUp() {
+
+    @AfterAll
+    public static void after() {
+        KafkaAdminUtils.deleteTopics(KAFKA_CONTAINER, TEST_TOPIC);
+    }
+
+    @BeforeEach
+    void setUp() {
         producerFactory = producerFactory(KAFKA_CONTAINER);
         testConsumer = mock(Consumer.class);
     }
 
-    @After
-    public void tearDown() {
+    @AfterEach
+    void tearDown() {
         producerFactory.shutDown();
         testConsumer.close();
     }
 
-    @Test(expected = AxonConfigurationException.class)
-    public void testCreateConsumerInvalidConfig() {
-        new DefaultConsumerFactory<>(null);
+    @Test
+    void testCreateConsumerInvalidConfig() {
+        assertThrows(AxonConfigurationException.class, () -> new DefaultConsumerFactory<>(null));
     }
 
     @Test
-    public void testCreatedConsumerValidConfigCanCommunicateToKafka() {
+    void testCreatedConsumerValidConfigCanCommunicateToKafka() {
         String testTopic = "testCreatedConsumer_ValidConfig_CanCommunicateToKafka";
 
         Producer<String, String> testProducer = producerFactory.createProducer();

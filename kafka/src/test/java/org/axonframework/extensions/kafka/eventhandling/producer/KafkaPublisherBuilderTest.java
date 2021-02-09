@@ -17,7 +17,9 @@
 package org.axonframework.extensions.kafka.eventhandling.producer;
 
 import org.axonframework.common.AxonConfigurationException;
-import org.junit.*;
+import org.junit.jupiter.api.*;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for {@link KafkaPublisher.Builder}.
@@ -26,28 +28,28 @@ import org.junit.*;
  */
 public class KafkaPublisherBuilderTest {
 
-    @Test(expected = AxonConfigurationException.class)
+    @Test
     public void testConfiguringInvalidProducerFactory() {
-        KafkaPublisher.builder().producerFactory(null).build();
+        assertThrows(AxonConfigurationException.class, () -> KafkaPublisher.builder().producerFactory(null).build());
     }
 
-    @Test(expected = AxonConfigurationException.class)
+    @Test
     public void testConfiguringInvalidMessageConverter() {
-        KafkaPublisher.builder().messageConverter(null).build();
+        assertThrows(AxonConfigurationException.class, () -> KafkaPublisher.builder().messageConverter(null).build());
     }
 
-    @Test(expected = AxonConfigurationException.class)
+    @Test
     public void testConfiguringInvalidMessageMonitor() {
-        KafkaPublisher.builder().messageMonitor(null).build();
+        assertThrows(AxonConfigurationException.class, () -> KafkaPublisher.builder().messageMonitor(null).build());
     }
 
-    @Test(expected = AxonConfigurationException.class)
+    @Test
     public void testConfiguringInvalidKafkaTopic() {
-        KafkaPublisher.builder().topic(null).build();
+        assertThrows(AxonConfigurationException.class, () -> KafkaPublisher.builder().topic(null).build());
     }
 
-    @Test(expected = AxonConfigurationException.class)
+    @Test
     public void testConfiguringInvalidAckTimeout() {
-        KafkaPublisher.builder().publisherAckTimeout(-12);
+        assertThrows(AxonConfigurationException.class, () -> KafkaPublisher.builder().publisherAckTimeout(-12).build());
     }
 }
