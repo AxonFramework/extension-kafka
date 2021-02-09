@@ -20,15 +20,14 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.axonframework.common.AxonConfigurationException;
+import org.axonframework.extensions.kafka.eventhandling.AbstractKafkaIntegrationBaseTest;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
-import org.junit.*;
-import org.junit.runner.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.kafka.test.EmbeddedKafkaBroker;
-import org.springframework.kafka.test.context.EmbeddedKafka;
+import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.Collections;
 
@@ -36,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.minimal;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.producerFactory;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
 
 /**
  * Tests for the {@link DefaultConsumerFactory}, asserting construction and utilization of the class.
@@ -44,21 +43,17 @@ import static org.mockito.Mockito.*;
  * @author Nakul Mishra
  * @author Steven van Beelen
  */
-@RunWith(SpringRunner.class)
-@DirtiesContext
-@EmbeddedKafka(topics = {"testCreatedConsumer_ValidConfig_CanCommunicateToKafka"}, partitions = 1)
-public class DefaultConsumerFactoryTest {
-
-    @SuppressWarnings("SpringJavaAutowiredMembersInspection")
-    @Autowired
-    private EmbeddedKafkaBroker kafkaBroker;
-
+public class DefaultConsumerFactoryTest extends AbstractKafkaIntegrationBaseTest {
     private ProducerFactory<String, String> producerFactory;
     private Consumer<?, ?> testConsumer;
 
+    @BeforeClass
+    public static void beforebefore() {
+        KafkaAdminUtils.createTopics(KAFKA_CONTAINER, new KafkaAdminUtils.KafkaTopicConfiguration("testCreatedConsumer_ValidConfig_CanCommunicateToKafka"));
+    }
     @Before
     public void setUp() {
-        producerFactory = producerFactory(kafkaBroker);
+        producerFactory = producerFactory(KAFKA_CONTAINER);
         testConsumer = mock(Consumer.class);
     }
 
@@ -81,7 +76,7 @@ public class DefaultConsumerFactoryTest {
         testProducer.send(new ProducerRecord<>(testTopic, 0, null, null, "foo"));
         testProducer.flush();
 
-        ConsumerFactory<?, ?> testSubject = new DefaultConsumerFactory<>(minimal(kafkaBroker));
+        ConsumerFactory<?, ?> testSubject = new DefaultConsumerFactory<>(minimal(KAFKA_CONTAINER));
         testConsumer = testSubject.createConsumer(DEFAULT_GROUP_ID);
         testConsumer.subscribe(Collections.singleton(testTopic));
 

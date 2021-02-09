@@ -88,6 +88,12 @@
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>kafka</artifactId>
+            <version>1.15.1</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
