@@ -85,7 +85,7 @@ class HeaderUtilsTest {
         String value = "a1b2";
         addHeader(headers, "bar", value);
 
-        assertEquals(value.getBytes(), value(headers, "bar"));
+        assertArrayEquals(value.getBytes(), value(headers, "bar"));
     }
 
     @Test
