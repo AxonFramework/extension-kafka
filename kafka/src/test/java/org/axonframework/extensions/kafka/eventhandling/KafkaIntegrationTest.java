@@ -55,7 +55,6 @@ class KafkaIntegrationTest extends KafkaContainerTest {
 
     private static final String TEST_TOPIC = "integration";
     private static final Integer NR_PARTITIONS = 5;
-    private static String bootstrapServer;
     private Configurer configurer = DefaultConfigurer.defaultConfiguration();
     private EventBus eventBus;
     private ProducerFactory<String, byte[]> producerFactory;
@@ -87,7 +86,7 @@ class KafkaIntegrationTest extends KafkaContainerTest {
                 eventProcessingConfigurer -> eventProcessingConfigurer.registerEventHandler(c -> sender)
         );
 
-        consumerFactory = new DefaultConsumerFactory<>(minimal(bootstrapServer, ByteArrayDeserializer.class));
+        consumerFactory = new DefaultConsumerFactory<>(minimal(getBootstrapServers(), ByteArrayDeserializer.class));
 
         fetcher = AsyncFetcher.<String, byte[], KafkaEventMessage>builder()
                 .pollTimeout(300)
