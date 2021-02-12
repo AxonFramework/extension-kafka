@@ -22,7 +22,7 @@ import org.springframework.test.context.TestPropertySource;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 
@@ -47,7 +47,7 @@ public class SubscribingProducerIntegrationTest {
         eventBus.publish(new GenericEventMessage<>("test"));
 
         // then
-        assertThat(Thread.currentThread().getId()).isEqualTo(threadIdCaptor.getThreadId());
+        assertEquals(threadIdCaptor.getThreadId(), Thread.currentThread().getId());
     }
 
     private static class ThreadIdCaptor implements Answer<Void> {

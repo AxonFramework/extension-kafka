@@ -31,6 +31,7 @@
     </description>
 
     <properties>
+        <spring-kafka-test.version>2.6.5</spring-kafka-test.version>
         <jmh-core.version>1.27</jmh-core.version>
         <test-containers.version>1.15.2</test-containers.version>
     </properties>
@@ -69,6 +70,12 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka-test</artifactId>
+            <version>${spring-kafka-test.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

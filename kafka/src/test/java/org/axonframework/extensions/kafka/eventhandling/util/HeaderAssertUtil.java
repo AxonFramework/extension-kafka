@@ -21,9 +21,9 @@ import org.axonframework.eventhandling.DomainEventMessage;
 import org.axonframework.eventhandling.EventMessage;
 import org.axonframework.serialization.SerializedObject;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.axonframework.extensions.kafka.eventhandling.HeaderUtils.*;
 import static org.axonframework.messaging.Headers.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Utility for asserting Kafka headers sent via Axon.
@@ -41,19 +41,19 @@ public abstract class HeaderAssertUtil {
                                           EventMessage<?> eventMessage,
                                           SerializedObject<byte[]> so,
                                           Headers headers) {
-        assertThat(headers.toArray().length).isGreaterThanOrEqualTo(5);
-        assertThat(valueAsString(headers, MESSAGE_ID)).isEqualTo(eventMessage.getIdentifier());
-        assertThat(valueAsLong(headers, MESSAGE_TIMESTAMP)).isEqualTo(eventMessage.getTimestamp().toEpochMilli());
-        assertThat(valueAsString(headers, MESSAGE_TYPE)).isEqualTo(so.getType().getName());
-        assertThat(valueAsString(headers, MESSAGE_REVISION)).isEqualTo(so.getType().getRevision());
-        assertThat(valueAsString(headers, generateMetadataKey(metaDataKey)))
-                .isEqualTo(eventMessage.getMetaData().get(metaDataKey));
+        assertTrue(headers.toArray().length >= 5);
+        assertEquals(eventMessage.getIdentifier(), valueAsString(headers, MESSAGE_ID));
+        assertEquals(eventMessage.getTimestamp().toEpochMilli(), valueAsLong(headers, MESSAGE_TIMESTAMP));
+        assertEquals(so.getType().getName(), valueAsString(headers, MESSAGE_TYPE));
+        assertEquals(so.getType().getRevision(), valueAsString(headers, MESSAGE_REVISION));
+        assertEquals(eventMessage.getMetaData().get(metaDataKey),
+                     valueAsString(headers, generateMetadataKey(metaDataKey)));
     }
 
     public static void assertDomainHeaders(DomainEventMessage<?> eventMessage, Headers headers) {
-        assertThat(headers.toArray().length).isGreaterThanOrEqualTo(8);
-        assertThat(valueAsLong(headers, AGGREGATE_SEQ)).isEqualTo(eventMessage.getSequenceNumber());
-        assertThat(valueAsString(headers, AGGREGATE_ID)).isEqualTo(eventMessage.getAggregateIdentifier());
-        assertThat(valueAsString(headers, AGGREGATE_TYPE)).isEqualTo(eventMessage.getType());
+        assertTrue(headers.toArray().length >= 8);
+        assertEquals(eventMessage.getSequenceNumber(), valueAsLong(headers, AGGREGATE_SEQ));
+        assertEquals(eventMessage.getAggregateIdentifier(), valueAsString(headers, AGGREGATE_ID));
+        assertEquals(eventMessage.getType(), valueAsString(headers, AGGREGATE_TYPE));
     }
 }

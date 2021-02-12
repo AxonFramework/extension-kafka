@@ -32,13 +32,12 @@ import org.junit.jupiter.api.*;
 import static org.apache.kafka.clients.consumer.ConsumerRecord.NULL_SIZE;
 import static org.apache.kafka.common.record.RecordBatch.NO_TIMESTAMP;
 import static org.apache.kafka.common.record.TimestampType.NO_TIMESTAMP_TYPE;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage;
 import static org.axonframework.extensions.kafka.eventhandling.HeaderUtils.*;
 import static org.axonframework.extensions.kafka.eventhandling.util.HeaderAssertUtil.assertDomainHeaders;
 import static org.axonframework.extensions.kafka.eventhandling.util.HeaderAssertUtil.assertEventHeaders;
 import static org.axonframework.messaging.Headers.*;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -46,7 +45,7 @@ import static org.mockito.Mockito.*;
  *
  * @author Nakul Mishra
  */
-public class DefaultKafkaMessageConverterTest {
+class DefaultKafkaMessageConverterTest {
 
     private static final String SOME_TOPIC = "topicFoo";
     private static final int SOME_OFFSET = 0;
@@ -57,11 +56,11 @@ public class DefaultKafkaMessageConverterTest {
     private XStreamSerializer serializer;
 
     private static void assertEventMessage(EventMessage<?> actual, EventMessage<?> expected) {
-        assertThat(actual.getIdentifier()).isEqualTo(expected.getIdentifier());
-        assertEquals(actual.getPayloadType(), (expected.getPayloadType()));
-        assertThat(actual.getMetaData()).isEqualTo(expected.getMetaData());
-        assertThat(actual.getPayload()).isEqualTo(expected.getPayload());
-        assertThat(actual.getTimestamp().toEpochMilli()).isEqualTo(expected.getTimestamp().toEpochMilli());
+        assertEquals(expected.getIdentifier(), actual.getIdentifier());
+        assertEquals(expected.getPayloadType(), actual.getPayloadType());
+        assertEquals(expected.getMetaData(), actual.getMetaData());
+        assertEquals(expected.getPayload(), actual.getPayload());
+        assertEquals(expected.getTimestamp().toEpochMilli(), actual.getTimestamp().toEpochMilli());
     }
 
     private static EventMessage<Object> eventMessage() {
@@ -83,7 +82,7 @@ public class DefaultKafkaMessageConverterTest {
     }
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         serializer = XStreamSerializer.builder()
                                       .revisionResolver(new FixedValueRevisionResolver("stub-revision"))
                                       .build();
@@ -91,21 +90,21 @@ public class DefaultKafkaMessageConverterTest {
     }
 
     @Test
-    public void testKafkaKeyGenerationEventMessageShouldBeNull() {
+    void testKafkaKeyGenerationEventMessageShouldBeNull() {
         ProducerRecord<String, byte[]> evt = testSubject.createKafkaMessage(eventMessage(), SOME_TOPIC);
 
-        assertThat(evt.key()).isNull();
+        assertNull(evt.key());
     }
 
     @Test
-    public void testKafkaKeyGenerationDomainMessageShouldBeAggregateIdentifier() {
+    void testKafkaKeyGenerationDomainMessageShouldBeAggregateIdentifier() {
         ProducerRecord<String, byte[]> domainEvt = testSubject.createKafkaMessage(domainMessage(), SOME_TOPIC);
 
-        assertThat(domainEvt.key()).isEqualTo((domainMessage().getAggregateIdentifier()));
+        assertEquals(domainMessage().getAggregateIdentifier(), domainEvt.key());
     }
 
     @Test
-    public void testWritingEventMessageAsKafkaMessageShouldAppendEventHeaders() {
+    void testWritingEventMessageAsKafkaMessageShouldAppendEventHeaders() {
         EventMessage<?> expected = eventMessage();
         ProducerRecord<String, byte[]> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
         SerializedObject<byte[]> serializedObject = expected.serializePayload(serializer, byte[].class);
@@ -114,7 +113,7 @@ public class DefaultKafkaMessageConverterTest {
     }
 
     @Test
-    public void testWritingDomainMessageAsKafkaMessageShouldAppendDomainHeaders() {
+    void testWritingDomainMessageAsKafkaMessageShouldAppendDomainHeaders() {
         GenericDomainEventMessage<String> expected = domainMessage();
         ProducerRecord<String, byte[]> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
 
@@ -123,42 +122,42 @@ public class DefaultKafkaMessageConverterTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testReadingMessage_WhenKafkaReturnNullHeaders_ShouldReturnEmptyMessage() {
+    void testReadingMessage_WhenKafkaReturnNullHeaders_ShouldReturnEmptyMessage() {
         ConsumerRecord source = mock(ConsumerRecord.class);
         when(source.headers()).thenReturn(null);
 
-        assertThat(testSubject.readKafkaMessage(source).isPresent()).isFalse();
+        assertFalse(testSubject.readKafkaMessage(source).isPresent());
     }
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testReadingMessageMissingAxonHeaderShouldReturnEmptyMessage() {
+    void testReadingMessageMissingAxonHeaderShouldReturnEmptyMessage() {
         ConsumerRecord msgWithoutHeaders = new ConsumerRecord("foo", 0, 0, "abc", 1);
 
-        assertThat(testSubject.readKafkaMessage(msgWithoutHeaders).isPresent()).isFalse();
+        assertFalse(testSubject.readKafkaMessage(msgWithoutHeaders).isPresent());
     }
 
     @Test
-    public void testReadingMessageWithoutIdShouldReturnEmptyMessage() {
+    void testReadingMessageWithoutIdShouldReturnEmptyMessage() {
         EventMessage<?> event = eventMessage();
         ProducerRecord<String, byte[]> msg = testSubject.createKafkaMessage(event, SOME_TOPIC);
         msg.headers().remove(MESSAGE_ID);
 
-        assertThat(testSubject.readKafkaMessage(toReceiverRecord(msg)).isPresent()).isFalse();
+        assertFalse(testSubject.readKafkaMessage(toReceiverRecord(msg)).isPresent());
     }
 
     @Test
-    public void testReadingMessageWithoutTypeShouldReturnEmptyMessage() {
+    void testReadingMessageWithoutTypeShouldReturnEmptyMessage() {
         EventMessage<?> event = eventMessage();
         ProducerRecord<String, byte[]> msg = testSubject.createKafkaMessage(event, SOME_TOPIC);
         msg.headers().remove(MESSAGE_TYPE);
 
-        assertThat(testSubject.readKafkaMessage(toReceiverRecord(msg)).isPresent()).isFalse();
+        assertFalse(testSubject.readKafkaMessage(toReceiverRecord(msg)).isPresent());
     }
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testReadingMessagePayloadDifferentThanByteShouldReturnEmptyMessage() {
+    void testReadingMessagePayloadDifferentThanByteShouldReturnEmptyMessage() {
         EventMessage<Object> eventMessage = eventMessage();
         SerializedObject serializedObject = mock(SerializedObject.class);
         when(serializedObject.getType()).thenReturn(new SimpleSerializedType("foo", null));
@@ -168,11 +167,11 @@ public class DefaultKafkaMessageConverterTest {
                 -1L, NULL_SIZE, NULL_SIZE, 1, "123", headers
         );
 
-        assertThat(testSubject.readKafkaMessage(payloadDifferentThanByte).isPresent()).isFalse();
+        assertFalse(testSubject.readKafkaMessage(payloadDifferentThanByte).isPresent());
     }
 
     @Test
-    public void testWritingEventMessageShouldBeReadAsEventMessage() {
+    void testWritingEventMessageShouldBeReadAsEventMessage() {
         EventMessage<?> expected = eventMessage();
         ProducerRecord<String, byte[]> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
         EventMessage<?> actual = receiverMessage(senderMessage);
@@ -181,18 +180,18 @@ public class DefaultKafkaMessageConverterTest {
     }
 
     @Test
-    public void testWritingEventMessageWithNullRevisionShouldWriteRevisionAsNull() {
+    void testWritingEventMessageWithNullRevisionShouldWriteRevisionAsNull() {
         testSubject = DefaultKafkaMessageConverter.builder()
                                                   .serializer(XStreamSerializer.builder().build())
                                                   .build();
         EventMessage<?> eventMessage = eventMessage();
         ProducerRecord<String, byte[]> senderMessage = testSubject.createKafkaMessage(eventMessage, SOME_TOPIC);
 
-        assertThat(valueAsString(senderMessage.headers(), MESSAGE_REVISION)).isNull();
+        assertNull(valueAsString(senderMessage.headers(), MESSAGE_REVISION));
     }
 
     @Test
-    public void testWritingDomainEventMessageShouldBeReadAsDomainMessage() {
+    void testWritingDomainEventMessageShouldBeReadAsDomainMessage() {
         DomainEventMessage<?> expected = domainMessage();
         ProducerRecord<String, byte[]> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
         EventMessage<?> actual = receiverMessage(senderMessage);
@@ -202,9 +201,9 @@ public class DefaultKafkaMessageConverterTest {
     }
 
     private void assertDomainMessage(DomainEventMessage<?> actual, DomainEventMessage<?> expected) {
-        assertThat(actual.getAggregateIdentifier()).isEqualTo(expected.getAggregateIdentifier());
-        assertThat(actual.getSequenceNumber()).isEqualTo(expected.getSequenceNumber());
-        assertThat(actual.getType()).isEqualTo(expected.getType());
+        assertEquals(expected.getAggregateIdentifier(), actual.getAggregateIdentifier());
+        assertEquals(expected.getSequenceNumber(), actual.getSequenceNumber());
+        assertEquals(expected.getType(), actual.getType());
     }
 
     private EventMessage<?> receiverMessage(ProducerRecord<String, byte[]> senderMessage) {

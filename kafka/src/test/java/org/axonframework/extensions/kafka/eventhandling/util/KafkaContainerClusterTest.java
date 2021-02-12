@@ -4,7 +4,9 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
- * A cluster of kafkas using test container.
+ * A {@link KafkaContainerCluster} set up by using {@link Testcontainers}.
+ *
+ * @author Lucas Campos
  */
 @Testcontainers
 public class KafkaContainerClusterTest {

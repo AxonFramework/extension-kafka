@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Lucas Campos
  */
 
-public class DefaultProducerFactoryClusteringTest extends KafkaContainerClusterTest {
+class DefaultProducerFactoryClusteringTest extends KafkaContainerClusterTest {
 
     private static final String TOPIC = "testSendingMessagesUsingMultipleTransactionalProducers";
 
@@ -36,7 +36,7 @@ public class DefaultProducerFactoryClusteringTest extends KafkaContainerClusterT
     }
 
     @AfterAll
-    public static void after() {
+    static void after() {
         KafkaAdminUtils.deleteTopics(getBootstrapServers(), TOPIC);
     }
 
@@ -95,7 +95,6 @@ public class DefaultProducerFactoryClusteringTest extends KafkaContainerClusterT
     }
 
     @Test
-//    @Disabled("clustering is needed")
     void testClosingProducerShouldReturnItToCache() {
         ProducerFactory<Object, Object> pf = builder()
                 .producerCacheSize(2)

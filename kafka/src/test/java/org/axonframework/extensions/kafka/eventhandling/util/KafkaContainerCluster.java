@@ -20,8 +20,8 @@ import java.util.stream.Stream;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
- * Copied from https://github.com/testcontainers/testcontainers-java/blob/master/examples/kafka-cluster/src/test/java/com/example/kafkacluster/KafkaContainerCluster.java
- * Should be an utility class to help set up a cluster of kafkas using test container approach.
+ * Provides an easy way to launch a Kafka cluster with multiple brokers. Copied from
+ * https://github.com/testcontainers/testcontainers-java/blob/master/examples/kafka-cluster/src/test/java/com/example/kafkacluster/KafkaContainerCluster.java
  */
 public class KafkaContainerCluster implements Startable {
 

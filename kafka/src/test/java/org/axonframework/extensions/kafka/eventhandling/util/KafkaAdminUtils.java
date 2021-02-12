@@ -29,12 +29,16 @@ import java.util.stream.Stream;
  * @author Stefan Andjelkovic
  * @author Lucas Campos
  */
-public class KafkaAdminUtils {
+public abstract class KafkaAdminUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
+    private KafkaAdminUtils() {
+        // Utils
+    }
+
     /**
-     * Method responsible for creating the topics on the provided kafka address.
+     * Method responsible for creating the {@code topics} on the provided {@code bootstrapServer}.
      *
      * @param bootstrapServer the kafka address
      * @param topics          a list of topics to be created
@@ -44,12 +48,12 @@ public class KafkaAdminUtils {
             CreateTopicsResult topicsCreationResult = adminClient.createTopics(topics(topics));
             topicsCreationResult.values().values()
                                 .forEach(KafkaAdminUtils::waitForCompletion);
-            logger.info("Completed topic creation");
+            Arrays.stream(topics).forEach(topic -> logger.info("Completed topic creation: {}", topic));
         }
     }
 
     /**
-     * Method responsible for creating partitions on given kafka and topics.
+     * Method responsible for creating partitions on given {@code bootstrapServer} and {@code topics}.
      *
      * @param bootstrapServer the kafka address
      * @param nrPartitions    the number os partitios to be created on each topic
@@ -61,12 +65,13 @@ public class KafkaAdminUtils {
                     adminClient.createPartitions(partitions(nrPartitions, topics));
             partitionCreationResult.values().values()
                                    .forEach(KafkaAdminUtils::waitForCompletion);
-            logger.info("Completed partition creation");
+            Arrays.stream(topics).forEach(topic -> logger
+                    .info("Completed {} partition creation on topic: {}", nrPartitions, topic));
         }
     }
 
     /**
-     * Method responsible for deleting the topics on the provided kafka address.
+     * Method responsible for deleting the {@code topics} on the provided {@code bootstrapServer}.
      *
      * @param bootstrapServer the kafka address
      * @param topics          a list of topics to be deleted
@@ -76,7 +81,7 @@ public class KafkaAdminUtils {
             DeleteTopicsResult topicsDeletionResult = adminClient.deleteTopics(Arrays.asList(topics));
             topicsDeletionResult.values().values()
                                 .forEach(KafkaAdminUtils::waitForCompletion);
-            logger.info("Completed topic deletion");
+            Arrays.stream(topics).forEach(topic -> logger.info("Completed topic deletion: {}", topic));
         }
     }
 

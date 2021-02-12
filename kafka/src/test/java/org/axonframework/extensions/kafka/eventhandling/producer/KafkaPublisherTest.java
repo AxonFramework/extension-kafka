@@ -53,8 +53,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher.DEFAULT_PROCESSING_GROUP;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.transactionalConsumerFactory;
@@ -178,11 +176,11 @@ class KafkaPublisherTest extends KafkaContainerTest {
         eventBus.publish(testMessages);
 
         ConsumerRecords<?, ?> consumedRecords = KafkaTestUtils.getRecords(testConsumer, 60000, numberOfMessages);
-        assertThat(consumedRecords.count()).isEqualTo(numberOfMessages);
-        assertThat(testMessages).isEqualTo(monitor.getReceived());
-        assertThat(monitor.failureCount()).isZero();
-        assertThat(monitor.ignoreCount()).isZero();
-        assertThat(monitor.successCount()).isEqualTo(numberOfMessages);
+        assertEquals(numberOfMessages, consumedRecords.count());
+        assertEquals(testMessages, monitor.getReceived());
+        assertEquals(0, monitor.failureCount());
+        assertEquals(0, monitor.ignoreCount());
+        assertEquals(numberOfMessages, monitor.successCount());
     }
 
     @SuppressWarnings("unchecked")
@@ -201,11 +199,10 @@ class KafkaPublisherTest extends KafkaContainerTest {
         testSubject = buildPublisher(testTopic);
         List<GenericDomainEventMessage<String>> testMessages = domainMessages("98765", 2);
 
-        assertThatExceptionOfType(EventPublicationFailedException.class)
-                .isThrownBy(() -> eventBus.publish(testMessages));
-        assertThat(monitor.successCount()).isZero();
-        assertThat(monitor.failureCount()).isEqualTo(1);
-        assertThat(monitor.ignoreCount()).isZero();
+        assertThrows(EventPublicationFailedException.class, () -> eventBus.publish(testMessages));
+        assertEquals(0, monitor.successCount());
+        assertEquals(1, monitor.failureCount());
+        assertEquals(0, monitor.ignoreCount());
     }
 
     @Test
@@ -223,10 +220,10 @@ class KafkaPublisherTest extends KafkaContainerTest {
 
         eventBus.publish(testMessages);
 
-        assertThat(monitor.successCount()).isEqualTo(testMessages.size());
-        assertThat(monitor.failureCount()).isZero();
-        assertThat(monitor.ignoreCount()).isZero();
-        assertThat(KafkaTestUtils.getRecords(testConsumer).count()).isEqualTo(testMessages.size());
+        assertEquals(testMessages.size(), monitor.successCount());
+        assertEquals(0, monitor.failureCount());
+        assertEquals(0, monitor.ignoreCount());
+        assertEquals(testMessages.size(), KafkaTestUtils.getRecords(testConsumer).count());
     }
 
     @Test
@@ -241,11 +238,11 @@ class KafkaPublisherTest extends KafkaContainerTest {
         eventBus.publish(testMessage);
         uow.commit();
 
-        assertThat(singletonList(testMessage)).isEqualTo(monitor.getReceived());
-        assertThat(monitor.successCount()).isOne();
-        assertThat(monitor.failureCount()).isZero();
-        assertThat(monitor.ignoreCount()).isZero();
-        assertThat(KafkaTestUtils.getRecords(testConsumer).count()).isOne();
+        assertEquals(monitor.getReceived(), singletonList(testMessage));
+        assertEquals(1, monitor.successCount());
+        assertEquals(0, monitor.failureCount());
+        assertEquals(0, monitor.ignoreCount());
+        assertEquals(1, KafkaTestUtils.getRecords(testConsumer).count());
     }
 
     @Test
@@ -266,7 +263,7 @@ class KafkaPublisherTest extends KafkaContainerTest {
         eventBus.publish(testMessage);
         uow.commit();
 
-        assertThat(KafkaTestUtils.getRecords(testConsumer).count()).isOne();
+        assertEquals(1, KafkaTestUtils.getRecords(testConsumer).count());
     }
 
     @Test
@@ -291,7 +288,7 @@ class KafkaPublisherTest extends KafkaContainerTest {
             uow.commit();
             fail("Expected a RuntimeException to be thrown");
         } catch (Exception e) {
-            assertThat(e.getMessage()).isEqualTo(expectedException);
+            assertEquals(expectedException, e.getMessage());
         }
 
         assertTrue(KafkaTestUtils.getRecords(testConsumer, 100).isEmpty(), "Didn't expect any consumer records");
@@ -338,7 +335,7 @@ class KafkaPublisherTest extends KafkaContainerTest {
             uow.commit();
             fail("Expected a RuntimeException to be thrown");
         } catch (Exception e) {
-            assertThat(e.getMessage()).isEqualTo(expectedException);
+            assertEquals(expectedException, e.getMessage());
         }
 
         testConsumer = buildConsumer(testTopic);

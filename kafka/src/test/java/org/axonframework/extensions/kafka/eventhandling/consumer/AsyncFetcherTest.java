@@ -46,7 +46,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.consumerFactory;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.producerFactory;
@@ -104,11 +103,11 @@ class AsyncFetcherTest extends KafkaContainerTest {
             received.putIfAbsent(m.partition(), 0);
             received.put(m.partition(), received.get(m.partition()) + 1);
         }
-        assertThat(received.get(partitionZero)).isEqualTo(4);
-        assertThat(received.get(partitionOne)).isEqualTo(8);
-        assertThat(received.get(partitionTwo)).isNull();
-        assertThat(received.get(partitionThree)).isEqualTo(5);
-        assertThat(received.get(partitionFour)).isEqualTo(9);
+        assertEquals(4, received.get(partitionZero));
+        assertEquals(8,received.get(partitionOne));
+        assertNull(received.get(partitionTwo));
+        assertEquals(5, received.get(partitionThree));
+        assertEquals(9, received.get(partitionFour));
     }
 
     @BeforeEach
@@ -149,7 +148,7 @@ class AsyncFetcherTest extends KafkaContainerTest {
 
         messageCounter.await();
 
-        assertThat(testBuffer.size()).isEqualTo(expectedNumberOfMessages);
+        assertEquals(expectedNumberOfMessages, testBuffer.size());
     }
 
     /**
@@ -201,7 +200,7 @@ class AsyncFetcherTest extends KafkaContainerTest {
         );
 
         messageCounter.await();
-        assertThat(testBuffer.size()).isEqualTo(expectedNumberOfMessages);
+        assertEquals(expectedNumberOfMessages, testBuffer.size());
         assertMessagesCountPerPartition(expectedNumberOfMessages, p0, p1, p2, p3, p4, testBuffer);
 
         producerFactory.shutDown();

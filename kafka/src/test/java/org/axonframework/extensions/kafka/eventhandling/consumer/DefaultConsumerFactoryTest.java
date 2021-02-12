@@ -28,7 +28,6 @@ import org.springframework.kafka.test.utils.KafkaTestUtils;
 
 import java.util.Collections;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.minimal;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.producerFactory;
@@ -88,6 +87,6 @@ class DefaultConsumerFactoryTest extends KafkaContainerTest {
         testConsumer = testSubject.createConsumer(DEFAULT_GROUP_ID);
         testConsumer.subscribe(Collections.singleton(testTopic));
 
-        assertThat(KafkaTestUtils.getRecords(testConsumer).count()).isOne();
+        assertEquals(1, KafkaTestUtils.getRecords(testConsumer).count());
     }
 }

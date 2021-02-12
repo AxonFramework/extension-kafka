@@ -6,7 +6,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 /**
- * A single node of kafka using test container.
+ * A single {@link KafkaContainer} set up by using {@link Testcontainers}.
+ *
+ * @author Lucas Campos
  */
 @Testcontainers
 public abstract class KafkaContainerTest {
