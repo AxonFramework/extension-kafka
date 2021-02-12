@@ -22,12 +22,9 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
+import org.axonframework.extensions.kafka.eventhandling.util.KafkaContainerTest;
 import org.junit.jupiter.api.*;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 import java.util.Collections;
 
@@ -44,12 +41,7 @@ import static org.mockito.Mockito.*;
  * @author Nakul Mishra
  * @author Steven van Beelen
  */
-@Testcontainers
-class DefaultConsumerFactoryTest {
-
-    @Container
-    private static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer(
-            DockerImageName.parse("confluentinc/cp-kafka:5.4.3"));
+class DefaultConsumerFactoryTest extends KafkaContainerTest {
 
     private static final String TEST_TOPIC = "testCreatedConsumer_ValidConfig_CanCommunicateToKafka";
 
@@ -58,17 +50,17 @@ class DefaultConsumerFactoryTest {
 
     @BeforeAll
     static void before() {
-        KafkaAdminUtils.createTopics(KAFKA_CONTAINER, TEST_TOPIC);
+        KafkaAdminUtils.createTopics(KAFKA_CONTAINER.getBootstrapServers(), TEST_TOPIC);
     }
 
     @AfterAll
     public static void after() {
-        KafkaAdminUtils.deleteTopics(KAFKA_CONTAINER, TEST_TOPIC);
+        KafkaAdminUtils.deleteTopics(KAFKA_CONTAINER.getBootstrapServers(), TEST_TOPIC);
     }
 
     @BeforeEach
     void setUp() {
-        producerFactory = producerFactory(KAFKA_CONTAINER);
+        producerFactory = producerFactory(KAFKA_CONTAINER.getBootstrapServers());
         testConsumer = mock(Consumer.class);
     }
 
@@ -91,7 +83,8 @@ class DefaultConsumerFactoryTest {
         testProducer.send(new ProducerRecord<>(testTopic, 0, null, null, "foo"));
         testProducer.flush();
 
-        ConsumerFactory<?, ?> testSubject = new DefaultConsumerFactory<>(minimal(KAFKA_CONTAINER));
+        ConsumerFactory<?, ?> testSubject = new DefaultConsumerFactory<>(minimal(KAFKA_CONTAINER
+                                                                                         .getBootstrapServers()));
         testConsumer = testSubject.createConsumer(DEFAULT_GROUP_ID);
         testConsumer.subscribe(Collections.singleton(testTopic));
 

@@ -25,11 +25,8 @@ import org.apache.kafka.common.TopicPartition;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
+import org.axonframework.extensions.kafka.eventhandling.util.KafkaContainerTest;
 import org.junit.jupiter.api.*;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 import scala.Function1;
 import scala.collection.Seq;
 
@@ -55,15 +52,10 @@ import static org.springframework.kafka.test.utils.KafkaTestUtils.getRecords;
  * @author Steven van Beelen
  */
 
-@Testcontainers
-class TrackingTokenConsumerRebalanceListenerIntegrationTest {
+class TrackingTokenConsumerRebalanceListenerIntegrationTest extends KafkaContainerTest {
 
     private static final String RECORD_BODY = "foo";
     private static final Function1<ConsumerRecord<byte[], byte[]>, Object> COUNT_ALL = record -> true;
-
-    @Container
-    private static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer(
-            DockerImageName.parse("confluentinc/cp-kafka:5.4.3"));
 
     private static final String[] TOPICS = {
             "testSeekUsing_EmptyToken_ConsumerStartsAtPositionZero",
@@ -76,13 +68,13 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest {
 
     @BeforeAll
     static void before() {
-        KafkaAdminUtils.createTopics(KAFKA_CONTAINER, TOPICS);
-        KafkaAdminUtils.createPartitions(KAFKA_CONTAINER, NR_PARTITIONS, TOPICS);
+        KafkaAdminUtils.createTopics(KAFKA_CONTAINER.getBootstrapServers(), TOPICS);
+        KafkaAdminUtils.createPartitions(KAFKA_CONTAINER.getBootstrapServers(), NR_PARTITIONS, TOPICS);
     }
 
     @AfterAll
     public static void after() {
-        KafkaAdminUtils.deleteTopics(KAFKA_CONTAINER, TOPICS);
+        KafkaAdminUtils.deleteTopics(KAFKA_CONTAINER.getBootstrapServers(), TOPICS);
     }
 
     private static void publishRecordsOnPartitions(Producer<String, String> producer,
@@ -111,8 +103,8 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        producerFactory = producerFactory(KAFKA_CONTAINER);
-        consumerFactory = consumerFactory(KAFKA_CONTAINER);
+        producerFactory = producerFactory(KAFKA_CONTAINER.getBootstrapServers());
+        consumerFactory = consumerFactory(KAFKA_CONTAINER.getBootstrapServers());
     }
 
     @AfterEach

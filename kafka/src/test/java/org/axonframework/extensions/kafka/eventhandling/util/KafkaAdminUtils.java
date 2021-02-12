@@ -8,7 +8,6 @@ import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.clients.admin.NewPartitions;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.KafkaFuture;
-import org.testcontainers.containers.KafkaContainer;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -29,8 +28,8 @@ import java.util.stream.Stream;
  */
 public class KafkaAdminUtils {
 
-    public static void createTopics(KafkaContainer kafkaContainer, String... topics) {
-        try (AdminClient adminClient = AdminClient.create(minimalAdminConfig(kafkaContainer))) {
+    public static void createTopics(String bootstrapServer, String... topics) {
+        try (AdminClient adminClient = AdminClient.create(minimalAdminConfig(bootstrapServer))) {
             CreateTopicsResult topicsCreationResult = adminClient.createTopics(topics(topics));
             topicsCreationResult.values().values()
                                 .forEach(KafkaAdminUtils::waitForCompletion);
@@ -38,8 +37,8 @@ public class KafkaAdminUtils {
         }
     }
 
-    public static void createPartitions(KafkaContainer kafkaContainer, Integer nrPartitions, String... topics) {
-        try (AdminClient adminClient = AdminClient.create(minimalAdminConfig(kafkaContainer))) {
+    public static void createPartitions(String bootstrapServer, Integer nrPartitions, String... topics) {
+        try (AdminClient adminClient = AdminClient.create(minimalAdminConfig(bootstrapServer))) {
             CreatePartitionsResult partitionCreationResult = adminClient.createPartitions(partitions(nrPartitions,
                                                                                                      topics));
             partitionCreationResult.values().values()
@@ -48,8 +47,8 @@ public class KafkaAdminUtils {
         }
     }
 
-    public static void deleteTopics(KafkaContainer kafkaContainer, String... topics) {
-        try (AdminClient adminClient = AdminClient.create(minimalAdminConfig(kafkaContainer))) {
+    public static void deleteTopics(String bootstrapServer, String... topics) {
+        try (AdminClient adminClient = AdminClient.create(minimalAdminConfig(bootstrapServer))) {
             DeleteTopicsResult topicsDeletionResult = adminClient.deleteTopics(Arrays.asList(topics));
             topicsDeletionResult.values().values()
                                 .forEach(KafkaAdminUtils::waitForCompletion);
@@ -67,7 +66,7 @@ public class KafkaAdminUtils {
 
     public static List<NewTopic> topics(String... topics) {
         return Arrays.stream(topics)
-                     .map(topic -> new KafkaAdminUtils.KafkaTopicConfiguration(topic))
+                     .map(KafkaTopicConfiguration::new)
                      .map(topic -> new NewTopic(topic.getName(),
                                                 topic.getNumPartitions(),
                                                 topic.getReplicationFactor()))
@@ -79,10 +78,9 @@ public class KafkaAdminUtils {
                      .collect(Collectors.toMap(Function.identity(), ignored -> NewPartitions.increaseTo(nrPartitions)));
     }
 
-    public static Map<String, Object> minimalAdminConfig(KafkaContainer kafkaContainer) {
+    public static Map<String, Object> minimalAdminConfig(String bootstrapServer) {
         Map<String, Object> configs = new HashMap<>();
-        configs.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG,
-                    kafkaContainer.getBootstrapServers()); // kafka instances
+        configs.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);
         return configs;
     }
 

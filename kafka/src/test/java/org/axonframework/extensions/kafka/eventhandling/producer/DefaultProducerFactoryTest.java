@@ -22,11 +22,8 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.KafkaException;
 import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
+import org.axonframework.extensions.kafka.eventhandling.util.KafkaContainerTest;
 import org.junit.jupiter.api.*;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -52,28 +49,25 @@ import static org.mockito.Mockito.*;
  * @author Steven van Beelen
  */
 
-@Testcontainers
-class DefaultProducerFactoryTest {
-
-    @Container
-    private static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer(
-            DockerImageName.parse("confluentinc/cp-kafka:5.4.3"));
+class DefaultProducerFactoryTest extends KafkaContainerTest {
 
     private static final String[] TOPICS = {
             "testProducerCreation",
             "testSendingMessagesUsingMultipleProducers",
-            "testSendingMessagesUsingMultipleTransactionalProducers",
             "testUsingCallbackWhilePublishingMessages",
             "testTransactionalProducerBehaviorOnCommittingAnAbortedTransaction"};
 
+    private static String bootstrapServer;
+
     @BeforeAll
     static void before() {
-        KafkaAdminUtils.createTopics(KAFKA_CONTAINER, TOPICS);
+        bootstrapServer = KAFKA_CONTAINER.getBootstrapServers();
+        KafkaAdminUtils.createTopics(bootstrapServer, TOPICS);
     }
 
     @AfterAll
     public static void after() {
-        KafkaAdminUtils.deleteTopics(KAFKA_CONTAINER, TOPICS);
+        KafkaAdminUtils.deleteTopics(bootstrapServer, TOPICS);
     }
 
     private static Future<RecordMetadata> send(Producer<String, String> producer, String topic, String message) {
@@ -105,14 +99,16 @@ class DefaultProducerFactoryTest {
 
     @Test
     void testDefaultConfirmationModeForTransactionalProducer() {
-        assertEquals(transactionalProducerFactory(KAFKA_CONTAINER, "foo").confirmationMode(), TRANSACTIONAL);
+        assertEquals(transactionalProducerFactory(bootstrapServer, "foo").confirmationMode(),
+                     TRANSACTIONAL);
     }
 
     @Test
     void testConfiguringInvalidCacheSize() {
         assertThrows(
                 AxonConfigurationException.class,
-                () -> builder().configuration(minimal(KAFKA_CONTAINER)).producerCacheSize(-1).build()
+                () -> builder().configuration(minimal(bootstrapServer)).producerCacheSize(-1)
+                               .build()
         );
     }
 
@@ -120,7 +116,8 @@ class DefaultProducerFactoryTest {
     void testConfiguringInvalidTimeout() {
         assertThrows(
                 AxonConfigurationException.class,
-                () -> builder().configuration(minimal(KAFKA_CONTAINER)).closeTimeout(-1, ChronoUnit.SECONDS).build()
+                () -> builder().configuration(minimal(bootstrapServer))
+                               .closeTimeout(-1, ChronoUnit.SECONDS).build()
         );
     }
 
@@ -128,7 +125,8 @@ class DefaultProducerFactoryTest {
     void testConfiguringInvalidTimeoutUnit() {
         assertThrows(
                 AxonConfigurationException.class,
-                () -> builder().configuration(minimal(KAFKA_CONTAINER)).closeTimeout(1, null).build()
+                () -> builder().configuration(minimal(bootstrapServer)).closeTimeout(1, null)
+                               .build()
         );
     }
 
@@ -136,7 +134,8 @@ class DefaultProducerFactoryTest {
     void testConfiguringInvalidCloseTimeout() {
         assertThrows(
                 AxonConfigurationException.class,
-                () -> builder().configuration(minimal(KAFKA_CONTAINER)).closeTimeout(Duration.ofSeconds(-1)).build()
+                () -> builder().configuration(minimal(bootstrapServer))
+                               .closeTimeout(Duration.ofSeconds(-1)).build()
         );
     }
 
@@ -150,7 +149,7 @@ class DefaultProducerFactoryTest {
 
     @Test
     void testProducerCreation() {
-        ProducerFactory<String, String> producerFactory = producerFactory(KAFKA_CONTAINER);
+        ProducerFactory<String, String> producerFactory = producerFactory(bootstrapServer);
         Producer<String, String> testProducer = producerFactory.createProducer();
 
         assertFalse(testProducer.metrics().isEmpty());
@@ -161,7 +160,7 @@ class DefaultProducerFactoryTest {
 
     @Test
     void testCachingProducerInstances() {
-        ProducerFactory<String, String> producerFactory = producerFactory(KAFKA_CONTAINER);
+        ProducerFactory<String, String> producerFactory = producerFactory(bootstrapServer);
         List<Producer<String, String>> testProducers = new ArrayList<>();
         testProducers.add(producerFactory.createProducer());
 
@@ -177,19 +176,19 @@ class DefaultProducerFactoryTest {
 
     @Test
     void testSendingMessagesUsingMultipleProducers() throws ExecutionException, InterruptedException {
-        ProducerFactory<String, String> producerFactory = producerFactory(KAFKA_CONTAINER);
+        ProducerFactory<String, String> producerFactory = producerFactory(bootstrapServer);
         List<Producer<String, String>> testProducers = new ArrayList<>();
         String testTopic = "testSendingMessagesUsingMultipleProducers";
 
         List<Future<RecordMetadata>> results = new ArrayList<>();
         // The reason we are looping 12 times is a bug we used to have where the (producerCacheSize + 2)-th send failed because the producer was closed.
         // To avoid regression, we keep the test like this.
-        for (int i = 0; i < 12; i++) {
+        IntStream.range(0, 12).forEach(x -> {
             Producer<String, String> producer = producerFactory.createProducer();
-            results.add(send(producer, testTopic, "foo" + i));
+            results.add(send(producer, testTopic, "foo" + x));
             producer.close();
             testProducers.add(producer);
-        }
+        });
         assertOffsets(results);
 
         cleanup(producerFactory, testProducers);
@@ -202,7 +201,8 @@ class DefaultProducerFactoryTest {
                 "Transactional producers not supported on Windows"
         );
 
-        ProducerFactory<String, String> producerFactory = transactionalProducerFactory(KAFKA_CONTAINER, "xyz");
+        ProducerFactory<String, String> producerFactory =
+                transactionalProducerFactory(KAFKA_CONTAINER.getBootstrapServers(), "xyz");
         Producer<String, String> testProducer = producerFactory.createProducer();
 
         testProducer.beginTransaction();
@@ -213,50 +213,14 @@ class DefaultProducerFactoryTest {
     }
 
     @Test
-    @Disabled("clustering is needed")
-    void testCachingTransactionalProducerInstances() {
-        ProducerFactory<String, String> producerFactory = transactionalProducerFactory(KAFKA_CONTAINER, "bar");
-        List<Producer<String, String>> testProducers = new ArrayList<>();
-        testProducers.add(producerFactory.createProducer());
-
-        Producer<String, String> firstProducer = testProducers.get(0);
-        IntStream.range(0, 10).forEach(x -> {
-            Producer<String, String> copy = producerFactory.createProducer();
-            assertNotEquals(firstProducer, copy);
-        });
-
-        cleanup(producerFactory, testProducers);
-    }
-
-    @Test
-    @Disabled("clustering is needed")
-    void testSendingMessagesUsingMultipleTransactionalProducers()
-            throws ExecutionException, InterruptedException {
-        ProducerFactory<String, String> producerFactory = transactionalProducerFactory(KAFKA_CONTAINER, "xyz");
-        List<Producer<String, String>> testProducers = new ArrayList<>();
-        String testTopic = "testSendingMessagesUsingMultipleTransactionalProducers";
-
-        List<Future<RecordMetadata>> results = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
-            Producer<String, String> producer = producerFactory.createProducer();
-            producer.beginTransaction();
-            results.add(send(producer, testTopic, "foo" + i));
-            producer.commitTransaction();
-            testProducers.add(producer);
-        }
-        assertOffsets(results);
-
-        cleanup(producerFactory, testProducers);
-    }
-
-    @Test
     void testTransactionalProducerBehaviorOnCommittingAnAbortedTransaction() {
         assumeFalse(
                 System.getProperty("os.name").contains("Windows"),
                 "Transactional producers not supported on Windows"
         );
 
-        ProducerFactory<String, String> producerFactory = transactionalProducerFactory(KAFKA_CONTAINER, "xyz");
+        ProducerFactory<String, String> producerFactory =
+                transactionalProducerFactory(KAFKA_CONTAINER.getBootstrapServers(), "xyz");
         Producer<String, String> testProducer = producerFactory.createProducer();
 
         try {
@@ -276,7 +240,8 @@ class DefaultProducerFactoryTest {
                 "Transactional producers not supported on Windows"
         );
 
-        ProducerFactory<String, String> producerFactory = transactionalProducerFactory(KAFKA_CONTAINER, "xyz");
+        ProducerFactory<String, String> producerFactory =
+                transactionalProducerFactory(KAFKA_CONTAINER.getBootstrapServers(), "xyz");
         Producer<String, String> testProducer = producerFactory.createProducer();
 
         testProducer.beginTransaction();
@@ -287,25 +252,9 @@ class DefaultProducerFactoryTest {
     }
 
     @Test
-    @Disabled("clustering is needed")
-    void testClosingProducerShouldReturnItToCache() {
-        ProducerFactory<Object, Object> pf = builder()
-                .producerCacheSize(2)
-                .configuration(minimalTransactional(KAFKA_CONTAINER))
-                .transactionalIdPrefix("cache")
-                .build();
-        Producer<Object, Object> first = pf.createProducer();
-        first.close();
-        Producer<Object, Object> second = pf.createProducer();
-        second.close();
-        assertEquals(first, second);
-        pf.shutDown();
-    }
-
-    @Test
     void testUsingCallbackWhilePublishingMessages() throws ExecutionException, InterruptedException {
         Callback cb = mock(Callback.class);
-        ProducerFactory<String, String> pf = producerFactory(KAFKA_CONTAINER);
+        ProducerFactory<String, String> pf = producerFactory(bootstrapServer);
         Producer<String, String> producer = pf.createProducer();
         producer.send(new ProducerRecord<>("testUsingCallbackWhilePublishingMessages", "callback"), cb).get();
         producer.flush();

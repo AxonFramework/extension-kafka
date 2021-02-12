@@ -31,6 +31,7 @@ import org.axonframework.eventhandling.SimpleEventBus;
 import org.axonframework.extensions.kafka.eventhandling.DefaultKafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
+import org.axonframework.extensions.kafka.eventhandling.util.KafkaContainerTest;
 import org.axonframework.messaging.EventPublicationFailedException;
 import org.axonframework.messaging.Message;
 import org.axonframework.messaging.MetaData;
@@ -41,10 +42,6 @@ import org.axonframework.monitoring.MessageMonitor;
 import org.axonframework.serialization.xml.XStreamSerializer;
 import org.junit.jupiter.api.*;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 import java.util.Collections;
 import java.util.List;
@@ -74,12 +71,7 @@ import static org.mockito.Mockito.*;
  * @author Steven van Beelen
  */
 
-@Testcontainers
-class KafkaPublisherTest {
-
-    @Container
-    private static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer(
-            DockerImageName.parse("confluentinc/cp-kafka:5.4.3"));
+class KafkaPublisherTest extends KafkaContainerTest {
 
     private static final String[] TOPICS = {
             "testPublishMessagesWithAckModeNoUnitOfWorkShouldBePublishedAndReadSuccessfully",
@@ -91,7 +83,7 @@ class KafkaPublisherTest {
             "testPublishMessagesKafkaTransactionCannotBeStartedShouldThrowAnException",
             "testPublishMessageKafkaTransactionCannotBeCommittedShouldNotPublishEvents",
             "testSendMessageWithKafkaTransactionRollback"};
-
+    private static String bootstrapServer;
     private Configurer configurer;
     private SimpleEventBus eventBus;
     private MessageCollector monitor;
@@ -102,12 +94,13 @@ class KafkaPublisherTest {
 
     @BeforeAll
     static void before() {
-        KafkaAdminUtils.createTopics(KAFKA_CONTAINER, TOPICS);
+        bootstrapServer = KAFKA_CONTAINER.getBootstrapServers();
+        KafkaAdminUtils.createTopics(bootstrapServer, TOPICS);
     }
 
     @AfterAll
     static void after() {
-        KafkaAdminUtils.deleteTopics(KAFKA_CONTAINER, TOPICS);
+        KafkaAdminUtils.deleteTopics(bootstrapServer, TOPICS);
     }
 
     @SuppressWarnings("unchecked")
@@ -158,7 +151,8 @@ class KafkaPublisherTest {
         this.eventBus = SimpleEventBus.builder().build();
         this.monitor = new MessageCollector();
         this.configurer.configureEventBus(configuration -> eventBus);
-        this.consumerFactory = transactionalConsumerFactory(KAFKA_CONTAINER, ByteArrayDeserializer.class);
+        this.consumerFactory = transactionalConsumerFactory(KAFKA_CONTAINER.getBootstrapServers(),
+                                                            ByteArrayDeserializer.class);
         this.testConsumer = mock(Consumer.class);
     }
 
@@ -176,7 +170,7 @@ class KafkaPublisherTest {
     @Test
     void testPublishMessagesWithAckModeNoUnitOfWorkShouldBePublishedAndReadSuccessfully() {
         String testTopic = "testPublishMessagesWithAckModeNoUnitOfWorkShouldBePublishedAndReadSuccessfully";
-        testProducerFactory = ackProducerFactory(KAFKA_CONTAINER, ByteArraySerializer.class);
+        testProducerFactory = ackProducerFactory(bootstrapServer, ByteArraySerializer.class);
         testConsumer = buildConsumer(testTopic);
         testSubject = buildPublisher(testTopic);
 
@@ -224,7 +218,7 @@ class KafkaPublisherTest {
         );
 
         String testTopic = "testPublishMessagesWithTransactionalModeNoUnitOfWorkShouldBePublishedAndReadSuccessfully";
-        testProducerFactory = transactionalProducerFactory(KAFKA_CONTAINER, "foo", ByteArraySerializer.class);
+        testProducerFactory = transactionalProducerFactory(bootstrapServer, "foo", ByteArraySerializer.class);
         testConsumer = buildConsumer(testTopic);
         testSubject = buildPublisher(testTopic);
         List<GenericDomainEventMessage<String>> testMessages = domainMessages("62457", 5);
@@ -240,7 +234,7 @@ class KafkaPublisherTest {
     @Test
     void testPublishMessagesWithAckModeUnitOfWorkShouldBePublishedAndReadSuccessfully() {
         String testTopic = "testPublishMessagesWithAckModeUnitOfWorkShouldBePublishedAndReadSuccessfully";
-        testProducerFactory = ackProducerFactory(KAFKA_CONTAINER, ByteArraySerializer.class);
+        testProducerFactory = ackProducerFactory(bootstrapServer, ByteArraySerializer.class);
         testConsumer = buildConsumer(testTopic);
         testSubject = buildPublisher(testTopic);
         GenericDomainEventMessage<String> testMessage = domainMessage("1234");
@@ -264,7 +258,7 @@ class KafkaPublisherTest {
         );
 
         String testTopic = "testPublishMessagesWithTransactionalModeUnitOfWorkShouldBePublishedAndReadSuccessfully";
-        testProducerFactory = transactionalProducerFactory(KAFKA_CONTAINER, "foo", ByteArraySerializer.class);
+        testProducerFactory = transactionalProducerFactory(bootstrapServer, "foo", ByteArraySerializer.class);
         testConsumer = buildConsumer(testTopic);
         testSubject = buildPublisher(testTopic);
 
@@ -282,7 +276,7 @@ class KafkaPublisherTest {
         String expectedException = "Some exception";
 
         String testTopic = "testPublishMessageWithTransactionalModeUnitOfWorkRollbackShouldNeverBePublished";
-        testProducerFactory = transactionalProducerFactory(KAFKA_CONTAINER, "foo", ByteArraySerializer.class);
+        testProducerFactory = transactionalProducerFactory(bootstrapServer, "foo", ByteArraySerializer.class);
         testConsumer = buildConsumer(testTopic);
         testSubject = buildPublisher(testTopic);
 

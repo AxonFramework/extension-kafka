@@ -33,11 +33,8 @@ import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.Trac
 import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.TrackingTokenConsumerRebalanceListener;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
+import org.axonframework.extensions.kafka.eventhandling.util.KafkaContainerTest;
 import org.junit.jupiter.api.*;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -62,12 +59,8 @@ import static org.mockito.Mockito.*;
  * @author Nakul Mishra
  * @author Steven van Beelen
  */
-@Testcontainers
-class AsyncFetcherTest {
 
-    @Container
-    private static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer(
-            DockerImageName.parse("confluentinc/cp-kafka:5.4.3"));
+class AsyncFetcherTest extends KafkaContainerTest {
 
     private static final String TEST_TOPIC = "some-topic";
     private static final int TEST_PARTITION = 0;
@@ -76,12 +69,12 @@ class AsyncFetcherTest {
 
     @BeforeAll
     public static void before() {
-        KafkaAdminUtils.createTopics(KAFKA_CONTAINER, TEST_TOPIC);
+        KafkaAdminUtils.createTopics(KAFKA_CONTAINER.getBootstrapServers(), TEST_TOPIC);
     }
 
     @AfterAll
     public static void after() {
-        KafkaAdminUtils.deleteTopics(KAFKA_CONTAINER, TEST_TOPIC);
+        KafkaAdminUtils.deleteTopics(KAFKA_CONTAINER.getBootstrapServers(), TEST_TOPIC);
     }
 
     private static Consumer<String, String> mockConsumer() {
@@ -171,8 +164,8 @@ class AsyncFetcherTest {
         // used topic for this test
         String topic = "testStartFetcherWith_ExistingToken_ShouldStartAtSpecificPositions";
         Integer nrPartitions = 5;
-        KafkaAdminUtils.createTopics(KAFKA_CONTAINER, topic);
-        KafkaAdminUtils.createPartitions(KAFKA_CONTAINER, nrPartitions, topic);
+        KafkaAdminUtils.createTopics(KAFKA_CONTAINER.getBootstrapServers(), topic);
+        KafkaAdminUtils.createPartitions(KAFKA_CONTAINER.getBootstrapServers(), nrPartitions, topic);
 
         int expectedNumberOfMessages = 26;
         CountDownLatch messageCounter = new CountDownLatch(expectedNumberOfMessages);
@@ -194,7 +187,8 @@ class AsyncFetcherTest {
         testPositions.put(new TopicPartition(topic, 4), 0L);
         KafkaTrackingToken testStartToken = KafkaTrackingToken.newInstance(testPositions);
 
-        Consumer<String, String> testConsumer = consumerFactory(KAFKA_CONTAINER).createConsumer(DEFAULT_GROUP_ID);
+        Consumer<String, String> testConsumer = consumerFactory(KAFKA_CONTAINER.getBootstrapServers()).createConsumer(
+                DEFAULT_GROUP_ID);
         testConsumer.subscribe(
                 Collections.singletonList(topic),
                 new TrackingTokenConsumerRebalanceListener<>(testConsumer, () -> testStartToken)
@@ -219,7 +213,7 @@ class AsyncFetcherTest {
                                                            int partitionTwo,
                                                            int partitionThree,
                                                            int partitionFour) {
-        ProducerFactory<String, String> pf = producerFactory(KAFKA_CONTAINER);
+        ProducerFactory<String, String> pf = producerFactory(KAFKA_CONTAINER.getBootstrapServers());
         Producer<String, String> producer = pf.createProducer();
         for (int i = 0; i < 10; i++) {
             producer.send(new ProducerRecord<>(topic, partitionZero, null, null, "foo-" + partitionZero + "-" + i));

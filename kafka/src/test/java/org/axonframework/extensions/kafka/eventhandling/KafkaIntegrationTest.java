@@ -33,12 +33,9 @@ import org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPubli
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
+import org.axonframework.extensions.kafka.eventhandling.util.KafkaContainerTest;
 import org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil;
 import org.junit.jupiter.api.*;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
@@ -54,16 +51,11 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Nakul Mishra
  * @author Steven van Beelen
  */
-@Testcontainers
-class KafkaIntegrationTest {
-
-    @Container
-    private static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer(
-            DockerImageName.parse("confluentinc/cp-kafka:5.4.3"));
+class KafkaIntegrationTest extends KafkaContainerTest {
 
     private static final String TEST_TOPIC = "integration";
     private static final Integer NR_PARTITIONS = 5;
-
+    private static String bootstrapServer;
     private Configurer configurer = DefaultConfigurer.defaultConfiguration();
     private EventBus eventBus;
     private ProducerFactory<String, byte[]> producerFactory;
@@ -73,18 +65,19 @@ class KafkaIntegrationTest {
 
     @BeforeAll
     static void before() {
-        KafkaAdminUtils.createTopics(KAFKA_CONTAINER, TEST_TOPIC);
-        KafkaAdminUtils.createPartitions(KAFKA_CONTAINER, NR_PARTITIONS, TEST_TOPIC);
+        bootstrapServer = KAFKA_CONTAINER.getBootstrapServers();
+        KafkaAdminUtils.createTopics(bootstrapServer, TEST_TOPIC);
+        KafkaAdminUtils.createPartitions(bootstrapServer, NR_PARTITIONS, TEST_TOPIC);
     }
 
     @AfterAll
     public static void after() {
-        KafkaAdminUtils.deleteTopics(KAFKA_CONTAINER, TEST_TOPIC);
+        KafkaAdminUtils.deleteTopics(bootstrapServer, TEST_TOPIC);
     }
 
     @BeforeEach
     void setUp() {
-        producerFactory = ProducerConfigUtil.ackProducerFactory(KAFKA_CONTAINER, ByteArraySerializer.class);
+        producerFactory = ProducerConfigUtil.ackProducerFactory(bootstrapServer, ByteArraySerializer.class);
         publisher = KafkaPublisher.<String, byte[]>builder()
                 .producerFactory(producerFactory)
                 .topic(TEST_TOPIC)
@@ -95,7 +88,7 @@ class KafkaIntegrationTest {
                 eventProcessingConfigurer -> eventProcessingConfigurer.registerEventHandler(c -> sender)
         );
 
-        consumerFactory = new DefaultConsumerFactory<>(minimal(KAFKA_CONTAINER, ByteArrayDeserializer.class));
+        consumerFactory = new DefaultConsumerFactory<>(minimal(bootstrapServer, ByteArrayDeserializer.class));
 
         fetcher = AsyncFetcher.<String, byte[], KafkaEventMessage>builder()
                 .pollTimeout(300)
