@@ -21,6 +21,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
  * Copied from https://github.com/testcontainers/testcontainers-java/blob/master/examples/kafka-cluster/src/test/java/com/example/kafkacluster/KafkaContainerCluster.java
+ * Should be an utility class to help set up a cluster of kafkas using test container approach.
  */
 public class KafkaContainerCluster implements Startable {
 

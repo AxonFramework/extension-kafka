@@ -31,8 +31,6 @@
     </description>
 
     <properties>
-        <spring-kafka-test.version>2.6.5</spring-kafka-test.version>
-        <assertj-core.version>3.19.0</assertj-core.version>
         <jmh-core.version>1.27</jmh-core.version>
         <test-containers.version>1.15.2</test-containers.version>
     </properties>
@@ -71,19 +69,6 @@
             <scope>test</scope>
         </dependency>
 
-        <dependency>
-            <groupId>org.springframework.kafka</groupId>
-            <artifactId>spring-kafka-test</artifactId>
-            <version>${spring-kafka-test.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <!--Required by spring kafka test-->
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <version>${assertj-core.version}</version>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

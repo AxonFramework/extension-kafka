@@ -57,17 +57,14 @@ class DefaultProducerFactoryTest extends KafkaContainerTest {
             "testUsingCallbackWhilePublishingMessages",
             "testTransactionalProducerBehaviorOnCommittingAnAbortedTransaction"};
 
-    private static String bootstrapServer;
-
     @BeforeAll
     static void before() {
-        bootstrapServer = KAFKA_CONTAINER.getBootstrapServers();
-        KafkaAdminUtils.createTopics(bootstrapServer, TOPICS);
+        KafkaAdminUtils.createTopics(getBootstrapServers(), TOPICS);
     }
 
     @AfterAll
     public static void after() {
-        KafkaAdminUtils.deleteTopics(bootstrapServer, TOPICS);
+        KafkaAdminUtils.deleteTopics(getBootstrapServers(), TOPICS);
     }
 
     private static Future<RecordMetadata> send(Producer<String, String> producer, String topic, String message) {
@@ -99,7 +96,7 @@ class DefaultProducerFactoryTest extends KafkaContainerTest {
 
     @Test
     void testDefaultConfirmationModeForTransactionalProducer() {
-        assertEquals(transactionalProducerFactory(bootstrapServer, "foo").confirmationMode(),
+        assertEquals(transactionalProducerFactory(getBootstrapServers(), "foo").confirmationMode(),
                      TRANSACTIONAL);
     }
 
@@ -107,7 +104,7 @@ class DefaultProducerFactoryTest extends KafkaContainerTest {
     void testConfiguringInvalidCacheSize() {
         assertThrows(
                 AxonConfigurationException.class,
-                () -> builder().configuration(minimal(bootstrapServer)).producerCacheSize(-1)
+                () -> builder().configuration(minimal(getBootstrapServers())).producerCacheSize(-1)
                                .build()
         );
     }
@@ -116,7 +113,7 @@ class DefaultProducerFactoryTest extends KafkaContainerTest {
     void testConfiguringInvalidTimeout() {
         assertThrows(
                 AxonConfigurationException.class,
-                () -> builder().configuration(minimal(bootstrapServer))
+                () -> builder().configuration(minimal(getBootstrapServers()))
                                .closeTimeout(-1, ChronoUnit.SECONDS).build()
         );
     }
@@ -125,7 +122,7 @@ class DefaultProducerFactoryTest extends KafkaContainerTest {
     void testConfiguringInvalidTimeoutUnit() {
         assertThrows(
                 AxonConfigurationException.class,
-                () -> builder().configuration(minimal(bootstrapServer)).closeTimeout(1, null)
+                () -> builder().configuration(minimal(getBootstrapServers())).closeTimeout(1, null)
                                .build()
         );
     }
@@ -134,7 +131,7 @@ class DefaultProducerFactoryTest extends KafkaContainerTest {
     void testConfiguringInvalidCloseTimeout() {
         assertThrows(
                 AxonConfigurationException.class,
-                () -> builder().configuration(minimal(bootstrapServer))
+                () -> builder().configuration(minimal(getBootstrapServers()))
                                .closeTimeout(Duration.ofSeconds(-1)).build()
         );
     }
@@ -149,7 +146,7 @@ class DefaultProducerFactoryTest extends KafkaContainerTest {
 
     @Test
     void testProducerCreation() {
-        ProducerFactory<String, String> producerFactory = producerFactory(bootstrapServer);
+        ProducerFactory<String, String> producerFactory = producerFactory(getBootstrapServers());
         Producer<String, String> testProducer = producerFactory.createProducer();
 
         assertFalse(testProducer.metrics().isEmpty());
@@ -160,7 +157,7 @@ class DefaultProducerFactoryTest extends KafkaContainerTest {
 
     @Test
     void testCachingProducerInstances() {
-        ProducerFactory<String, String> producerFactory = producerFactory(bootstrapServer);
+        ProducerFactory<String, String> producerFactory = producerFactory(getBootstrapServers());
         List<Producer<String, String>> testProducers = new ArrayList<>();
         testProducers.add(producerFactory.createProducer());
 
@@ -176,7 +173,7 @@ class DefaultProducerFactoryTest extends KafkaContainerTest {
 
     @Test
     void testSendingMessagesUsingMultipleProducers() throws ExecutionException, InterruptedException {
-        ProducerFactory<String, String> producerFactory = producerFactory(bootstrapServer);
+        ProducerFactory<String, String> producerFactory = producerFactory(getBootstrapServers());
         List<Producer<String, String>> testProducers = new ArrayList<>();
         String testTopic = "testSendingMessagesUsingMultipleProducers";
 
@@ -202,7 +199,7 @@ class DefaultProducerFactoryTest extends KafkaContainerTest {
         );
 
         ProducerFactory<String, String> producerFactory =
-                transactionalProducerFactory(KAFKA_CONTAINER.getBootstrapServers(), "xyz");
+                transactionalProducerFactory(getBootstrapServers(), "xyz");
         Producer<String, String> testProducer = producerFactory.createProducer();
 
         testProducer.beginTransaction();
@@ -220,7 +217,7 @@ class DefaultProducerFactoryTest extends KafkaContainerTest {
         );
 
         ProducerFactory<String, String> producerFactory =
-                transactionalProducerFactory(KAFKA_CONTAINER.getBootstrapServers(), "xyz");
+                transactionalProducerFactory(getBootstrapServers(), "xyz");
         Producer<String, String> testProducer = producerFactory.createProducer();
 
         try {
@@ -241,7 +238,7 @@ class DefaultProducerFactoryTest extends KafkaContainerTest {
         );
 
         ProducerFactory<String, String> producerFactory =
-                transactionalProducerFactory(KAFKA_CONTAINER.getBootstrapServers(), "xyz");
+                transactionalProducerFactory(getBootstrapServers(), "xyz");
         Producer<String, String> testProducer = producerFactory.createProducer();
 
         testProducer.beginTransaction();
@@ -254,7 +251,7 @@ class DefaultProducerFactoryTest extends KafkaContainerTest {
     @Test
     void testUsingCallbackWhilePublishingMessages() throws ExecutionException, InterruptedException {
         Callback cb = mock(Callback.class);
-        ProducerFactory<String, String> pf = producerFactory(bootstrapServer);
+        ProducerFactory<String, String> pf = producerFactory(getBootstrapServers());
         Producer<String, String> producer = pf.createProducer();
         producer.send(new ProducerRecord<>("testUsingCallbackWhilePublishingMessages", "callback"), cb).get();
         producer.flush();

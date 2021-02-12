@@ -68,13 +68,13 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest extends KafkaContain
 
     @BeforeAll
     static void before() {
-        KafkaAdminUtils.createTopics(KAFKA_CONTAINER.getBootstrapServers(), TOPICS);
-        KafkaAdminUtils.createPartitions(KAFKA_CONTAINER.getBootstrapServers(), NR_PARTITIONS, TOPICS);
+        KafkaAdminUtils.createTopics(getBootstrapServers(), TOPICS);
+        KafkaAdminUtils.createPartitions(getBootstrapServers(), NR_PARTITIONS, TOPICS);
     }
 
     @AfterAll
     public static void after() {
-        KafkaAdminUtils.deleteTopics(KAFKA_CONTAINER.getBootstrapServers(), TOPICS);
+        KafkaAdminUtils.deleteTopics(getBootstrapServers(), TOPICS);
     }
 
     private static void publishRecordsOnPartitions(Producer<String, String> producer,
@@ -103,8 +103,8 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest extends KafkaContain
 
     @BeforeEach
     void setUp() {
-        producerFactory = producerFactory(KAFKA_CONTAINER.getBootstrapServers());
-        consumerFactory = consumerFactory(KAFKA_CONTAINER.getBootstrapServers());
+        producerFactory = producerFactory(getBootstrapServers());
+        consumerFactory = consumerFactory(getBootstrapServers());
     }
 
     @AfterEach

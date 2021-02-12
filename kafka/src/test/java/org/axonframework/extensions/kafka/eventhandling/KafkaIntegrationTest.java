@@ -65,19 +65,18 @@ class KafkaIntegrationTest extends KafkaContainerTest {
 
     @BeforeAll
     static void before() {
-        bootstrapServer = KAFKA_CONTAINER.getBootstrapServers();
-        KafkaAdminUtils.createTopics(bootstrapServer, TEST_TOPIC);
-        KafkaAdminUtils.createPartitions(bootstrapServer, NR_PARTITIONS, TEST_TOPIC);
+        KafkaAdminUtils.createTopics(getBootstrapServers(), TEST_TOPIC);
+        KafkaAdminUtils.createPartitions(getBootstrapServers(), NR_PARTITIONS, TEST_TOPIC);
     }
 
     @AfterAll
     public static void after() {
-        KafkaAdminUtils.deleteTopics(bootstrapServer, TEST_TOPIC);
+        KafkaAdminUtils.deleteTopics(getBootstrapServers(), TEST_TOPIC);
     }
 
     @BeforeEach
     void setUp() {
-        producerFactory = ProducerConfigUtil.ackProducerFactory(bootstrapServer, ByteArraySerializer.class);
+        producerFactory = ProducerConfigUtil.ackProducerFactory(getBootstrapServers(), ByteArraySerializer.class);
         publisher = KafkaPublisher.<String, byte[]>builder()
                 .producerFactory(producerFactory)
                 .topic(TEST_TOPIC)

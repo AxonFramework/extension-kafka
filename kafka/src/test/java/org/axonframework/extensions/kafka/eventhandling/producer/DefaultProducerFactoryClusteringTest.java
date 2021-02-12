@@ -32,12 +32,12 @@ public class DefaultProducerFactoryClusteringTest extends KafkaContainerClusterT
 
     @BeforeAll
     static void before() {
-        KafkaAdminUtils.createTopics(KAFKA_CLUSTER.getBootstrapServers(), TOPIC);
+        KafkaAdminUtils.createTopics(getBootstrapServers(), TOPIC);
     }
 
     @AfterAll
     public static void after() {
-        KafkaAdminUtils.deleteTopics(KAFKA_CLUSTER.getBootstrapServers(), TOPIC);
+        KafkaAdminUtils.deleteTopics(getBootstrapServers(), TOPIC);
     }
 
     private static Future<RecordMetadata> send(Producer<String, String> producer, String topic, String message) {
@@ -61,7 +61,7 @@ public class DefaultProducerFactoryClusteringTest extends KafkaContainerClusterT
     @Test
     void testCachingTransactionalProducerInstances() {
         ProducerFactory<String, String> producerFactory =
-                transactionalProducerFactory(KAFKA_CLUSTER.getBootstrapServers(), "bar");
+                transactionalProducerFactory(getBootstrapServers(), "bar");
         List<Producer<String, String>> testProducers = new ArrayList<>();
         testProducers.add(producerFactory.createProducer());
 
@@ -78,7 +78,7 @@ public class DefaultProducerFactoryClusteringTest extends KafkaContainerClusterT
     void testSendingMessagesUsingMultipleTransactionalProducers()
             throws ExecutionException, InterruptedException {
         ProducerFactory<String, String> producerFactory =
-                transactionalProducerFactory(KAFKA_CLUSTER.getBootstrapServers(), "xyz");
+                transactionalProducerFactory(getBootstrapServers(), "xyz");
         List<Producer<String, String>> testProducers = new ArrayList<>();
 
         List<Future<RecordMetadata>> results = new ArrayList<>();
@@ -99,7 +99,7 @@ public class DefaultProducerFactoryClusteringTest extends KafkaContainerClusterT
     void testClosingProducerShouldReturnItToCache() {
         ProducerFactory<Object, Object> pf = builder()
                 .producerCacheSize(2)
-                .configuration(minimalTransactional(KAFKA_CLUSTER.getBootstrapServers()))
+                .configuration(minimalTransactional(getBootstrapServers()))
                 .transactionalIdPrefix("cache")
                 .build();
         Producer<Object, Object> first = pf.createProducer();

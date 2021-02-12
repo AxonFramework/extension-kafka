@@ -69,12 +69,12 @@ class AsyncFetcherTest extends KafkaContainerTest {
 
     @BeforeAll
     public static void before() {
-        KafkaAdminUtils.createTopics(KAFKA_CONTAINER.getBootstrapServers(), TEST_TOPIC);
+        KafkaAdminUtils.createTopics(getBootstrapServers(), TEST_TOPIC);
     }
 
     @AfterAll
     public static void after() {
-        KafkaAdminUtils.deleteTopics(KAFKA_CONTAINER.getBootstrapServers(), TEST_TOPIC);
+        KafkaAdminUtils.deleteTopics(getBootstrapServers(), TEST_TOPIC);
     }
 
     private static Consumer<String, String> mockConsumer() {
@@ -164,8 +164,8 @@ class AsyncFetcherTest extends KafkaContainerTest {
         // used topic for this test
         String topic = "testStartFetcherWith_ExistingToken_ShouldStartAtSpecificPositions";
         Integer nrPartitions = 5;
-        KafkaAdminUtils.createTopics(KAFKA_CONTAINER.getBootstrapServers(), topic);
-        KafkaAdminUtils.createPartitions(KAFKA_CONTAINER.getBootstrapServers(), nrPartitions, topic);
+        KafkaAdminUtils.createTopics(getBootstrapServers(), topic);
+        KafkaAdminUtils.createPartitions(getBootstrapServers(), nrPartitions, topic);
 
         int expectedNumberOfMessages = 26;
         CountDownLatch messageCounter = new CountDownLatch(expectedNumberOfMessages);
@@ -187,7 +187,7 @@ class AsyncFetcherTest extends KafkaContainerTest {
         testPositions.put(new TopicPartition(topic, 4), 0L);
         KafkaTrackingToken testStartToken = KafkaTrackingToken.newInstance(testPositions);
 
-        Consumer<String, String> testConsumer = consumerFactory(KAFKA_CONTAINER.getBootstrapServers()).createConsumer(
+        Consumer<String, String> testConsumer = consumerFactory(getBootstrapServers()).createConsumer(
                 DEFAULT_GROUP_ID);
         testConsumer.subscribe(
                 Collections.singletonList(topic),
@@ -213,7 +213,7 @@ class AsyncFetcherTest extends KafkaContainerTest {
                                                            int partitionTwo,
                                                            int partitionThree,
                                                            int partitionFour) {
-        ProducerFactory<String, String> pf = producerFactory(KAFKA_CONTAINER.getBootstrapServers());
+        ProducerFactory<String, String> pf = producerFactory(getBootstrapServers());
         Producer<String, String> producer = pf.createProducer();
         for (int i = 0; i < 10; i++) {
             producer.send(new ProducerRecord<>(topic, partitionZero, null, null, "foo-" + partitionZero + "-" + i));

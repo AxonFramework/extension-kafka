@@ -83,7 +83,6 @@ class KafkaPublisherTest extends KafkaContainerTest {
             "testPublishMessagesKafkaTransactionCannotBeStartedShouldThrowAnException",
             "testPublishMessageKafkaTransactionCannotBeCommittedShouldNotPublishEvents",
             "testSendMessageWithKafkaTransactionRollback"};
-    private static String bootstrapServer;
     private Configurer configurer;
     private SimpleEventBus eventBus;
     private MessageCollector monitor;
@@ -94,13 +93,12 @@ class KafkaPublisherTest extends KafkaContainerTest {
 
     @BeforeAll
     static void before() {
-        bootstrapServer = KAFKA_CONTAINER.getBootstrapServers();
-        KafkaAdminUtils.createTopics(bootstrapServer, TOPICS);
+        KafkaAdminUtils.createTopics(getBootstrapServers(), TOPICS);
     }
 
     @AfterAll
     static void after() {
-        KafkaAdminUtils.deleteTopics(bootstrapServer, TOPICS);
+        KafkaAdminUtils.deleteTopics(getBootstrapServers(), TOPICS);
     }
 
     @SuppressWarnings("unchecked")
@@ -151,7 +149,7 @@ class KafkaPublisherTest extends KafkaContainerTest {
         this.eventBus = SimpleEventBus.builder().build();
         this.monitor = new MessageCollector();
         this.configurer.configureEventBus(configuration -> eventBus);
-        this.consumerFactory = transactionalConsumerFactory(KAFKA_CONTAINER.getBootstrapServers(),
+        this.consumerFactory = transactionalConsumerFactory(getBootstrapServers(),
                                                             ByteArrayDeserializer.class);
         this.testConsumer = mock(Consumer.class);
     }
@@ -170,7 +168,7 @@ class KafkaPublisherTest extends KafkaContainerTest {
     @Test
     void testPublishMessagesWithAckModeNoUnitOfWorkShouldBePublishedAndReadSuccessfully() {
         String testTopic = "testPublishMessagesWithAckModeNoUnitOfWorkShouldBePublishedAndReadSuccessfully";
-        testProducerFactory = ackProducerFactory(bootstrapServer, ByteArraySerializer.class);
+        testProducerFactory = ackProducerFactory(getBootstrapServers(), ByteArraySerializer.class);
         testConsumer = buildConsumer(testTopic);
         testSubject = buildPublisher(testTopic);
 
@@ -218,7 +216,7 @@ class KafkaPublisherTest extends KafkaContainerTest {
         );
 
         String testTopic = "testPublishMessagesWithTransactionalModeNoUnitOfWorkShouldBePublishedAndReadSuccessfully";
-        testProducerFactory = transactionalProducerFactory(bootstrapServer, "foo", ByteArraySerializer.class);
+        testProducerFactory = transactionalProducerFactory(getBootstrapServers(), "foo", ByteArraySerializer.class);
         testConsumer = buildConsumer(testTopic);
         testSubject = buildPublisher(testTopic);
         List<GenericDomainEventMessage<String>> testMessages = domainMessages("62457", 5);
@@ -234,7 +232,7 @@ class KafkaPublisherTest extends KafkaContainerTest {
     @Test
     void testPublishMessagesWithAckModeUnitOfWorkShouldBePublishedAndReadSuccessfully() {
         String testTopic = "testPublishMessagesWithAckModeUnitOfWorkShouldBePublishedAndReadSuccessfully";
-        testProducerFactory = ackProducerFactory(bootstrapServer, ByteArraySerializer.class);
+        testProducerFactory = ackProducerFactory(getBootstrapServers(), ByteArraySerializer.class);
         testConsumer = buildConsumer(testTopic);
         testSubject = buildPublisher(testTopic);
         GenericDomainEventMessage<String> testMessage = domainMessage("1234");
@@ -258,7 +256,7 @@ class KafkaPublisherTest extends KafkaContainerTest {
         );
 
         String testTopic = "testPublishMessagesWithTransactionalModeUnitOfWorkShouldBePublishedAndReadSuccessfully";
-        testProducerFactory = transactionalProducerFactory(bootstrapServer, "foo", ByteArraySerializer.class);
+        testProducerFactory = transactionalProducerFactory(getBootstrapServers(), "foo", ByteArraySerializer.class);
         testConsumer = buildConsumer(testTopic);
         testSubject = buildPublisher(testTopic);
 
@@ -276,7 +274,7 @@ class KafkaPublisherTest extends KafkaContainerTest {
         String expectedException = "Some exception";
 
         String testTopic = "testPublishMessageWithTransactionalModeUnitOfWorkRollbackShouldNeverBePublished";
-        testProducerFactory = transactionalProducerFactory(bootstrapServer, "foo", ByteArraySerializer.class);
+        testProducerFactory = transactionalProducerFactory(getBootstrapServers(), "foo", ByteArraySerializer.class);
         testConsumer = buildConsumer(testTopic);
         testSubject = buildPublisher(testTopic);
 

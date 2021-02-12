@@ -33,6 +33,12 @@ public class KafkaAdminUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
+    /**
+     * Method responsible for creating the topics on the provided kafka address.
+     *
+     * @param bootstrapServer the kafka address
+     * @param topics          a list of topics to be created
+     */
     public static void createTopics(String bootstrapServer, String... topics) {
         try (AdminClient adminClient = AdminClient.create(minimalAdminConfig(bootstrapServer))) {
             CreateTopicsResult topicsCreationResult = adminClient.createTopics(topics(topics));
@@ -42,6 +48,13 @@ public class KafkaAdminUtils {
         }
     }
 
+    /**
+     * Method responsible for creating partitions on given kafka and topics.
+     *
+     * @param bootstrapServer the kafka address
+     * @param nrPartitions    the number os partitios to be created on each topic
+     * @param topics          a list of topics to be created
+     */
     public static void createPartitions(String bootstrapServer, Integer nrPartitions, String... topics) {
         try (AdminClient adminClient = AdminClient.create(minimalAdminConfig(bootstrapServer))) {
             CreatePartitionsResult partitionCreationResult =
@@ -52,6 +65,12 @@ public class KafkaAdminUtils {
         }
     }
 
+    /**
+     * Method responsible for deleting the topics on the provided kafka address.
+     *
+     * @param bootstrapServer the kafka address
+     * @param topics          a list of topics to be deleted
+     */
     public static void deleteTopics(String bootstrapServer, String... topics) {
         try (AdminClient adminClient = AdminClient.create(minimalAdminConfig(bootstrapServer))) {
             DeleteTopicsResult topicsDeletionResult = adminClient.deleteTopics(Arrays.asList(topics));
@@ -69,7 +88,7 @@ public class KafkaAdminUtils {
         }
     }
 
-    public static List<NewTopic> topics(String... topics) {
+    private static List<NewTopic> topics(String... topics) {
         return Arrays.stream(topics)
                      .map(KafkaTopicConfiguration::new)
                      .map(topic -> new NewTopic(topic.getName(),
@@ -78,18 +97,18 @@ public class KafkaAdminUtils {
                      .collect(Collectors.toList());
     }
 
-    public static Map<String, NewPartitions> partitions(Integer nrPartitions, String... topics) {
+    private static Map<String, NewPartitions> partitions(Integer nrPartitions, String... topics) {
         return Stream.of(topics)
                      .collect(Collectors.toMap(Function.identity(), ignored -> NewPartitions.increaseTo(nrPartitions)));
     }
 
-    public static Map<String, Object> minimalAdminConfig(String bootstrapServer) {
+    private static Map<String, Object> minimalAdminConfig(String bootstrapServer) {
         Map<String, Object> configs = new HashMap<>();
         configs.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);
         return configs;
     }
 
-    public static class KafkaTopicConfiguration {
+    static class KafkaTopicConfiguration {
 
         private final String name;
         private final int numPartitions;
@@ -99,10 +118,6 @@ public class KafkaAdminUtils {
             this.name = name;
             this.numPartitions = numPartitions;
             this.replicationFactor = replicationFactor;
-        }
-
-        public KafkaTopicConfiguration(String name, int numPartitions) {
-            this(name, numPartitions, (short) 1);
         }
 
         public KafkaTopicConfiguration(String name) {

@@ -50,17 +50,17 @@ class DefaultConsumerFactoryTest extends KafkaContainerTest {
 
     @BeforeAll
     static void before() {
-        KafkaAdminUtils.createTopics(KAFKA_CONTAINER.getBootstrapServers(), TEST_TOPIC);
+        KafkaAdminUtils.createTopics(getBootstrapServers(), TEST_TOPIC);
     }
 
     @AfterAll
     public static void after() {
-        KafkaAdminUtils.deleteTopics(KAFKA_CONTAINER.getBootstrapServers(), TEST_TOPIC);
+        KafkaAdminUtils.deleteTopics(getBootstrapServers(), TEST_TOPIC);
     }
 
     @BeforeEach
     void setUp() {
-        producerFactory = producerFactory(KAFKA_CONTAINER.getBootstrapServers());
+        producerFactory = producerFactory(getBootstrapServers());
         testConsumer = mock(Consumer.class);
     }
 
