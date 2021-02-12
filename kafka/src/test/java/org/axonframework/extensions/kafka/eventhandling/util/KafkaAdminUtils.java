@@ -8,7 +8,10 @@ import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.clients.admin.NewPartitions;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.KafkaFuture;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.lang.invoke.MethodHandles;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -28,22 +31,24 @@ import java.util.stream.Stream;
  */
 public class KafkaAdminUtils {
 
+    private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+
     public static void createTopics(String bootstrapServer, String... topics) {
         try (AdminClient adminClient = AdminClient.create(minimalAdminConfig(bootstrapServer))) {
             CreateTopicsResult topicsCreationResult = adminClient.createTopics(topics(topics));
             topicsCreationResult.values().values()
                                 .forEach(KafkaAdminUtils::waitForCompletion);
-            System.out.println("Completed topic creation");
+            logger.info("Completed topic creation");
         }
     }
 
     public static void createPartitions(String bootstrapServer, Integer nrPartitions, String... topics) {
         try (AdminClient adminClient = AdminClient.create(minimalAdminConfig(bootstrapServer))) {
-            CreatePartitionsResult partitionCreationResult = adminClient.createPartitions(partitions(nrPartitions,
-                                                                                                     topics));
+            CreatePartitionsResult partitionCreationResult =
+                    adminClient.createPartitions(partitions(nrPartitions, topics));
             partitionCreationResult.values().values()
                                    .forEach(KafkaAdminUtils::waitForCompletion);
-            System.out.println("Completed partition creation");
+            logger.info("Completed partition creation");
         }
     }
 
@@ -52,7 +57,7 @@ public class KafkaAdminUtils {
             DeleteTopicsResult topicsDeletionResult = adminClient.deleteTopics(Arrays.asList(topics));
             topicsDeletionResult.values().values()
                                 .forEach(KafkaAdminUtils::waitForCompletion);
-            System.out.println("Completed topic deletion");
+            logger.info("Completed topic deletion");
         }
     }
 
