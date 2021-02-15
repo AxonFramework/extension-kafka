@@ -19,7 +19,6 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
-import org.springframework.kafka.test.EmbeddedKafkaBroker;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -45,26 +44,26 @@ public abstract class ConsumerConfigUtil {
     /**
      * Build a minimal, transactional {@link ConsumerFactory} to be used during testing only.
      *
-     * @param kafkaBroker       the {@link EmbeddedKafkaBroker} used in the test case
+     * @param bootstrapServer   the Kafka Container address
      * @param valueDeserializer a {@link Class} defining the type of value deserializer to be used
-     * @return a {@link ConsumerFactory} configured with the minimal properties based on the given {@code kafkaBroker}
-     * and {@code valueDeserializer}
+     * @return a {@link ConsumerFactory} configured with the minimal properties based on the given {@code
+     * kafkaContainer} and {@code valueDeserializer}
      */
-    public static ConsumerFactory<String, Object> transactionalConsumerFactory(EmbeddedKafkaBroker kafkaBroker,
+    public static ConsumerFactory<String, Object> transactionalConsumerFactory(String bootstrapServer,
                                                                                Class valueDeserializer) {
-        return new DefaultConsumerFactory<>(minimalTransactional(kafkaBroker, valueDeserializer));
+        return new DefaultConsumerFactory<>(minimalTransactional(bootstrapServer, valueDeserializer));
     }
 
     /**
      * Build a minimal, transactional, {@link org.apache.kafka.clients.consumer.Consumer} configuration {@link Map}
      *
-     * @param kafkaBroker       the {@link EmbeddedKafkaBroker} used in the test case
+     * @param bootstrapServer   the Kafka Container address
      * @param valueDeserializer a {@link Class} defining the type of value deserializer to be used
      * @return a minimal, transactional, {@link org.apache.kafka.clients.consumer.Consumer} configuration {@link Map}
      */
     @SuppressWarnings("WeakerAccess")
-    public static Map<String, Object> minimalTransactional(EmbeddedKafkaBroker kafkaBroker, Class valueDeserializer) {
-        Map<String, Object> configs = minimal(kafkaBroker, valueDeserializer);
+    public static Map<String, Object> minimalTransactional(String bootstrapServer, Class valueDeserializer) {
+        Map<String, Object> configs = minimal(bootstrapServer, valueDeserializer);
         configs.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
         return configs;
     }
@@ -72,33 +71,34 @@ public abstract class ConsumerConfigUtil {
     /**
      * Build a minimal {@link ConsumerFactory} to be used during testing only.
      *
-     * @param kafkaBroker the {@link EmbeddedKafkaBroker} used in the test case
-     * @return a {@link ConsumerFactory} configured with the minimal properties based on the given {@code kafkaBroker}
+     * @param bootstrapServer the Kafka Container address
+     * @return a {@link ConsumerFactory} configured with the minimal properties based on the given {@code
+     * kafkaContainer}
      */
-    public static ConsumerFactory<String, String> consumerFactory(EmbeddedKafkaBroker kafkaBroker) {
-        return new DefaultConsumerFactory<>(minimal(kafkaBroker));
+    public static ConsumerFactory<String, String> consumerFactory(String bootstrapServer) {
+        return new DefaultConsumerFactory<>(minimal(bootstrapServer));
     }
 
     /**
      * Build a minimal {@link org.apache.kafka.clients.consumer.Consumer} configuration {@link Map}
      *
-     * @param kafkaBroker the {@link EmbeddedKafkaBroker} used in the test case
+     * @param bootstrapServer the Kafka Container address
      * @return a minimal {@link org.apache.kafka.clients.consumer.Consumer} configuration {@link Map}
      */
-    public static Map<String, Object> minimal(EmbeddedKafkaBroker kafkaBroker) {
-        return minimal(kafkaBroker, StringDeserializer.class);
+    public static Map<String, Object> minimal(String bootstrapServer) {
+        return minimal(bootstrapServer, StringDeserializer.class);
     }
 
     /**
      * Build a minimal {@link org.apache.kafka.clients.consumer.Consumer} configuration {@link Map}
      *
-     * @param kafkaBroker       the {@link EmbeddedKafkaBroker} used in the test case
+     * @param bootstrapServer   the Kafka Container address
      * @param valueDeserializer a {@link Class} defining the type of value deserializer to be used
      * @return a minimal {@link org.apache.kafka.clients.consumer.Consumer} configuration {@link Map}
      */
-    public static Map<String, Object> minimal(EmbeddedKafkaBroker kafkaBroker, Class valueDeserializer) {
+    public static Map<String, Object> minimal(String bootstrapServer, Class valueDeserializer) {
         Map<String, Object> config = new HashMap<>();
-        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBroker.getBrokersAsString());
+        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDeserializer);
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");

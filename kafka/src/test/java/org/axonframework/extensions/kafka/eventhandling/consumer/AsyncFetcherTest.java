@@ -32,13 +32,9 @@ import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.Stre
 import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.TrackingRecordConverter;
 import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.TrackingTokenConsumerRebalanceListener;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
+import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
+import org.axonframework.extensions.kafka.eventhandling.util.KafkaContainerTest;
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.extension.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.kafka.test.EmbeddedKafkaBroker;
-import org.springframework.kafka.test.context.EmbeddedKafka;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -50,7 +46,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.consumerFactory;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.producerFactory;
@@ -63,19 +58,57 @@ import static org.mockito.Mockito.*;
  * @author Nakul Mishra
  * @author Steven van Beelen
  */
-@DirtiesContext
-@ExtendWith(SpringExtension.class)
-@EmbeddedKafka(topics = {"testStartFetcherWith_ExistingToken_ShouldStartAtSpecificPositions"}, partitions = 5)
-class AsyncFetcherTest {
+
+class AsyncFetcherTest extends KafkaContainerTest {
 
     private static final String TEST_TOPIC = "some-topic";
     private static final int TEST_PARTITION = 0;
 
-    @SuppressWarnings("SpringJavaAutowiredMembersInspection")
-    @Autowired
-    private EmbeddedKafkaBroker kafkaBroker;
-
     private AsyncFetcher<String, String, KafkaEventMessage> testSubject;
+
+    @BeforeAll
+    public static void before() {
+        KafkaAdminUtils.createTopics(getBootstrapServers(), TEST_TOPIC);
+    }
+
+    @AfterAll
+    public static void after() {
+        KafkaAdminUtils.deleteTopics(getBootstrapServers(), TEST_TOPIC);
+    }
+
+    private static Consumer<String, String> mockConsumer() {
+        TopicPartition topicPartition = new TopicPartition(TEST_TOPIC, TEST_PARTITION);
+        List<ConsumerRecord<String, String>> consumerRecords =
+                Collections.singletonList(new ConsumerRecord<>(TEST_TOPIC, TEST_PARTITION, 0, null, "some-value"));
+        ConsumerRecords<String, String> records =
+                new ConsumerRecords<>(Collections.singletonMap(topicPartition, consumerRecords));
+
+        //noinspection unchecked
+        Consumer<String, String> consumer = mock(Consumer.class);
+        when(consumer.poll(any(Duration.class))).thenReturn(records);
+        return consumer;
+    }
+
+    private static void assertMessagesCountPerPartition(int expectedMessages,
+                                                        int partitionZero,
+                                                        int partitionOne,
+                                                        int partitionTwo,
+                                                        int partitionThree,
+                                                        int partitionFour,
+                                                        SortedKafkaMessageBuffer<KafkaEventMessage> buffer
+    ) throws InterruptedException {
+        Map<Integer, Integer> received = new HashMap<>();
+        for (int i = 0; i < expectedMessages; i++) {
+            KafkaEventMessage m = buffer.take();
+            received.putIfAbsent(m.partition(), 0);
+            received.put(m.partition(), received.get(m.partition()) + 1);
+        }
+        assertEquals(4, received.get(partitionZero));
+        assertEquals(8,received.get(partitionOne));
+        assertNull(received.get(partitionTwo));
+        assertEquals(5, received.get(partitionThree));
+        assertEquals(9, received.get(partitionFour));
+    }
 
     @BeforeEach
     void setUp() {
@@ -115,20 +148,7 @@ class AsyncFetcherTest {
 
         messageCounter.await();
 
-        assertThat(testBuffer.size()).isEqualTo(expectedNumberOfMessages);
-    }
-
-    private static Consumer<String, String> mockConsumer() {
-        TopicPartition topicPartition = new TopicPartition(TEST_TOPIC, TEST_PARTITION);
-        List<ConsumerRecord<String, String>> consumerRecords =
-                Collections.singletonList(new ConsumerRecord<>(TEST_TOPIC, TEST_PARTITION, 0, null, "some-value"));
-        ConsumerRecords<String, String> records =
-                new ConsumerRecords<>(Collections.singletonMap(topicPartition, consumerRecords));
-
-        //noinspection unchecked
-        Consumer<String, String> consumer = mock(Consumer.class);
-        when(consumer.poll(any(Duration.class))).thenReturn(records);
-        return consumer;
+        assertEquals(expectedNumberOfMessages, testBuffer.size());
     }
 
     /**
@@ -140,30 +160,36 @@ class AsyncFetcherTest {
     @Test
     @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
     void testStartFetcherWithExistingTokenShouldStartAtSpecificPositions() throws InterruptedException {
+        // used topic for this test
+        String topic = "testStartFetcherWith_ExistingToken_ShouldStartAtSpecificPositions";
+        Integer nrPartitions = 5;
+        KafkaAdminUtils.createTopics(getBootstrapServers(), topic);
+        KafkaAdminUtils.createPartitions(getBootstrapServers(), nrPartitions, topic);
+
         int expectedNumberOfMessages = 26;
         CountDownLatch messageCounter = new CountDownLatch(expectedNumberOfMessages);
 
-        String testTopic = "testStartFetcherWith_ExistingToken_ShouldStartAtSpecificPositions";
         int p0 = 0;
         int p1 = 1;
         int p2 = 2;
         int p3 = 3;
         int p4 = 4;
-        ProducerFactory<String, String> producerFactory = publishRecords(testTopic, p0, p1, p2, p3, p4);
+        ProducerFactory<String, String> producerFactory = publishRecords(topic, p0, p1, p2, p3, p4);
         SortedKafkaMessageBuffer<KafkaEventMessage> testBuffer =
                 new LatchedSortedKafkaMessageBuffer<>(expectedNumberOfMessages, messageCounter);
 
         Map<TopicPartition, Long> testPositions = new HashMap<>();
-        testPositions.put(new TopicPartition(testTopic, 0), 5L);
-        testPositions.put(new TopicPartition(testTopic, 1), 1L);
-        testPositions.put(new TopicPartition(testTopic, 2), 9L);
-        testPositions.put(new TopicPartition(testTopic, 3), 4L);
-        testPositions.put(new TopicPartition(testTopic, 4), 0L);
+        testPositions.put(new TopicPartition(topic, 0), 5L);
+        testPositions.put(new TopicPartition(topic, 1), 1L);
+        testPositions.put(new TopicPartition(topic, 2), 9L);
+        testPositions.put(new TopicPartition(topic, 3), 4L);
+        testPositions.put(new TopicPartition(topic, 4), 0L);
         KafkaTrackingToken testStartToken = KafkaTrackingToken.newInstance(testPositions);
 
-        Consumer<String, String> testConsumer = consumerFactory(kafkaBroker).createConsumer(DEFAULT_GROUP_ID);
+        Consumer<String, String> testConsumer = consumerFactory(getBootstrapServers()).createConsumer(
+                DEFAULT_GROUP_ID);
         testConsumer.subscribe(
-                Collections.singletonList(testTopic),
+                Collections.singletonList(topic),
                 new TrackingTokenConsumerRebalanceListener<>(testConsumer, () -> testStartToken)
         );
 
@@ -174,7 +200,7 @@ class AsyncFetcherTest {
         );
 
         messageCounter.await();
-        assertThat(testBuffer.size()).isEqualTo(expectedNumberOfMessages);
+        assertEquals(expectedNumberOfMessages, testBuffer.size());
         assertMessagesCountPerPartition(expectedNumberOfMessages, p0, p1, p2, p3, p4, testBuffer);
 
         producerFactory.shutDown();
@@ -186,7 +212,7 @@ class AsyncFetcherTest {
                                                            int partitionTwo,
                                                            int partitionThree,
                                                            int partitionFour) {
-        ProducerFactory<String, String> pf = producerFactory(kafkaBroker);
+        ProducerFactory<String, String> pf = producerFactory(getBootstrapServers());
         Producer<String, String> producer = pf.createProducer();
         for (int i = 0; i < 10; i++) {
             producer.send(new ProducerRecord<>(topic, partitionZero, null, null, "foo-" + partitionZero + "-" + i));
@@ -197,27 +223,6 @@ class AsyncFetcherTest {
         }
         producer.flush();
         return pf;
-    }
-
-    private static void assertMessagesCountPerPartition(int expectedMessages,
-                                                        int partitionZero,
-                                                        int partitionOne,
-                                                        int partitionTwo,
-                                                        int partitionThree,
-                                                        int partitionFour,
-                                                        SortedKafkaMessageBuffer<KafkaEventMessage> buffer
-    ) throws InterruptedException {
-        Map<Integer, Integer> received = new HashMap<>();
-        for (int i = 0; i < expectedMessages; i++) {
-            KafkaEventMessage m = buffer.take();
-            received.putIfAbsent(m.partition(), 0);
-            received.put(m.partition(), received.get(m.partition()) + 1);
-        }
-        assertThat(received.get(partitionZero)).isEqualTo(4);
-        assertThat(received.get(partitionOne)).isEqualTo(8);
-        assertThat(received.get(partitionTwo)).isNull();
-        assertThat(received.get(partitionThree)).isEqualTo(5);
-        assertThat(received.get(partitionFour)).isEqualTo(9);
     }
 
     /**

@@ -16,6 +16,8 @@
 
 package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
+import org.junit.jupiter.api.*;
+
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -33,9 +35,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.axonframework.eventhandling.EventUtils.asTrackedEventMessage;
 import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for {@link SortedKafkaMessageBuffer}.
@@ -43,78 +45,6 @@ import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage
  * @author Nakul Mishra.
  */
 public class SortedKafkaMessageBufferTest extends JSR166TestCase {
-
-    public void testCreateBufferWithNonPositiveCapacity() {
-        try {
-            new SortedKafkaMessageBuffer<>(-1);
-            shouldThrow();
-        } catch (IllegalArgumentException success) {
-            // Test is successful in case exception is thrown
-        }
-    }
-
-    public void testPutInvalidMessageInABuffer() throws InterruptedException {
-        try {
-            new SortedKafkaMessageBuffer<>().put(null);
-            shouldThrow();
-        } catch (IllegalArgumentException success) {
-            // Test is successful in case exception is thrown
-        }
-    }
-
-    /**
-     * A new buffer has the indicated capacity
-     */
-    public void testCreateBuffer() {
-        assertThat(new SortedKafkaMessageBuffer(SIZE).remainingCapacity()).isEqualTo(SIZE);
-    }
-
-    /**
-     * Queue transitions from empty to full when elements added
-     */
-    public void testEmptyFull() {
-        SortedKafkaMessageBuffer<KafkaEventMessage> buff = populatedBuffer(0, 2, 2);
-        assertThat(buff.isEmpty()).isTrue();
-        assertEquals(2, buff.remainingCapacity());
-        try {
-            buff.put(message(0, 0, 0, "m0"));
-            buff.put(message(0, 0, 0, "m1"));
-            assertThat(buff.remainingCapacity()).isOne();
-            assertThat(buff.isEmpty()).isFalse();
-            buff.put(message(0, 1, 1, "m1"));
-            assertThat(buff.isEmpty()).isFalse();
-            assertThat(buff.remainingCapacity()).isZero();
-        } catch (InterruptedException failure) {
-            failure.printStackTrace();
-        }
-    }
-
-    public void testIsEmpty() {
-        SortedKafkaMessageBuffer<? extends Comparable> buff = new SortedKafkaMessageBuffer<>();
-        assertThat(buff.isEmpty()).isTrue();
-        assertThat(buff.size()).isZero();
-    }
-
-    /**
-     * remainingCapacity decreases on add, increases on remove
-     */
-    public void testRemainingCapacity() throws InterruptedException {
-        int size = ThreadLocalRandom.current().nextInt(1, SIZE);
-        SortedKafkaMessageBuffer<KafkaEventMessage> buff = populatedBuffer(size, size, 2 * size);
-        int spare = buff.remainingCapacity();
-        int capacity = spare + size;
-        for (int i = 0; i < size; i++) {
-            assertThat(buff.remainingCapacity()).isEqualTo(spare + i);
-            assertThat(buff.size() + buff.remainingCapacity()).isEqualTo(capacity);
-            assertThat(buff.take()).isNotNull();
-        }
-        for (int i = 0; i < size; i++) {
-            assertThat(buff.remainingCapacity()).isEqualTo(capacity - i);
-            assertThat(buff.size() + buff.remainingCapacity()).isEqualTo(capacity);
-            buff.put(message(0, i, i, "a"));
-            assertThat(buff.peek()).isNotNull();
-        }
-    }
 
     private static SortedKafkaMessageBuffer<KafkaEventMessage> populatedBuffer(int size,
                                                                                int minCapacity,
@@ -142,12 +72,114 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
             assertEquals(capacity - size, buff.remainingCapacity());
             assertEquals(size, buff.size());
             if (size > 0) {
-                assertThat(buff.peek()).isNotNull();
+                assertNotNull(buff.peek());
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
         return buff;
+    }
+
+    private static void concurrent(@SuppressWarnings("SameParameterValue") int noOfThreads,
+                                   Runnable task) throws Throwable {
+        CyclicBarrier barrier = new CyclicBarrier(noOfThreads + 1);
+        ExecutorService pool = Executors.newFixedThreadPool(noOfThreads);
+        Collection<Future<Void>> futures = new LinkedList<>();
+        for (int i = 0; i < noOfThreads; i++) {
+            futures.add(pool.submit(() -> {
+                barrier.await();
+                task.run();
+                return null;
+            }));
+        }
+        barrier.await();
+        pool.shutdown();
+
+        for (Future<Void> future : futures) {
+            try {
+                future.get(1, TimeUnit.MINUTES);
+            } catch (ExecutionException e) {
+                if (isAssertionError(e)) {
+                    throw e.getCause();
+                }
+                throw e.getCause();
+            } catch (TimeoutException e) {
+                fail("Updates took to long.");
+            }
+        }
+        //Test should complete in max 1 Minute.
+        Assertions.assertTrue(pool.awaitTermination(1, TimeUnit.MINUTES),
+                              "Excepted to finish in a minute but took longer");
+    }
+
+    private static boolean isAssertionError(ExecutionException e) {
+        return e.getCause() instanceof AssertionError;
+    }
+
+    private static KafkaEventMessage message(int partition, int offset, int timestamp, String value) {
+        return new KafkaEventMessage(asTrackedEventMessage(asEventMessage(value), null), partition, offset, timestamp);
+    }
+
+    public void testCreateBufferWithNonPositiveCapacity() {
+        assertThrows(IllegalArgumentException.class, () -> new SortedKafkaMessageBuffer<>(-1));
+    }
+
+    public void testPutInvalidMessageInABuffer() throws InterruptedException {
+        assertThrows(IllegalArgumentException.class, () -> new SortedKafkaMessageBuffer<>().put(null));
+    }
+
+    /**
+     * A new buffer has the indicated capacity
+     */
+    public void testCreateBuffer() {
+        assertEquals(SIZE, new SortedKafkaMessageBuffer(SIZE).remainingCapacity());
+    }
+
+    /**
+     * Queue transitions from empty to full when elements added
+     */
+    public void testEmptyFull() {
+        SortedKafkaMessageBuffer<KafkaEventMessage> buff = populatedBuffer(0, 2, 2);
+        assertTrue(buff.isEmpty());
+        assertEquals(2, buff.remainingCapacity());
+        try {
+            buff.put(message(0, 0, 0, "m0"));
+            buff.put(message(0, 0, 0, "m1"));
+            assertEquals(1, buff.remainingCapacity());
+            assertFalse(buff.isEmpty());
+            buff.put(message(0, 1, 1, "m1"));
+            assertFalse(buff.isEmpty());
+            assertEquals(0, buff.remainingCapacity());
+        } catch (InterruptedException failure) {
+            failure.printStackTrace();
+        }
+    }
+
+    public void testIsEmpty() {
+        SortedKafkaMessageBuffer<? extends Comparable> buff = new SortedKafkaMessageBuffer<>();
+        assertTrue(buff.isEmpty());
+        assertEquals(0, buff.size());
+    }
+
+    /**
+     * remainingCapacity decreases on add, increases on remove
+     */
+    public void testRemainingCapacity() throws InterruptedException {
+        int size = ThreadLocalRandom.current().nextInt(1, SIZE);
+        SortedKafkaMessageBuffer<KafkaEventMessage> buff = populatedBuffer(size, size, 2 * size);
+        int spare = buff.remainingCapacity();
+        int capacity = spare + size;
+        for (int i = 0; i < size; i++) {
+            assertEquals(spare + i, buff.remainingCapacity());
+            assertEquals(capacity, buff.size() + buff.remainingCapacity());
+            assertNotNull(buff.take());
+        }
+        for (int i = 0; i < size; i++) {
+            assertEquals(capacity - i, buff.remainingCapacity());
+            assertEquals(capacity, buff.size() + buff.remainingCapacity());
+            buff.put(message(0, i, i, "a"));
+            assertNotNull(buff.peek());
+        }
     }
 
     /**
@@ -161,27 +193,17 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
                 for (int i = 0; i < SIZE; ++i) {
                     buff.put(message(i, i, i, "m"));
                 }
-                assertThat(buff.size()).isEqualTo(SIZE);
-                assertThat(buff.remainingCapacity()).isZero();
+                assertEquals(SIZE, buff.size());
+                assertEquals(0, buff.remainingCapacity());
 
                 Thread.currentThread().interrupt();
-                try {
-                    buff.put(message(99, 99, 99, "m"));
-                    shouldThrow();
-                } catch (InterruptedException success) {
-                    // Test is successful in case exception is thrown
-                }
+                assertThrows(InterruptedException.class, () -> buff.put(message(99, 99, 99, "m")));
 
-                assertThat(Thread.interrupted()).isFalse();
+                assertFalse(Thread.interrupted());
 
                 pleaseInterrupt.countDown();
-                try {
-                    buff.put(message(99, 99, 99, "m"));
-                    shouldThrow();
-                } catch (InterruptedException success) {
-                    // Ignored exception
-                }
-                assertThat(Thread.interrupted()).isFalse();
+                assertThrows(InterruptedException.class, () -> buff.put(message(99, 99, 99, "m")));
+                assertFalse(Thread.interrupted());
             }
         });
 
@@ -189,8 +211,8 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
         assertThreadBlocks(t, Thread.State.WAITING);
         t.interrupt();
         awaitTermination(t);
-        assertThat(SIZE).isEqualTo(buff.size());
-        assertThat(buff.remainingCapacity()).isZero();
+        assertEquals(SIZE, buff.size());
+        assertEquals(0, buff.remainingCapacity());
     }
 
     /**
@@ -231,14 +253,14 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
         SortedKafkaMessageBuffer<KafkaEventMessage> buffer = new SortedKafkaMessageBuffer<>();
         for (int i = 0; i < messages.size(); i++) {
             buffer.put(messages.get(i));
-            assertThat(buffer.size()).isEqualTo(i + 1);
+            assertEquals(i + 1, buffer.size());
         }
         for (int i = 0; i < messages.size(); i++) {
             Object payload = buffer.poll(0, NANOSECONDS).value().getPayload();
-            assertThat(payload).isEqualTo("m" + i);
-            assertThat(buffer.size()).isEqualTo(messages.size() - (i + 1));
+            assertEquals("m" + i, payload);
+            assertEquals(messages.size() - (i + 1), buffer.size());
         }
-        assertThat(buffer.isEmpty()).isTrue();
+        assertTrue(buffer.isEmpty());
     }
 
     public void testPutAndTakeTimestampOrdering() throws InterruptedException {
@@ -257,31 +279,31 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
         SortedKafkaMessageBuffer<KafkaEventMessage> buffer = new SortedKafkaMessageBuffer<>();
         for (int i = 0; i < messages.size(); i++) {
             buffer.put(messages.get(i));
-            assertThat(buffer.size()).isEqualTo(i + 1);
+            assertEquals(i + 1, buffer.size());
         }
         for (int i = 0; i < messages.size(); i++) {
             Object payload = buffer.take().value().getPayload();
-            assertThat(payload).isEqualTo("m" + i);
-            assertThat(buffer.size()).isEqualTo(messages.size() - (i + 1));
+            assertEquals("m" + i, payload);
+            assertEquals(messages.size() - (i + 1), buffer.size());
         }
-        assertThat(buffer.isEmpty()).isTrue();
+        assertTrue(buffer.isEmpty());
     }
 
     public void testPutAndPollProgressiveBuffer() throws InterruptedException {
         SortedKafkaMessageBuffer<KafkaEventMessage> buffer = new SortedKafkaMessageBuffer<>();
-        assertThat(buffer.poll(10, NANOSECONDS)).isNull();
+        assertNull(buffer.poll(10, NANOSECONDS));
         buffer.put(message(0, 10, 10, "m10"));
         buffer.put(message(0, 11, 11, "m11"));
         buffer.put(message(1, 20, 5, "m5"));
         buffer.put(message(100, 0, 0, "m0"));
-        assertThat(buffer.poll(0, NANOSECONDS).value().getPayload()).isEqualTo("m0");
-        assertThat(buffer.poll(0, NANOSECONDS).value().getPayload()).isEqualTo("m5");
+        assertEquals("m0", buffer.poll(0, NANOSECONDS).value().getPayload());
+        assertEquals("m5", buffer.poll(0, NANOSECONDS).value().getPayload());
         buffer.put(message(0, 9, 9, "m9"));
-        assertThat(buffer.poll(0, NANOSECONDS).value().getPayload()).isEqualTo("m9");
-        assertThat(buffer.poll(0, NANOSECONDS).value().getPayload()).isEqualTo("m10");
-        assertThat(buffer.poll(0, NANOSECONDS).value().getPayload()).isEqualTo("m11");
+        assertEquals("m9", buffer.poll(0, NANOSECONDS).value().getPayload());
+        assertEquals("m10", buffer.poll(0, NANOSECONDS).value().getPayload());
+        assertEquals("m11", buffer.poll(0, NANOSECONDS).value().getPayload());
         //noinspection unchecked
-        assertThat(new SortedKafkaMessageBuffer<>().poll(0, NANOSECONDS)).isNull();
+        assertNull(new SortedKafkaMessageBuffer<>().poll(0, NANOSECONDS));
     }
 
     public void testPutAndTakeProgressiveBuffer() throws InterruptedException {
@@ -290,14 +312,14 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
         buffer.put(message(0, 11, 11, "m11"));
         buffer.put(message(1, 20, 5, "m5"));
         buffer.put(message(100, 0, 0, "m0"));
-        assertThat(buffer.take().value().getPayload()).isEqualTo("m0");
-        assertThat(buffer.take().value().getPayload()).isEqualTo("m5");
+        assertEquals("m0", buffer.take().value().getPayload());
+        assertEquals("m5", buffer.take().value().getPayload());
         buffer.put(message(0, 9, 9, "m9"));
-        assertThat(buffer.take().value().getPayload()).isEqualTo("m9");
-        assertThat(buffer.take().value().getPayload()).isEqualTo("m10");
-        assertThat(buffer.take().value().getPayload()).isEqualTo("m11");
+        assertEquals("m9", buffer.take().value().getPayload());
+        assertEquals("m10", buffer.take().value().getPayload());
+        assertEquals("m11", buffer.take().value().getPayload());
         //noinspection unchecked
-        assertThat(new SortedKafkaMessageBuffer<>().poll(0, NANOSECONDS)).isNull();
+        assertNull(new SortedKafkaMessageBuffer<>().poll(0, NANOSECONDS));
     }
 
     public void testPutAndPollMessagesPublishedAtSameTimeOnSamePartition() throws InterruptedException {
@@ -307,14 +329,14 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
         SortedKafkaMessageBuffer<KafkaEventMessage> buffer = new SortedKafkaMessageBuffer<>();
         for (int i = 0; i < messages.size(); i++) {
             buffer.put(messages.get(i));
-            assertThat(buffer.size()).isEqualTo(i + 1);
+            assertEquals(i + 1, buffer.size());
         }
         for (int i = 0; i < messages.size(); i++) {
             Object payload = buffer.poll(0, NANOSECONDS).value().getPayload();
-            assertThat(payload).isEqualTo("m" + i);
-            assertThat(buffer.size()).isEqualTo(messages.size() - (i + 1));
+            assertEquals("m" + i, payload);
+            assertEquals(messages.size() - (i + 1), buffer.size());
         }
-        assertThat(buffer.isEmpty()).isTrue();
+        assertTrue(buffer.isEmpty());
     }
 
     public void testPutAndTakeMessagesPublishedAtSameTimeOnSamePartition() throws InterruptedException {
@@ -324,14 +346,14 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
         SortedKafkaMessageBuffer<KafkaEventMessage> buffer = new SortedKafkaMessageBuffer<>();
         for (int i = 0; i < messages.size(); i++) {
             buffer.put(messages.get(i));
-            assertThat(buffer.size()).isEqualTo(i + 1);
+            assertEquals(i + 1, buffer.size());
         }
         for (int i = 0; i < messages.size(); i++) {
             Object payload = buffer.take().value().getPayload();
-            assertThat(payload).isEqualTo("m" + i);
-            assertThat(buffer.size()).isEqualTo(messages.size() - (i + 1));
+            assertEquals("m" + i, payload);
+            assertEquals(messages.size() - (i + 1), buffer.size());
         }
-        assertThat(buffer.isEmpty()).isTrue();
+        assertTrue(buffer.isEmpty());
     }
 
     public void testPutAndPollMessagesPublishedAtSameTimeAcrossDifferentPartitions() throws InterruptedException {
@@ -341,14 +363,14 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
         SortedKafkaMessageBuffer<KafkaEventMessage> buffer = new SortedKafkaMessageBuffer<>();
         for (int i = 0; i < messages.size(); i++) {
             buffer.put(messages.get(i));
-            assertThat(buffer.size()).isEqualTo(i + 1);
+            assertEquals(i + 1, buffer.size());
         }
         for (int i = 0; i < messages.size(); i++) {
             Object payload = buffer.poll(0, NANOSECONDS).value().getPayload();
-            assertThat(payload).isEqualTo("m" + i);
-            assertThat(buffer.size()).isEqualTo(messages.size() - (i + 1));
+            assertEquals("m" + i, payload);
+            assertEquals(messages.size() - (i + 1), buffer.size());
         }
-        assertThat(buffer.isEmpty()).isTrue();
+        assertTrue(buffer.isEmpty());
     }
 
     public void testPutAndTakeMessagesPublishedAtSameTimeAcrossDifferentPartitions()
@@ -359,48 +381,48 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
         SortedKafkaMessageBuffer<KafkaEventMessage> buffer = new SortedKafkaMessageBuffer<>();
         for (int i = 0; i < messages.size(); i++) {
             buffer.put(messages.get(i));
-            assertThat(buffer.size()).isEqualTo(i + 1);
+            assertEquals(i + 1, buffer.size());
         }
         for (int i = 0; i < messages.size(); i++) {
             Object payload = buffer.take().value().getPayload();
-            assertThat(payload).isEqualTo("m" + i);
-            assertThat(buffer.size()).isEqualTo(messages.size() - (i + 1));
+            assertEquals("m" + i, payload);
+            assertEquals(messages.size() - (i + 1), buffer.size());
         }
-        assertThat(buffer.isEmpty()).isTrue();
+        assertTrue(buffer.isEmpty());
     }
 
     public void testPeekAndPollProgressiveBuffer() throws InterruptedException {
         SortedKafkaMessageBuffer<KafkaEventMessage> buffer = new SortedKafkaMessageBuffer<>();
-        assertThat(buffer.peek()).isNull();
+        assertNull(buffer.peek());
         //insert two messages - timestamp in ASCENDING order
         buffer.put(message(0, 10, 10, "m10"));
-        assertThat(buffer.peek().value().getPayload()).isEqualTo(("m10"));
+        assertEquals("m10", buffer.peek().value().getPayload());
         buffer.put(message(0, 11, 11, "m11"));
-        assertThat(buffer.peek().value().getPayload()).isEqualTo(("m10"));
+        assertEquals("m10", buffer.peek().value().getPayload());
         //insert two messages - timestamp in DESCENDING order
         buffer.put(message(1, 20, 5, "m5"));
-        assertThat(buffer.peek().value().getPayload()).isEqualTo(("m5"));
+        assertEquals("m5", buffer.peek().value().getPayload());
         buffer.put(message(100, 0, 0, "m0"));
-        assertThat(buffer.peek().value().getPayload()).isEqualTo(("m0"));
+        assertEquals("m0", buffer.peek().value().getPayload());
         //remove m0
-        assertThat(buffer.poll(0, NANOSECONDS).value().getPayload()).isEqualTo("m0");
-        assertThat(buffer.peek().value().getPayload()).isEqualTo(("m5"));
+        assertEquals("m0", buffer.poll(0, NANOSECONDS).value().getPayload());
+        assertEquals("m5", buffer.peek().value().getPayload());
         //remove m5
-        assertThat(buffer.poll(0, NANOSECONDS).value().getPayload()).isEqualTo("m5");
-        assertThat(buffer.peek().value().getPayload()).isEqualTo(("m10"));
+        assertEquals("m5", buffer.poll(0, NANOSECONDS).value().getPayload());
+        assertEquals("m10", buffer.peek().value().getPayload());
         //add m9
         buffer.put(message(0, 9, 9, "m9"));
-        assertThat(buffer.peek().value().getPayload()).isEqualTo(("m9"));
+        assertEquals("m9", buffer.peek().value().getPayload());
         //remove m9
-        assertThat(buffer.poll(0, NANOSECONDS).value().getPayload()).isEqualTo("m9");
-        assertThat(buffer.peek().value().getPayload()).isEqualTo(("m10"));
+        assertEquals("m9", buffer.poll(0, NANOSECONDS).value().getPayload());
+        assertEquals("m10", buffer.peek().value().getPayload());
         //remove m10
-        assertThat(buffer.poll(0, NANOSECONDS).value().getPayload()).isEqualTo("m10");
-        assertThat(buffer.peek().value().getPayload()).isEqualTo(("m11"));
+        assertEquals("m10", buffer.poll(0, NANOSECONDS).value().getPayload());
+        assertEquals("m11", buffer.peek().value().getPayload());
         //finally remove last message(m11)
-        assertThat(buffer.poll(0, NANOSECONDS).value().getPayload()).isEqualTo("m11");
-        assertThat(buffer.peek()).isNull();
-        assertThat(buffer.isEmpty()).isTrue();
+        assertEquals("m11", buffer.poll(0, NANOSECONDS).value().getPayload());
+        assertNull(buffer.peek());
+        assertTrue(buffer.isEmpty());
     }
 
     public void testPeekMessagesPublishedAtTheSameTimeAcrossDifferentPartitions() throws InterruptedException {
@@ -410,17 +432,17 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
                                                   message(1, 0, 1, "m2")
         );
         //noinspection unchecked
-        assertThat(new SortedKafkaMessageBuffer<>().peek()).isNull();
+        assertNull(new SortedKafkaMessageBuffer<>().peek());
         for (KafkaEventMessage message : messages) {
             buffer.put(message);
         }
-        assertThat(buffer.peek().value().getPayload()).isEqualTo("m0");
+        assertEquals("m0", buffer.peek().value().getPayload());
         buffer.poll(0, NANOSECONDS);
-        assertThat(buffer.peek().value().getPayload()).isEqualTo("m2");
+        assertEquals("m2", buffer.peek().value().getPayload());
         buffer.poll(0, NANOSECONDS);
-        assertThat(buffer.peek().value().getPayload()).isEqualTo("m1");
+        assertEquals("m1", buffer.peek().value().getPayload());
         buffer.poll(0, NANOSECONDS);
-        assertThat(buffer.isEmpty()).isTrue();
+        assertTrue(buffer.isEmpty());
     }
 
     public void testPollOffsetOrdering() throws InterruptedException {
@@ -442,10 +464,9 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
                                                  message(0, 1, 2, "m-p0-1"));
 
         for (int i = 0; i < messages.size(); i++) {
-            assertThat(buffer.poll(0, MILLISECONDS).value().getPayload())
-                    .isEqualTo(ordered.get(i).value().getPayload());
+            assertEquals(ordered.get(i).value().getPayload(), buffer.poll(0, MILLISECONDS).value().getPayload());
         }
-        assertThat(buffer.isEmpty()).isTrue();
+        assertTrue(buffer.isEmpty());
     }
 
     public void testTakeOffsetOrdering() throws InterruptedException {
@@ -467,21 +488,16 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
                                                  message(0, 1, 2, "m-p0-1"));
 
         for (int i = 0; i < messages.size(); i++) {
-            assertThat(buffer.take().value().getPayload()).isEqualTo(ordered.get(i).value().getPayload());
+            assertEquals(ordered.get(i).value().getPayload(), buffer.take().value().getPayload());
         }
-        assertThat(buffer.isEmpty()).isTrue();
+        assertTrue(buffer.isEmpty());
     }
 
     public void testPollOnAnInterruptedStream() {
         try {
             SortedKafkaMessageBuffer<KafkaEventMessage> buffer = new SortedKafkaMessageBuffer<>();
             Thread.currentThread().interrupt();
-            try {
-                buffer.poll(0, NANOSECONDS);
-                shouldThrow();
-            } catch (InterruptedException success) {
-                // Ignored exception
-            }
+            assertThrows(InterruptedException.class, () -> buffer.poll(0, NANOSECONDS));
         } finally {
             //noinspection ResultOfMethodCallIgnored
             Thread.interrupted();
@@ -492,7 +508,7 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
         try {
             SortedKafkaMessageBuffer<KafkaEventMessage> buffer = new SortedKafkaMessageBuffer<>();
             Thread.currentThread().interrupt();
-            assertThat(buffer.peek()).isNull();
+            assertNull(buffer.peek());
         } finally {
             //noinspection ResultOfMethodCallIgnored
             Thread.interrupted();
@@ -503,12 +519,7 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
         try {
             SortedKafkaMessageBuffer<KafkaEventMessage> buffer = new SortedKafkaMessageBuffer<>();
             Thread.currentThread().interrupt();
-            try {
-                buffer.put(message(0, 0, 1, "foo"));
-                shouldThrow();
-            } catch (InterruptedException success) {
-                // Ignored exception
-            }
+            assertThrows(InterruptedException.class, () -> buffer.put(message(0, 0, 1, "foo")));
         } finally {
             //noinspection ResultOfMethodCallIgnored
             Thread.interrupted();
@@ -519,12 +530,7 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
         try {
             SortedKafkaMessageBuffer<KafkaEventMessage> buffer = new SortedKafkaMessageBuffer<>();
             Thread.currentThread().interrupt();
-            try {
-                buffer.take();
-                shouldThrow();
-            } catch (InterruptedException success) {
-                // Ignored exception
-            }
+            assertThrows(InterruptedException.class, () -> buffer.take());
         } finally {
             //noinspection ResultOfMethodCallIgnored
             Thread.interrupted();
@@ -541,16 +547,16 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
                 } catch (InterruptedException e) {
                     fail("This shouldn't happen");
                 }
-                assertThat(buffer.size()).matches(size -> size > 0);
-                assertThat(buffer.peek()).isNotNull();
+                assertTrue(buffer.size() > 0);
+                assertNotNull(buffer.peek());
                 try {
-                    assertThat(buffer.poll(0, TimeUnit.NANOSECONDS)).isNotNull();
+                    assertNotNull(buffer.poll(0, TimeUnit.NANOSECONDS));
                 } catch (InterruptedException e) {
                     fail("This shouldn't happen");
                 }
             }
         });
-        assertThat(buffer.isEmpty()).isTrue();
+        assertTrue(buffer.isEmpty());
     }
 
     public void testConcurrentPeekAndTake() throws Throwable {
@@ -563,56 +569,15 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
                 } catch (InterruptedException e) {
                     fail("This shouldn't happen");
                 }
-                assertThat(buffer.size()).matches(size -> size > 0);
-                assertThat(buffer.peek()).isNotNull();
+                assertTrue(buffer.size() > 0);
+                assertNotNull(buffer.peek());
                 try {
-                    assertThat(buffer.take()).isNotNull();
+                    assertNotNull(buffer.take());
                 } catch (InterruptedException e) {
                     fail("This shouldn't happen");
                 }
             }
         });
-        assertThat(buffer.isEmpty()).isTrue();
-    }
-
-    private static void concurrent(@SuppressWarnings("SameParameterValue") int noOfThreads,
-                                   Runnable task) throws Throwable {
-        CyclicBarrier barrier = new CyclicBarrier(noOfThreads + 1);
-        ExecutorService pool = Executors.newFixedThreadPool(noOfThreads);
-        Collection<Future<Void>> futures = new LinkedList<>();
-        for (int i = 0; i < noOfThreads; i++) {
-            futures.add(pool.submit(() -> {
-                barrier.await();
-                task.run();
-                return null;
-            }));
-        }
-        barrier.await();
-        pool.shutdown();
-
-        for (Future<Void> future : futures) {
-            try {
-                future.get(1, TimeUnit.MINUTES);
-            } catch (ExecutionException e) {
-                if (isAssertionError(e)) {
-                    throw e.getCause();
-                }
-                throw e.getCause();
-            } catch (TimeoutException e) {
-                fail("Updates took to long.");
-            }
-        }
-        //Test should complete in max 1 Minute.
-        assertThat(pool.awaitTermination(1, TimeUnit.MINUTES))
-                .as("Excepted to finish in a minute but took longer")
-                .isTrue();
-    }
-
-    private static boolean isAssertionError(ExecutionException e) {
-        return e.getCause() instanceof AssertionError;
-    }
-
-    private static KafkaEventMessage message(int partition, int offset, int timestamp, String value) {
-        return new KafkaEventMessage(asTrackedEventMessage(asEventMessage(value), null), partition, offset, timestamp);
+        assertTrue(buffer.isEmpty());
     }
 }

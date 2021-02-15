@@ -9,9 +9,9 @@ import org.axonframework.eventsourcing.eventstore.EventStore;
 import org.axonframework.eventsourcing.eventstore.inmemory.InMemoryEventStorageEngine;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaPublisher;
 import org.axonframework.springboot.autoconfig.AxonServerAutoConfiguration;
-import org.junit.jupiter.api.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+import org.junit.jupiter.api.*;
+import org.mockito.invocation.*;
+import org.mockito.stubbing.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,13 +22,13 @@ import org.springframework.test.context.TestPropertySource;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @SpringBootTest
 @TestPropertySource(properties = "axon.kafka.producer.event-processor-mode=SUBSCRIBING")
-public class SubscribingProducerIntegrationTest {
+class SubscribingProducerIntegrationTest {
 
     @MockBean
     private KafkaPublisher kafkaPublisher;
@@ -37,7 +37,7 @@ public class SubscribingProducerIntegrationTest {
     private EventBus eventBus;
 
     @Test
-    public void shouldPublishMessagesSynchronously() throws Exception {
+    void shouldPublishMessagesSynchronously() throws Exception {
 
         // given
         ThreadIdCaptor threadIdCaptor = new ThreadIdCaptor();
@@ -47,7 +47,7 @@ public class SubscribingProducerIntegrationTest {
         eventBus.publish(new GenericEventMessage<>("test"));
 
         // then
-        assertThat(Thread.currentThread().getId()).isEqualTo(threadIdCaptor.getThreadId());
+        assertEquals(threadIdCaptor.getThreadId(), Thread.currentThread().getId());
     }
 
     private static class ThreadIdCaptor implements Answer<Void> {
@@ -66,8 +66,8 @@ public class SubscribingProducerIntegrationTest {
 
         public Long getThreadId() throws InterruptedException {
             latch.await(TIMEOUT, TimeUnit.SECONDS);
-            if(threadId == null) {
-                throw new IllegalStateException("Unable to capture thread id in "+TIMEOUT+" minutes.");
+            if (threadId == null) {
+                throw new IllegalStateException("Unable to capture thread id in " + TIMEOUT + " minutes.");
             }
             return threadId;
         }

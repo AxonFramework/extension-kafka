@@ -15,8 +15,9 @@
 
 package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import junit.framework.AssertionFailedError;
+import junit.framework.TestCase;
+import org.junit.jupiter.api.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -45,9 +46,9 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
-import junit.framework.AssertionFailedError;
-import junit.framework.TestCase;
-import org.junit.*;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /**
  * Base class for JSR166 Junit TCK tests. Defines some constants, utility methods and classes, as
@@ -99,7 +100,7 @@ import org.junit.*;
  *       tests.
  * </ul>
  */
-@Ignore
+@Disabled
 abstract class JSR166TestCase extends TestCase {
   private static final boolean useSecurityManager = Boolean.getBoolean("jsr166.useSecurityManager");
 

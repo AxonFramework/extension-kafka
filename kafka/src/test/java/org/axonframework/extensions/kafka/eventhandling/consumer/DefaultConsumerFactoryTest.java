@@ -21,21 +21,17 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
-import org.junit.*;
-import org.junit.runner.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.kafka.test.EmbeddedKafkaBroker;
-import org.springframework.kafka.test.context.EmbeddedKafka;
+import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
+import org.axonframework.extensions.kafka.eventhandling.util.KafkaContainerTest;
+import org.junit.jupiter.api.*;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.Collections;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.minimal;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.producerFactory;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -44,47 +40,53 @@ import static org.mockito.Mockito.*;
  * @author Nakul Mishra
  * @author Steven van Beelen
  */
-@RunWith(SpringRunner.class)
-@DirtiesContext
-@EmbeddedKafka(topics = {"testCreatedConsumer_ValidConfig_CanCommunicateToKafka"}, partitions = 1)
-public class DefaultConsumerFactoryTest {
+class DefaultConsumerFactoryTest extends KafkaContainerTest {
 
-    @SuppressWarnings("SpringJavaAutowiredMembersInspection")
-    @Autowired
-    private EmbeddedKafkaBroker kafkaBroker;
+    private static final String TEST_TOPIC = "testCreatedConsumer_ValidConfig_CanCommunicateToKafka";
 
     private ProducerFactory<String, String> producerFactory;
     private Consumer<?, ?> testConsumer;
 
-    @Before
-    public void setUp() {
-        producerFactory = producerFactory(kafkaBroker);
+    @BeforeAll
+    static void before() {
+        KafkaAdminUtils.createTopics(getBootstrapServers(), TEST_TOPIC);
+    }
+
+    @AfterAll
+    public static void after() {
+        KafkaAdminUtils.deleteTopics(getBootstrapServers(), TEST_TOPIC);
+    }
+
+    @BeforeEach
+    void setUp() {
+        producerFactory = producerFactory(getBootstrapServers());
         testConsumer = mock(Consumer.class);
     }
 
-    @After
-    public void tearDown() {
+    @AfterEach
+    void tearDown() {
         producerFactory.shutDown();
         testConsumer.close();
     }
 
-    @Test(expected = AxonConfigurationException.class)
-    public void testCreateConsumerInvalidConfig() {
-        new DefaultConsumerFactory<>(null);
+    @Test
+    void testCreateConsumerInvalidConfig() {
+        assertThrows(AxonConfigurationException.class, () -> new DefaultConsumerFactory<>(null));
     }
 
     @Test
-    public void testCreatedConsumerValidConfigCanCommunicateToKafka() {
+    void testCreatedConsumerValidConfigCanCommunicateToKafka() {
         String testTopic = "testCreatedConsumer_ValidConfig_CanCommunicateToKafka";
 
         Producer<String, String> testProducer = producerFactory.createProducer();
         testProducer.send(new ProducerRecord<>(testTopic, 0, null, null, "foo"));
         testProducer.flush();
 
-        ConsumerFactory<?, ?> testSubject = new DefaultConsumerFactory<>(minimal(kafkaBroker));
+        ConsumerFactory<?, ?> testSubject = new DefaultConsumerFactory<>(minimal(KAFKA_CONTAINER
+                                                                                         .getBootstrapServers()));
         testConsumer = testSubject.createConsumer(DEFAULT_GROUP_ID);
         testConsumer.subscribe(Collections.singleton(testTopic));
 
-        assertThat(KafkaTestUtils.getRecords(testConsumer).count()).isOne();
+        assertEquals(1, KafkaTestUtils.getRecords(testConsumer).count());
     }
 }

@@ -23,7 +23,6 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode;
 import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
-import org.springframework.kafka.test.EmbeddedKafkaBroker;
 
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
@@ -60,11 +59,11 @@ public abstract class ProducerConfigUtil {
      * <li><code>value.serializer</code> - {@link org.apache.kafka.common.serialization.StringSerializer}.</li>
      * </ul>
      *
-     * @param kafkaBroker the {@link EmbeddedKafkaBroker} being used for testing
+     * @param bootstrapServer the Kafka Container address
      * @return the configuration.
      */
-    public static Map<String, Object> minimal(EmbeddedKafkaBroker kafkaBroker) {
-        return minimal(kafkaBroker, StringSerializer.class);
+    public static Map<String, Object> minimal(String bootstrapServer) {
+        return minimal(bootstrapServer, StringSerializer.class);
     }
 
     /**
@@ -73,13 +72,13 @@ public abstract class ProducerConfigUtil {
      * <li><code>key.serializer</code> - {@link org.apache.kafka.common.serialization.StringSerializer}.</li>
      * </ul>
      *
-     * @param kafkaBroker     the {@link EmbeddedKafkaBroker} being used for testing
+     * @param bootstrapServer the Kafka Container address
      * @param valueSerializer the serializer for <code>value</code> that implements {@link Serializer}.
      * @return the configuration.
      */
-    public static Map<String, Object> minimal(EmbeddedKafkaBroker kafkaBroker, Class valueSerializer) {
+    public static Map<String, Object> minimal(String bootstrapServer, Class valueSerializer) {
         Map<String, Object> configs = new HashMap<>();
-        configs.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBroker.getBrokersAsString());
+        configs.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);
         configs.put(ProducerConfig.RETRIES_CONFIG, 0);
         configs.put(ProducerConfig.BATCH_SIZE_CONFIG, 16384);
         configs.put(ProducerConfig.LINGER_MS_CONFIG, 1);
@@ -96,11 +95,11 @@ public abstract class ProducerConfigUtil {
      * <li><code>value.serializer</code> - {@link org.apache.kafka.common.serialization.StringSerializer}.</li>
      * </ul>
      *
-     * @param kafkaBroker the {@link EmbeddedKafkaBroker} being used for testing
+     * @param bootstrapServer the Kafka Container address
      * @return the configuration.
      */
-    public static Map<String, Object> minimalTransactional(EmbeddedKafkaBroker kafkaBroker) {
-        return minimalTransactional(kafkaBroker, StringSerializer.class);
+    public static Map<String, Object> minimalTransactional(String bootstrapServer) {
+        return minimalTransactional(bootstrapServer, StringSerializer.class);
     }
 
     /**
@@ -109,12 +108,12 @@ public abstract class ProducerConfigUtil {
      * <li><code>key.serializer</code> - {@link org.apache.kafka.common.serialization.StringSerializer}.</li>
      * </ul>
      *
-     * @param kafkaBroker     the {@link EmbeddedKafkaBroker} being used for testing
+     * @param bootstrapServer the Kafka Container address
      * @param valueSerializer the serializer for <code>value</code> that implements {@link Serializer}.
      * @return the configuration.
      */
-    public static Map<String, Object> minimalTransactional(EmbeddedKafkaBroker kafkaBroker, Class valueSerializer) {
-        Map<String, Object> configs = minimal(kafkaBroker, valueSerializer);
+    public static Map<String, Object> minimalTransactional(String bootstrapServer, Class valueSerializer) {
+        Map<String, Object> configs = minimal(bootstrapServer, valueSerializer);
         configs.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
         configs.put(ProducerConfig.RETRIES_CONFIG, 1);
         return configs;
@@ -128,12 +127,12 @@ public abstract class ProducerConfigUtil {
      * <li><code>value.serializer</code> - {@link org.apache.kafka.common.serialization.StringSerializer}.</li>
      * </ul>
      *
-     * @param kafkaBroker the Kafka.
+     * @param bootstrapServer the Kafka.
      * @return the producer factory.
      */
-    public static ProducerFactory<String, String> producerFactory(EmbeddedKafkaBroker kafkaBroker) {
+    public static ProducerFactory<String, String> producerFactory(String bootstrapServer) {
         return DefaultProducerFactory.<String, String>builder()
-                .configuration(minimal(kafkaBroker))
+                .configuration(minimal(bootstrapServer))
                 .closeTimeout(100, ChronoUnit.MILLIS)
                 .build();
     }
@@ -146,15 +145,15 @@ public abstract class ProducerConfigUtil {
      * <li><code>value.serializer</code> - {@link org.apache.kafka.common.serialization.StringSerializer}.</li>
      * </ul>
      *
-     * @param kafkaBroker     the {@link EmbeddedKafkaBroker} being used for testing
+     * @param bootstrapServer the Kafka Container address
      * @param valueSerializer The serializer for <code>value</code> that implements {@link Serializer}.
      * @return the producer factory.
      */
-    public static <V> ProducerFactory<String, V> ackProducerFactory(EmbeddedKafkaBroker kafkaBroker,
+    public static <V> ProducerFactory<String, V> ackProducerFactory(String bootstrapServer,
                                                                     Class valueSerializer) {
         return DefaultProducerFactory.<String, V>builder()
                 .closeTimeout(1000, ChronoUnit.MILLIS)
-                .configuration(minimal(kafkaBroker, valueSerializer))
+                .configuration(minimal(bootstrapServer, valueSerializer))
                 .confirmationMode(WAIT_FOR_ACK)
                 .build();
     }
@@ -167,15 +166,15 @@ public abstract class ProducerConfigUtil {
      * <li><code>value.serializer</code> - {@link org.apache.kafka.common.serialization.StringSerializer}.</li>
      * </ul>
      *
-     * @param kafkaBroker           the {@link EmbeddedKafkaBroker} being used for testing
+     * @param bootstrapServer       the Kafka Container address
      * @param transactionalIdPrefix prefix for generating <code>transactional.id</code>.
      * @return the producer factory.
      */
-    public static ProducerFactory<String, String> transactionalProducerFactory(EmbeddedKafkaBroker kafkaBroker,
+    public static ProducerFactory<String, String> transactionalProducerFactory(String bootstrapServer,
                                                                                String transactionalIdPrefix) {
         return DefaultProducerFactory.<String, String>builder()
                 .closeTimeout(100, ChronoUnit.MILLIS)
-                .configuration(minimalTransactional(kafkaBroker))
+                .configuration(minimalTransactional(bootstrapServer))
                 .transactionalIdPrefix(transactionalIdPrefix)
                 .build();
     }
@@ -187,17 +186,17 @@ public abstract class ProducerConfigUtil {
      * <li><code>key.serializer</code> - {@link org.apache.kafka.common.serialization.StringSerializer}.</li>
      * </ul>
      *
-     * @param kafkaBroker           the {@link EmbeddedKafkaBroker} being used for testing
+     * @param bootstrapServer
      * @param transactionalIdPrefix prefix for generating <code>transactional.id</code>.
      * @param valueSerializer       The serializer for <code>value</code> that implements {@link Serializer}.
      * @return the producer factory.
      */
-    public static <V> ProducerFactory<String, V> transactionalProducerFactory(EmbeddedKafkaBroker kafkaBroker,
+    public static <V> ProducerFactory<String, V> transactionalProducerFactory(String bootstrapServer,
                                                                               String transactionalIdPrefix,
                                                                               Class valueSerializer) {
         return DefaultProducerFactory.<String, V>builder()
                 .closeTimeout(100, ChronoUnit.MILLIS)
-                .configuration(minimalTransactional(kafkaBroker, valueSerializer))
+                .configuration(minimalTransactional(bootstrapServer, valueSerializer))
                 .transactionalIdPrefix(transactionalIdPrefix)
                 .build();
     }

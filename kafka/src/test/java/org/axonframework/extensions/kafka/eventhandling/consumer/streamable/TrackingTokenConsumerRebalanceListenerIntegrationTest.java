@@ -24,13 +24,9 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
+import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
+import org.axonframework.extensions.kafka.eventhandling.util.KafkaContainerTest;
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.extension.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.kafka.test.EmbeddedKafkaBroker;
-import org.springframework.kafka.test.context.EmbeddedKafka;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 import scala.Function1;
 import scala.collection.Seq;
 
@@ -55,31 +51,60 @@ import static org.springframework.kafka.test.utils.KafkaTestUtils.getRecords;
  * @author Nakul Mishra
  * @author Steven van Beelen
  */
-@ExtendWith(SpringExtension.class)
-@DirtiesContext
-@EmbeddedKafka(
-        topics = {
-                "testSeekUsing_EmptyToken_ConsumerStartsAtPositionZero",
-                "testSeekUsing_ExistingToken_ConsumerStartsAtSpecificPosition",
-                "testSeekUsing_ExistingToken_ConsumerStartsAtSpecificPosition_AndCanContinueReadingNewRecords"
-        },
-        partitions = 5
-)
-class TrackingTokenConsumerRebalanceListenerIntegrationTest {
+
+class TrackingTokenConsumerRebalanceListenerIntegrationTest extends KafkaContainerTest {
 
     private static final String RECORD_BODY = "foo";
     private static final Function1<ConsumerRecord<byte[], byte[]>, Object> COUNT_ALL = record -> true;
 
-    @SuppressWarnings("SpringJavaAutowiredMembersInspection")
-    @Autowired
-    private EmbeddedKafkaBroker kafkaBroker;
+    private static final String[] TOPICS = {
+            "testSeekUsing_EmptyToken_ConsumerStartsAtPositionZero",
+            "testSeekUsing_ExistingToken_ConsumerStartsAtSpecificPosition",
+            "testSeekUsing_ExistingToken_ConsumerStartsAtSpecificPosition_AndCanContinueReadingNewRecords"};
+    private static final Integer NR_PARTITIONS = 5;
+
     private ProducerFactory<String, String> producerFactory;
     private ConsumerFactory<String, String> consumerFactory;
 
+    @BeforeAll
+    static void before() {
+        KafkaAdminUtils.createTopics(getBootstrapServers(), TOPICS);
+        KafkaAdminUtils.createPartitions(getBootstrapServers(), NR_PARTITIONS, TOPICS);
+    }
+
+    @AfterAll
+    public static void after() {
+        KafkaAdminUtils.deleteTopics(getBootstrapServers(), TOPICS);
+    }
+
+    private static void publishRecordsOnPartitions(Producer<String, String> producer,
+                                                   String topic,
+                                                   int recordsPerPartitions,
+                                                   int partitionsPerTopic) {
+        for (int i = 0; i < recordsPerPartitions; i++) {
+            for (int p = 0; p < partitionsPerTopic; p++) {
+                producer.send(buildRecord(topic, p));
+            }
+        }
+        producer.flush();
+    }
+
+    private static void publishNewRecords(Producer<String, String> producer, String topic) {
+        producer.send(buildRecord(topic, 0));
+        producer.send(buildRecord(topic, 1));
+        producer.send(buildRecord(topic, 2));
+        producer.send(buildRecord(topic, 3));
+        producer.flush();
+    }
+
+    private static ProducerRecord<String, String> buildRecord(String topic, int partition) {
+        return new ProducerRecord<>(topic, partition, null, null, RECORD_BODY);
+    }
+
     @BeforeEach
     void setUp() {
-        producerFactory = producerFactory(kafkaBroker);
-        consumerFactory = consumerFactory(kafkaBroker);
+        producerFactory = producerFactory(getBootstrapServers());
+        consumerFactory = consumerFactory(getBootstrapServers());
     }
 
     @AfterEach
@@ -90,9 +115,10 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest {
     @Test
     void testSeekUsingEmptyTokenConsumerStartsAtPositionZero() {
         String topic = "testSeekUsing_EmptyToken_ConsumerStartsAtPositionZero";
-        int numberOfPartitions = kafkaBroker.getPartitionsPerTopic();
         int recordsPerPartitions = 1;
-        publishRecordsOnPartitions(producerFactory.createProducer(), topic, recordsPerPartitions, numberOfPartitions);
+        Producer<String, String> producer = producerFactory.createProducer();
+        int numberOfPartitions = producer.partitionsFor(topic).size();
+        publishRecordsOnPartitions(producer, topic, recordsPerPartitions, numberOfPartitions);
 
         int expectedRecordCount = numberOfPartitions * recordsPerPartitions;
         AtomicInteger recordCounter = new AtomicInteger();
@@ -118,9 +144,9 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest {
     void testSeekUsingExistingTokenConsumerStartsAtSpecificPosition() {
         String topic = "testSeekUsing_ExistingToken_ConsumerStartsAtSpecificPosition";
         int recordsPerPartitions = 10;
-        publishRecordsOnPartitions(
-                producerFactory.createProducer(), topic, recordsPerPartitions, kafkaBroker.getPartitionsPerTopic()
-        );
+        Producer<String, String> producer = producerFactory.createProducer();
+        int numberOfPartitions = producer.partitionsFor(topic).size();
+        publishRecordsOnPartitions(producer, topic, recordsPerPartitions, numberOfPartitions);
 
         Map<TopicPartition, Long> positions = new HashMap<>();
         positions.put(new TopicPartition(topic, 0), 5L);
@@ -157,9 +183,9 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest {
         String topic = "testSeekUsing_ExistingToken_ConsumerStartsAtSpecificPosition_AndCanContinueReadingNewRecords";
         int recordsPerPartitions = 10;
         Producer<String, String> testProducer = producerFactory.createProducer();
-        publishRecordsOnPartitions(
-                testProducer, topic, recordsPerPartitions, kafkaBroker.getPartitionsPerTopic()
-        );
+        int numberOfPartitions = testProducer.partitionsFor(topic).size();
+
+        publishRecordsOnPartitions(testProducer, topic, recordsPerPartitions, numberOfPartitions);
 
         Map<TopicPartition, Long> positions = new HashMap<>();
         positions.put(new TopicPartition(topic, 0), 5L);
@@ -203,29 +229,5 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest {
         assertEquals(secondNumberOfRecords, resultRecords.count(COUNT_ALL));
 
         testConsumer.close();
-    }
-
-    private static void publishRecordsOnPartitions(Producer<String, String> producer,
-                                                   String topic,
-                                                   int recordsPerPartitions,
-                                                   int partitionsPerTopic) {
-        for (int i = 0; i < recordsPerPartitions; i++) {
-            for (int p = 0; p < partitionsPerTopic; p++) {
-                producer.send(buildRecord(topic, p));
-            }
-        }
-        producer.flush();
-    }
-
-    private static void publishNewRecords(Producer<String, String> producer, String topic) {
-        producer.send(buildRecord(topic, 0));
-        producer.send(buildRecord(topic, 1));
-        producer.send(buildRecord(topic, 2));
-        producer.send(buildRecord(topic, 3));
-        producer.flush();
-    }
-
-    private static ProducerRecord<String, String> buildRecord(String topic, int partition) {
-        return new ProducerRecord<>(topic, partition, null, null, RECORD_BODY);
     }
 }

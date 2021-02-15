@@ -32,14 +32,10 @@ import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.Stre
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
+import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
+import org.axonframework.extensions.kafka.eventhandling.util.KafkaContainerTest;
 import org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil;
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.extension.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.kafka.test.EmbeddedKafkaBroker;
-import org.springframework.kafka.test.context.EmbeddedKafka;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
@@ -55,15 +51,10 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Nakul Mishra
  * @author Steven van Beelen
  */
-@ExtendWith(SpringExtension.class)
-@DirtiesContext
-@EmbeddedKafka(topics = {"integration"}, partitions = 5, controlledShutdown = true)
-class KafkaIntegrationTest {
+class KafkaIntegrationTest extends KafkaContainerTest {
 
-    @SuppressWarnings("SpringJavaAutowiredMembersInspection")
-    @Autowired
-    private EmbeddedKafkaBroker kafkaBroker;
-
+    private static final String TEST_TOPIC = "integration";
+    private static final Integer NR_PARTITIONS = 5;
     private Configurer configurer = DefaultConfigurer.defaultConfiguration();
     private EventBus eventBus;
     private ProducerFactory<String, byte[]> producerFactory;
@@ -71,12 +62,23 @@ class KafkaIntegrationTest {
     private Fetcher<String, byte[], KafkaEventMessage> fetcher;
     private ConsumerFactory<String, byte[]> consumerFactory;
 
+    @BeforeAll
+    static void before() {
+        KafkaAdminUtils.createTopics(getBootstrapServers(), TEST_TOPIC);
+        KafkaAdminUtils.createPartitions(getBootstrapServers(), NR_PARTITIONS, TEST_TOPIC);
+    }
+
+    @AfterAll
+    public static void after() {
+        KafkaAdminUtils.deleteTopics(getBootstrapServers(), TEST_TOPIC);
+    }
+
     @BeforeEach
     void setUp() {
-        producerFactory = ProducerConfigUtil.ackProducerFactory(kafkaBroker, ByteArraySerializer.class);
+        producerFactory = ProducerConfigUtil.ackProducerFactory(getBootstrapServers(), ByteArraySerializer.class);
         publisher = KafkaPublisher.<String, byte[]>builder()
                 .producerFactory(producerFactory)
-                .topic("integration")
+                .topic(TEST_TOPIC)
                 .build();
         KafkaEventPublisher<String, byte[]> sender =
                 KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(publisher).build();
@@ -84,7 +86,7 @@ class KafkaIntegrationTest {
                 eventProcessingConfigurer -> eventProcessingConfigurer.registerEventHandler(c -> sender)
         );
 
-        consumerFactory = new DefaultConsumerFactory<>(minimal(kafkaBroker, ByteArrayDeserializer.class));
+        consumerFactory = new DefaultConsumerFactory<>(minimal(getBootstrapServers(), ByteArrayDeserializer.class));
 
         fetcher = AsyncFetcher.<String, byte[], KafkaEventMessage>builder()
                 .pollTimeout(300)
@@ -107,7 +109,7 @@ class KafkaIntegrationTest {
     void testPublishAndReadMessages() throws Exception {
         StreamableKafkaMessageSource<String, byte[]> streamableMessageSource =
                 StreamableKafkaMessageSource.<String, byte[]>builder()
-                        .topics(Collections.singletonList("integration"))
+                        .topics(Collections.singletonList(TEST_TOPIC))
                         .consumerFactory(consumerFactory)
                         .fetcher(fetcher)
                         .build();
