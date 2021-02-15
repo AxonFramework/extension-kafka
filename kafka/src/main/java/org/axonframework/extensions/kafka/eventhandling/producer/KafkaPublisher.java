@@ -50,10 +50,10 @@ import static org.axonframework.common.BuilderUtils.assertThat;
  * Topic.
  * </p>
  *
- * @param <K> a generic type for the key of the {@link ProducerFactory}, {@link Producer} and
- *            {@link KafkaMessageConverter}
- * @param <V> a generic type for the value of the {@link ProducerFactory}, {@link Producer} and
- *            {@link KafkaMessageConverter}
+ * @param <K> a generic type for the key of the {@link ProducerFactory}, {@link Producer} and {@link
+ *            KafkaMessageConverter}
+ * @param <V> a generic type for the value of the {@link ProducerFactory}, {@link Producer} and {@link
+ *            KafkaMessageConverter}
  * @author Nakul Mishra
  * @author Simon Zambrovski
  * @author Lars Bilger
@@ -74,8 +74,8 @@ public class KafkaPublisher<K, V> {
     /**
      * Instantiate a {@link KafkaPublisher} based on the fields contained in the {@link Builder}.
      * <p>
-     * Will assert that {@link ProducerFactory} is not {@code null}, and will throw an
-     * {@link AxonConfigurationException} if it is.
+     * Will assert that {@link ProducerFactory} is not {@code null}, and will throw an {@link
+     * AxonConfigurationException} if it is.
      *
      * @param builder the {@link Builder} used to instantiate a {@link KafkaPublisher} instance
      */
@@ -91,15 +91,15 @@ public class KafkaPublisher<K, V> {
     /**
      * Instantiate a Builder to be able to create a {@link KafkaPublisher}.
      * <p>
-     * The {@link KafkaMessageConverter} is defaulted to a {@link DefaultKafkaMessageConverter}, the
-     * {@link MessageMonitor} to a {@link NoOpMessageMonitor}, the {@code topic} to {code Axon.Events} and the
-     * {@code publisherAckTimeout} to {@code 1000} milliseconds. The {@link ProducerFactory} is a
+     * The {@link KafkaMessageConverter} is defaulted to a {@link DefaultKafkaMessageConverter}, the {@link
+     * MessageMonitor} to a {@link NoOpMessageMonitor}, the {@code topic} to {code Axon.Events} and the {@code
+     * publisherAckTimeout} to {@code 1000} milliseconds. The {@link ProducerFactory} is a
      * <b>hard requirements</b> and as such should be provided.
      *
-     * @param <K> a generic type for the key of the {@link ProducerFactory}, {@link Producer} and
-     *            {@link KafkaMessageConverter}
-     * @param <V> a generic type for the value of the {@link ProducerFactory}, {@link Producer} and
-     *            {@link KafkaMessageConverter}
+     * @param <K> a generic type for the key of the {@link ProducerFactory}, {@link Producer} and {@link
+     *            KafkaMessageConverter}
+     * @param <V> a generic type for the value of the {@link ProducerFactory}, {@link Producer} and {@link
+     *            KafkaMessageConverter}
      * @return a Builder to be able to create a {@link KafkaPublisher}
      */
     public static <K, V> Builder<K, V> builder() {
@@ -111,15 +111,15 @@ public class KafkaPublisher<K, V> {
      * available.
      * <p>
      * If {@link ProducerFactory} is configured to use:
-     * </p>
      * <ul>
-     * <li>Transactions: use kafka transactions for publishing events</li>
+     * <li>Transactions: use kafka transactions for publishing events.</li>
      * <li>Ack: send messages and wait for acknowledgement from Kafka. Acknowledgement timeout can be configured via
      * {@link KafkaPublisher.Builder#publisherAckTimeout(long)}).</li>
      * <li>None: fire and forget.</li>
      * </ul>
      *
      * @param event the events to publish on the Kafka broker.
+     * @param <T>   the implementation of {@link EventMessage} send through this method
      */
     public <T extends EventMessage<?>> void send(T event) {
         UnitOfWork<?> uow = CurrentUnitOfWork.get();
@@ -132,7 +132,7 @@ public class KafkaPublisher<K, V> {
             tryBeginTxn(producer);
         }
 
-        // Send's event messages to Kafka and receive a future indicating the status.
+        // Sends event messages to Kafka and receive a future indicating the status.
         Future<RecordMetadata> publishStatus = producer.send(messageConverter.createKafkaMessage(event, topic));
 
         uow.onPrepareCommit(u -> {
@@ -195,7 +195,7 @@ public class KafkaPublisher<K, V> {
             producer.abortTransaction();
         } catch (Exception e) {
             logger.warn("Unable to abort transaction", e);
-            // Not re-throwing exception, its too late
+            // Not re-throwing exception, its too late.
         }
     }
 
@@ -204,7 +204,7 @@ public class KafkaPublisher<K, V> {
             producer.close();
         } catch (Exception e) {
             logger.debug("Unable to close producer", e);
-            // Not re-throwing exception, can't do anything
+            // Not re-throwing exception, can't do anything.
         }
     }
 
@@ -219,15 +219,15 @@ public class KafkaPublisher<K, V> {
     /**
      * Builder class to instantiate a {@link KafkaPublisher}.
      * <p>
-     * The {@link KafkaMessageConverter} is defaulted to a {@link DefaultKafkaMessageConverter}, the
-     * {@link MessageMonitor} to a {@link NoOpMessageMonitor}, the {@code topic} to {code Axon.Events} and the
-     * {@code publisherAckTimeout} to {@code 1000} milliseconds. The {@link ProducerFactory} is a
+     * The {@link KafkaMessageConverter} is defaulted to a {@link DefaultKafkaMessageConverter}, the {@link
+     * MessageMonitor} to a {@link NoOpMessageMonitor}, the {@code topic} to {code Axon.Events} and the {@code
+     * publisherAckTimeout} to {@code 1000} milliseconds. The {@link ProducerFactory} is a
      * <b>hard requirements</b> and as such should be provided.
      *
-     * @param <K> a generic type for the key of the {@link ProducerFactory}, {@link Producer} and
-     *            {@link KafkaMessageConverter}
-     * @param <V> a generic type for the value of the {@link ProducerFactory}, {@link Producer} and
-     *            {@link KafkaMessageConverter}
+     * @param <K> a generic type for the key of the {@link ProducerFactory}, {@link Producer} and {@link
+     *            KafkaMessageConverter}
+     * @param <V> a generic type for the value of the {@link ProducerFactory}, {@link Producer} and {@link
+     *            KafkaMessageConverter}
      */
     public static class Builder<K, V> {
 
@@ -243,8 +243,8 @@ public class KafkaPublisher<K, V> {
         private long publisherAckTimeout = 1_000;
 
         /**
-         * Sets the {@link ProducerFactory} which will instantiate {@link Producer} instances to publish
-         * {@link EventMessage}s on the Kafka topic.
+         * Sets the {@link ProducerFactory} which will instantiate {@link Producer} instances to publish {@link
+         * EventMessage}s on the Kafka topic.
          *
          * @param producerFactory a {@link ProducerFactory} which will instantiate {@link Producer} instances to publish
          *                        {@link EventMessage}s on the Kafka topic
@@ -260,7 +260,8 @@ public class KafkaPublisher<K, V> {
          * Sets the {@link KafkaMessageConverter} used to convert {@link EventMessage}s into Kafka messages. Defaults to
          * a {@link DefaultKafkaMessageConverter} using the {@link XStreamSerializer}.
          * <p>
-         * Note that configuring a MessageConverter on the builder is mandatory if the value type is not {@code byte[]}.
+         * Note that configuring a MessageConverter on the builder is mandatory if the value type is not {@code
+         * byte[]}.
          *
          * @param messageConverter a {@link KafkaMessageConverter} used to convert {@link EventMessage}s into Kafka
          *                         messages

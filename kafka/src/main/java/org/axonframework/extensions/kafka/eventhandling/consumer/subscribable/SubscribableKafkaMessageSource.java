@@ -92,6 +92,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
      *
      * @param <K> the key of the {@link ConsumerRecords} to consume, fetch and convert
      * @param <V> the value type of {@link ConsumerRecords} to consume, fetch and convert
+     * @return a Builder to be able to create a {@link SubscribableKafkaMessageSource}
      */
     public static <K, V> Builder<K, V> builder() {
         return new Builder<>();
@@ -119,7 +120,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
 
     /**
      * {@inheritDoc}
-     * <p/>
+     * <p>
      * Any subscribed Event Processor will be placed in the same Consumer Group, defined through the (mandatory) {@link
      * Builder#groupId(String)} method.
      */

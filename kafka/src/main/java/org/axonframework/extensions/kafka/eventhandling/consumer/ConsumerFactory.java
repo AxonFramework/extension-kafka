@@ -33,6 +33,7 @@ public interface ConsumerFactory<K, V> {
     /**
      * Create a {@link Consumer} that should be part of the Consumer Group with the given {@code groupId}.
      *
+     * @param groupId a {@link String} defining the group the constructed {@link Consumer} will be a part of
      * @return a {@link Consumer} which is part of Consumer Group with the given {@code groupId}
      */
     Consumer<K, V> createConsumer(String groupId);
