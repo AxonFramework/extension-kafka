@@ -22,6 +22,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 /**
  * Provides an easy way to launch a Kafka cluster with multiple brokers. Copied from
  * https://github.com/testcontainers/testcontainers-java/blob/master/examples/kafka-cluster/src/test/java/com/example/kafkacluster/KafkaContainerCluster.java
+ * <p>
+ * Since it was copied from the link above, we decided to not make any major changes to it and use it as is.
  */
 public class KafkaContainerCluster implements Startable {
 
@@ -30,6 +32,13 @@ public class KafkaContainerCluster implements Startable {
     private final GenericContainer<?> zookeeper;
     private final Collection<KafkaContainer> brokers;
 
+    /**
+     * Default constructor for building a kafka cluster to be used for tests.
+     *
+     * @param confluentPlatformVersion version of the kafka image
+     * @param brokersNum               number of brokers
+     * @param internalTopicsRf         replication factor
+     */
     public KafkaContainerCluster(String confluentPlatformVersion, int brokersNum, int internalTopicsRf) {
         if (brokersNum < 0) {
             throw new IllegalArgumentException("brokersNum '" + brokersNum + "' must be greater than 0");
@@ -64,10 +73,11 @@ public class KafkaContainerCluster implements Startable {
                 .collect(Collectors.toList());
     }
 
-    public Collection<KafkaContainer> getBrokers() {
-        return this.brokers;
-    }
-
+    /**
+     * Return the bootstrap server location (url) used for creating topics, partitions, etc.
+     *
+     * @return location of the servers
+     */
     public String getBootstrapServers() {
         return brokers.stream()
                       .map(KafkaContainer::getBootstrapServers)
@@ -81,6 +91,9 @@ public class KafkaContainerCluster implements Startable {
         );
     }
 
+    /**
+     * Used by test container lifecycle itself.
+     */
     @Override
     public void start() {
         Stream<Startable> startables = this.brokers.stream().map(Startable.class::cast);
@@ -100,6 +113,9 @@ public class KafkaContainerCluster implements Startable {
         });
     }
 
+    /**
+     * Used by test container lifecycle itself.
+     */
     @Override
     public void stop() {
         allContainers().parallel().forEach(GenericContainer::stop);

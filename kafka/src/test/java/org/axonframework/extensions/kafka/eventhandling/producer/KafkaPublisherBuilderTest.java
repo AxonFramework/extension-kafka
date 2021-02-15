@@ -26,30 +26,30 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * @author Nakul Mishra
  */
-public class KafkaPublisherBuilderTest {
+class KafkaPublisherBuilderTest {
 
     @Test
-    public void testConfiguringInvalidProducerFactory() {
+    void testConfiguringInvalidProducerFactory() {
         assertThrows(AxonConfigurationException.class, () -> KafkaPublisher.builder().producerFactory(null).build());
     }
 
     @Test
-    public void testConfiguringInvalidMessageConverter() {
+    void testConfiguringInvalidMessageConverter() {
         assertThrows(AxonConfigurationException.class, () -> KafkaPublisher.builder().messageConverter(null).build());
     }
 
     @Test
-    public void testConfiguringInvalidMessageMonitor() {
+    void testConfiguringInvalidMessageMonitor() {
         assertThrows(AxonConfigurationException.class, () -> KafkaPublisher.builder().messageMonitor(null).build());
     }
 
     @Test
-    public void testConfiguringInvalidKafkaTopic() {
+    void testConfiguringInvalidKafkaTopic() {
         assertThrows(AxonConfigurationException.class, () -> KafkaPublisher.builder().topic(null).build());
     }
 
     @Test
-    public void testConfiguringInvalidAckTimeout() {
+    void testConfiguringInvalidAckTimeout() {
         assertThrows(AxonConfigurationException.class, () -> KafkaPublisher.builder().publisherAckTimeout(-12).build());
     }
 }
