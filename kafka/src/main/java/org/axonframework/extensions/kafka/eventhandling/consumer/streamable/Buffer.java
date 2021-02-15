@@ -92,7 +92,7 @@ public interface Buffer<E> {
      * Returns the number of additional elements that this buffer can ideally (in the absence of memory or resource
      * constraints) accept without blocking. This is always equal to the initial capacity of this buffer less the
      * current {@code size} of this buffer.
-     * <p/>
+     * <p>
      * Note that you <em>cannot</em> always tell if an attempt to insert an element will succeed by inspecting {@code
      * remainingCapacity} because it may be the case that another thread is about to insert or remove an element.
      *
