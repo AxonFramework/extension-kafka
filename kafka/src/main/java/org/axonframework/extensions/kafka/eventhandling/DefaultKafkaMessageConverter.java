@@ -85,9 +85,9 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
     /**
      * Instantiate a Builder to be able to create a {@link DefaultKafkaMessageConverter}.
      * <p>
-     * The {@link SequencingPolicy} is defaulted to an {@link SequentialPerAggregatePolicy}, and the
-     * {@code headerValueMapper} is defaulted to the {@link HeaderUtils#byteMapper()} function.
-     * The {@link Serializer} is a <b>hard requirement</b> and as such should be provided.
+     * The {@link SequencingPolicy} is defaulted to an {@link SequentialPerAggregatePolicy}, and the {@code
+     * headerValueMapper} is defaulted to the {@link HeaderUtils#byteMapper()} function. The {@link Serializer} is a
+     * <b>hard requirement</b> and as such should be provided.
      *
      * @return a Builder to be able to create a {@link DefaultKafkaMessageConverter}
      */
@@ -97,16 +97,16 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
 
     /**
      * {@inheritDoc}
-     * <p/>
+     * <p>
      * Note that the {@link ProducerRecord} created through this method sets the {@link ProducerRecord#timestamp()} to
-     * {@code null}. Doing so will ensure the used Producer sets a timestamp itself for the record. The
-     * {@link EventMessage#getTimestamp()} field is however still taken into account, but as headers.
-     * <p/>
-     * Additional note that the ProducerRecord will be given a {@code null} {@link ProducerRecord#partition()} value.
-     * In return, the {@link ProducerRecord#key()} field is defined by using the configured {@link SequencingPolicy} to
-     * retrieve the given {@code eventMessage}'s {@code sequenceIdentifier}. The combination of a {@code null}
-     * partition and the possibly present or empty key will define which partition the Producer will choose to dispatch
-     * the record on.
+     * {@code null}. Doing so will ensure the used Producer sets a timestamp itself for the record. The {@link
+     * EventMessage#getTimestamp()} field is however still taken into account, but as headers.
+     * <p>
+     * Additional note that the ProducerRecord will be given a {@code null} {@link ProducerRecord#partition()} value. In
+     * return, the {@link ProducerRecord#key()} field is defined by using the configured {@link SequencingPolicy} to
+     * retrieve the given {@code eventMessage}'s {@code sequenceIdentifier}. The combination of a {@code null} partition
+     * and the possibly present or empty key will define which partition the Producer will choose to dispatch the record
+     * on.
      *
      * @see ProducerRecord
      */
@@ -184,9 +184,9 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
     /**
      * Builder class to instantiate a {@link DefaultKafkaMessageConverter}.
      * <p>
-     * The {@link SequencingPolicy} is defaulted to an {@link SequentialPerAggregatePolicy}, and the
-     * {@code headerValueMapper} is defaulted to the {@link HeaderUtils#byteMapper()} function.
-     * The {@link Serializer} is a <b>hard requirement</b> and as such should be provided.
+     * The {@link SequencingPolicy} is defaulted to an {@link SequentialPerAggregatePolicy}, and the {@code
+     * headerValueMapper} is defaulted to the {@link HeaderUtils#byteMapper()} function. The {@link Serializer} is a
+     * <b>hard requirement</b> and as such should be provided.
      */
     public static class Builder {
 
@@ -220,9 +220,9 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
         }
 
         /**
-         * Sets the {@code headerValueMapper}, a {@link BiFunction} of {@link String}, {@link Object} and
-         * {@link RecordHeader}, used for mapping values to Kafka headers. Defaults to the
-         * {@link HeaderUtils#byteMapper()} function.
+         * Sets the {@code headerValueMapper}, a {@link BiFunction} of {@link String}, {@link Object} and {@link
+         * RecordHeader}, used for mapping values to Kafka headers. Defaults to the {@link HeaderUtils#byteMapper()}
+         * function.
          *
          * @param headerValueMapper a {@link BiFunction} of {@link String}, {@link Object} and {@link RecordHeader},
          *                          used for mapping values to Kafka headers
