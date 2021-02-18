@@ -27,22 +27,21 @@ import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaContainerTest;
 import org.junit.jupiter.api.*;
-import scala.Function1;
-import scala.collection.Seq;
 
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.Collections.emptyMap;
-import static kafka.utils.TestUtils.pollUntilAtLeastNumRecords;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.consumerFactory;
+import static org.axonframework.extensions.kafka.eventhandling.util.KafkaTestUtils.getRecords;
+import static org.axonframework.extensions.kafka.eventhandling.util.KafkaTestUtils.pollUntilAtLeastNumRecords;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.producerFactory;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.springframework.kafka.test.utils.KafkaTestUtils.getRecords;
 
 /***
  * Integration tests spinning up a Kafka Broker to verify whether the {@link TrackingTokenConsumerRebalanceListener}
@@ -55,7 +54,6 @@ import static org.springframework.kafka.test.utils.KafkaTestUtils.getRecords;
 class TrackingTokenConsumerRebalanceListenerIntegrationTest extends KafkaContainerTest {
 
     private static final String RECORD_BODY = "foo";
-    private static final Function1<ConsumerRecord<byte[], byte[]>, Object> COUNT_ALL = record -> true;
 
     private static final String[] TOPICS = {
             "testSeekUsing_EmptyToken_ConsumerStartsAtPositionZero",
@@ -165,15 +163,13 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest extends KafkaContain
                 new TrackingTokenConsumerRebalanceListener<>(testConsumer, () -> testToken)
         );
 
-        Seq<ConsumerRecord<byte[], byte[]>> resultRecords =
+        List<ConsumerRecord<byte[], byte[]>> resultRecords =
                 pollUntilAtLeastNumRecords((KafkaConsumer<byte[], byte[]>) testConsumer, numberOfRecordsToConsume, 500);
-        resultRecords.foreach(resultRecord -> {
+        resultRecords.forEach(resultRecord -> {
             TopicPartition resultTopicPartition = new TopicPartition(resultRecord.topic(), resultRecord.partition());
             assertTrue(resultRecord.offset() > positions.get(resultTopicPartition));
-            // This ugly stuff is needed since I have to deal with a scala.collection.Seq
-            return null;
         });
-        assertEquals(numberOfRecordsToConsume, resultRecords.count(COUNT_ALL));
+        assertEquals(numberOfRecordsToConsume, resultRecords.size());
 
         testConsumer.close();
     }
@@ -205,15 +201,13 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest extends KafkaContain
         );
 
         //noinspection unchecked
-        Seq<ConsumerRecord<byte[], byte[]>> resultRecords =
+        List<ConsumerRecord<byte[], byte[]>> resultRecords =
                 pollUntilAtLeastNumRecords((KafkaConsumer<byte[], byte[]>) testConsumer, numberOfRecordsToConsume, 500);
-        resultRecords.foreach(resultRecord -> {
+        resultRecords.forEach(resultRecord -> {
             TopicPartition resultTopicPartition = new TopicPartition(resultRecord.topic(), resultRecord.partition());
             assertTrue(resultRecord.offset() > positions.get(resultTopicPartition));
-            // This ugly stuff is needed since I have to deal with a scala.collection.Seq
-            return null;
         });
-        assertEquals(numberOfRecordsToConsume, resultRecords.count(COUNT_ALL));
+        assertEquals(numberOfRecordsToConsume, resultRecords.size());
 
         publishNewRecords(testProducer, topic);
         int secondNumberOfRecords = 4; // The `publishNewRecords(Producer, String)` produces 4 new records
@@ -221,12 +215,10 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest extends KafkaContain
         resultRecords =
                 pollUntilAtLeastNumRecords((KafkaConsumer<byte[], byte[]>) testConsumer, secondNumberOfRecords, 500);
 
-        resultRecords.foreach(resultRecord -> {
+        resultRecords.forEach(resultRecord -> {
             assertEquals(10, resultRecord.offset());
-            // This ugly stuff is needed since I have to deal with a scala.collection.Seq
-            return null;
         });
-        assertEquals(secondNumberOfRecords, resultRecords.count(COUNT_ALL));
+        assertEquals(secondNumberOfRecords, resultRecords.size());
 
         testConsumer.close();
     }

@@ -24,12 +24,12 @@ import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaContainerTest;
 import org.junit.jupiter.api.*;
-import org.springframework.kafka.test.utils.KafkaTestUtils;
 
 import java.util.Collections;
 
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.minimal;
+import static org.axonframework.extensions.kafka.eventhandling.util.KafkaTestUtils.getRecords;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.producerFactory;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -87,6 +87,6 @@ class DefaultConsumerFactoryTest extends KafkaContainerTest {
         testConsumer = testSubject.createConsumer(DEFAULT_GROUP_ID);
         testConsumer.subscribe(Collections.singleton(testTopic));
 
-        assertEquals(1, KafkaTestUtils.getRecords(testConsumer).count());
+        assertEquals(1, getRecords(testConsumer).count());
     }
 }
