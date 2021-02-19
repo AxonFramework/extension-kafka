@@ -41,7 +41,6 @@ import org.axonframework.messaging.unitofwork.UnitOfWork;
 import org.axonframework.monitoring.MessageMonitor;
 import org.axonframework.serialization.xml.XStreamSerializer;
 import org.junit.jupiter.api.*;
-import org.springframework.kafka.test.utils.KafkaTestUtils;
 
 import java.util.Collections;
 import java.util.List;
@@ -56,6 +55,7 @@ import static java.util.Collections.singletonList;
 import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher.DEFAULT_PROCESSING_GROUP;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.transactionalConsumerFactory;
+import static org.axonframework.extensions.kafka.eventhandling.util.KafkaTestUtils.getRecords;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.ackProducerFactory;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.transactionalProducerFactory;
 import static org.junit.jupiter.api.Assertions.*;
@@ -175,7 +175,7 @@ class KafkaPublisherTest extends KafkaContainerTest {
 
         eventBus.publish(testMessages);
 
-        ConsumerRecords<?, ?> consumedRecords = KafkaTestUtils.getRecords(testConsumer, 60000, numberOfMessages);
+        ConsumerRecords<?, ?> consumedRecords = getRecords(testConsumer, 60000, numberOfMessages);
         assertEquals(numberOfMessages, consumedRecords.count());
         assertEquals(testMessages, monitor.getReceived());
         assertEquals(0, monitor.failureCount());
@@ -223,7 +223,7 @@ class KafkaPublisherTest extends KafkaContainerTest {
         assertEquals(testMessages.size(), monitor.successCount());
         assertEquals(0, monitor.failureCount());
         assertEquals(0, monitor.ignoreCount());
-        assertEquals(testMessages.size(), KafkaTestUtils.getRecords(testConsumer).count());
+        assertEquals(testMessages.size(), getRecords(testConsumer).count());
     }
 
     @Test
@@ -242,7 +242,7 @@ class KafkaPublisherTest extends KafkaContainerTest {
         assertEquals(1, monitor.successCount());
         assertEquals(0, monitor.failureCount());
         assertEquals(0, monitor.ignoreCount());
-        assertEquals(1, KafkaTestUtils.getRecords(testConsumer).count());
+        assertEquals(1, getRecords(testConsumer).count());
     }
 
     @Test
@@ -263,7 +263,7 @@ class KafkaPublisherTest extends KafkaContainerTest {
         eventBus.publish(testMessage);
         uow.commit();
 
-        assertEquals(1, KafkaTestUtils.getRecords(testConsumer).count());
+        assertEquals(1, getRecords(testConsumer).count());
     }
 
     @Test
@@ -291,7 +291,7 @@ class KafkaPublisherTest extends KafkaContainerTest {
             assertEquals(expectedException, e.getMessage());
         }
 
-        assertTrue(KafkaTestUtils.getRecords(testConsumer, 100).isEmpty(), "Didn't expect any consumer records");
+        assertTrue(getRecords(testConsumer, 100).isEmpty(), "Didn't expect any consumer records");
     }
 
     @Test
@@ -339,7 +339,7 @@ class KafkaPublisherTest extends KafkaContainerTest {
         }
 
         testConsumer = buildConsumer(testTopic);
-        assertTrue(KafkaTestUtils.getRecords(testConsumer, 100).isEmpty(), "Didn't expect any consumer records");
+        assertTrue(getRecords(testConsumer, 100).isEmpty(), "Didn't expect any consumer records");
     }
 
     private KafkaPublisher<String, byte[]> buildPublisher(String topic) {
@@ -391,7 +391,7 @@ class KafkaPublisherTest extends KafkaContainerTest {
             uow.commit();
         } finally {
             testConsumer = buildConsumer(topic);
-            assertTrue(KafkaTestUtils.getRecords(testConsumer, 100).isEmpty(), "Didn't expect any consumer records");
+            assertTrue(getRecords(testConsumer, 100).isEmpty(), "Didn't expect any consumer records");
         }
     }
 

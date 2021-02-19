@@ -102,7 +102,7 @@ public class KafkaContainerCluster implements Startable {
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             e.printStackTrace();
         }
-        Unreliables.retryUntilTrue(30, TimeUnit.SECONDS, () -> {
+        Unreliables.retryUntilTrue(60, TimeUnit.SECONDS, () -> {
             Container.ExecResult result = this.zookeeper.execInContainer(
                     "sh", "-c",
                     "zookeeper-shell zookeeper:" + KafkaContainer.ZOOKEEPER_PORT + " ls /brokers/ids | tail -n 1"
