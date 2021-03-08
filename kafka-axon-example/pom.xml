@@ -31,7 +31,7 @@
 
     <properties>
         <kotlin.version>1.4.31</kotlin.version>
-        <kotlin-logging.version>1.12.0</kotlin-logging.version>
+        <kotlin-logging-jvm.version>2.0.6</kotlin-logging-jvm.version>
         <jackson.version>2.12.2</jackson.version>
         <apache.kafka.version>2.3.0</apache.kafka.version>
     </properties>
@@ -96,8 +96,8 @@
         </dependency>
         <dependency>
             <groupId>io.github.microutils</groupId>
-            <artifactId>kotlin-logging</artifactId>
-            <version>${kotlin-logging.version}</version>
+            <artifactId>kotlin-logging-jvm</artifactId>
+            <version>${kotlin-logging-jvm.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.jetbrains.kotlin</groupId>
