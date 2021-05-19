@@ -54,8 +54,10 @@ import java.util.Map;
 @ConfigurationProperties(prefix = "axon.kafka")
 public class KafkaProperties {
 
+    public static final String DEFAULT_TOPIC = "local.event";
     /**
-     * Comma-delimited list of host:port pairs to use for establishing the initial connection to the Kafka cluster.
+     * Comma-delimited list of host:port pairs to u
+     * se for establishing the initial connection to the Kafka cluster.
      */
     private List<String> bootstrapServers = new ArrayList<>(Collections.singletonList("localhost:9092"));
 
@@ -67,7 +69,7 @@ public class KafkaProperties {
     /**
      * Default topic to which messages will be sent.
      */
-    private String defaultTopic;
+    private String defaultTopic = DEFAULT_TOPIC;
 
     /**
      * Additional properties, common to producers and consumers, used to configure the client.

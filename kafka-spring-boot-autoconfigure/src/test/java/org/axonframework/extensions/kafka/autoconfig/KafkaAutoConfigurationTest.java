@@ -19,14 +19,7 @@ package org.axonframework.extensions.kafka.autoconfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.SslConfigs;
-import org.apache.kafka.common.serialization.ByteArrayDeserializer;
-import org.apache.kafka.common.serialization.ByteArraySerializer;
-import org.apache.kafka.common.serialization.IntegerDeserializer;
-import org.apache.kafka.common.serialization.IntegerSerializer;
-import org.apache.kafka.common.serialization.LongDeserializer;
-import org.apache.kafka.common.serialization.LongSerializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.StringSerializer;
+import org.apache.kafka.common.serialization.*;
 import org.axonframework.config.EventProcessingConfigurer;
 import org.axonframework.config.EventProcessingModule;
 import org.axonframework.eventhandling.EventBus;
@@ -36,17 +29,13 @@ import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
 import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.StreamableKafkaMessageSource;
-import org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode;
-import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducerFactory;
-import org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher;
-import org.axonframework.extensions.kafka.eventhandling.producer.KafkaPublisher;
-import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
+import org.axonframework.extensions.kafka.eventhandling.producer.*;
 import org.axonframework.monitoring.MessageMonitor;
 import org.axonframework.monitoring.NoOpMessageMonitor;
 import org.axonframework.serialization.Serializer;
 import org.axonframework.serialization.xml.XStreamSerializer;
 import org.axonframework.spring.config.AxonConfiguration;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -59,7 +48,8 @@ import java.util.Map;
 
 import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher.DEFAULT_PROCESSING_GROUP;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -75,12 +65,70 @@ class KafkaAutoConfigurationTest {
             .withConfiguration(AutoConfigurations.of(KafkaAutoConfiguration.class));
 
     @Test
+    void testAutoConfigurationWithoutProperties() {
+        this.contextRunner.withUserConfiguration(TestConfiguration.class)
+                .run(context -> {
+                    // Required bean assertions
+                    assertNotNull(context.getBeanNamesForType(KafkaMessageConverter.class));
+                    assertNotNull(context.getBeanNamesForType(ProducerFactory.class));
+                    assertNotNull(context.getBeanNamesForType(KafkaPublisher.class));
+                    assertNotNull(context.getBeanNamesForType(KafkaEventPublisher.class));
+                    assertNotNull(context.getBeanNamesForType(ConsumerFactory.class));
+                    assertNotNull(context.getBeanNamesForType(Fetcher.class));
+                    assertNotNull(context.getBeanNamesForType(StreamableKafkaMessageSource.class));
+
+                    KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
+
+                    assertEquals(KafkaProperties.DEFAULT_TOPIC, kafkaProperties.getDefaultTopic());
+
+                    // Producer assertions
+                    DefaultProducerFactory<?, ?> producerFactory =
+                            ((DefaultProducerFactory<?, ?>) context.getBean(DefaultProducerFactory.class));
+                    Map<String, Object> producerConfigs =
+                            ((DefaultProducerFactory<?, ?>) context.getBean(DefaultProducerFactory.class))
+                                    .configurationProperties();
+
+                    assertEquals(ConfirmationMode.NONE, producerFactory.confirmationMode());
+                    assertEquals(StringSerializer.class, producerConfigs.get(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG));
+                    assertEquals(ByteArraySerializer.class, producerConfigs.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG));
+                    assertEquals(
+                            KafkaProperties.EventProcessorMode.SUBSCRIBING,
+                            kafkaProperties.getProducer().getEventProcessorMode()
+                    );
+
+                    // Consumer assertions
+                    Map<String, Object> consumerConfigs =
+                            ((DefaultConsumerFactory<?, ?>) context.getBean(DefaultConsumerFactory.class))
+                                    .configurationProperties();
+
+                    assertEquals(
+                            Collections.singletonList("localhost:9092"),
+                            consumerConfigs.get(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG)
+                    );
+                    assertNull(consumerConfigs.get(ConsumerConfig.CLIENT_ID_CONFIG));
+                    assertNull(consumerConfigs.get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG));
+                    assertNull(consumerConfigs.get(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG));
+                    assertNull(consumerConfigs.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
+                    assertNull(consumerConfigs.get(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG));
+                    assertNull(consumerConfigs.get(ConsumerConfig.FETCH_MIN_BYTES_CONFIG));
+                    assertNull(consumerConfigs.get(ConsumerConfig.MAX_POLL_RECORDS_CONFIG));
+                    assertNull(consumerConfigs.get(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG));
+                    assertEquals(
+                            StringDeserializer.class, consumerConfigs.get(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG)
+                    );
+                    assertEquals(
+                            ByteArrayDeserializer.class, consumerConfigs.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG)
+                    );
+                });
+    }
+
+    @Test
     void testAutoConfigurationWithMinimalRequiredProperties() {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
-                          .withPropertyValues(
-                                  "axon.kafka.default-topic=testTopic",
-                                  "axon.kafka.producer.transaction-id-prefix=foo"
-                          ).run(context -> {
+                .withPropertyValues(
+                        "axon.kafka.default-topic=my-topic",
+                        "axon.kafka.producer.transaction-id-prefix=foo"
+                ).run(context -> {
             // Required bean assertions
             assertNotNull(context.getBeanNamesForType(KafkaMessageConverter.class));
             assertNotNull(context.getBeanNamesForType(ProducerFactory.class));
@@ -90,13 +138,16 @@ class KafkaAutoConfigurationTest {
             assertNotNull(context.getBeanNamesForType(Fetcher.class));
             assertNotNull(context.getBeanNamesForType(StreamableKafkaMessageSource.class));
 
+            KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
+
+            assertEquals("my-topic", kafkaProperties.getDefaultTopic());
+
             // Producer assertions
             DefaultProducerFactory<?, ?> producerFactory =
                     ((DefaultProducerFactory<?, ?>) context.getBean(DefaultProducerFactory.class));
             Map<String, Object> producerConfigs =
                     ((DefaultProducerFactory<?, ?>) context.getBean(DefaultProducerFactory.class))
                             .configurationProperties();
-            KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
 
             assertEquals(ConfirmationMode.TRANSACTIONAL, producerFactory.confirmationMode());
             assertEquals("foo", producerFactory.transactionIdPrefix());
@@ -136,32 +187,32 @@ class KafkaAutoConfigurationTest {
     @Test
     void testConsumerPropertiesAreAdjustedAsExpected() {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
-                          .withPropertyValues(
-                                  "axon.kafka.default-topic=testTopic",
-                                  // Overrides 'axon.kafka.bootstrap-servers'
-                                  "axon.kafka.bootstrap-servers=foo:1234",
-                                  "axon.kafka.properties.foo=bar",
-                                  "axon.kafka.default-topic=testTopic",
-                                  "axon.kafka.properties.baz=qux",
-                                  "axon.kafka.properties.foo.bar.baz=qux.fiz.buz",
-                                  "axon.kafka.ssl.key-password=p1",
-                                  "axon.kafka.ssl.keystore-location=classpath:ksLoc",
-                                  "axon.kafka.ssl.keystore-password=p2",
-                                  "axon.kafka.ssl.truststore-location=classpath:tsLoc",
-                                  "axon.kafka.ssl.truststore-password=p3",
-                                  "axon.kafka.consumer.auto-commit-interval=123",
-                                  "axon.kafka.consumer.max-poll-records=42",
-                                  "axon.kafka.consumer.auto-offset-reset=earliest",
-                                  "axon.kafka.consumer.client-id=some-client-id",
-                                  "axon.kafka.consumer.enable-auto-commit=false",
-                                  "axon.kafka.consumer.fetch-max-wait=456",
-                                  "axon.kafka.consumer.properties.fiz.buz=fix.fox",
-                                  "axon.kafka.consumer.fetch-min-size=789",
-                                  "axon.kafka.consumer.group-id=bar",
-                                  "axon.kafka.consumer.heartbeat-interval=234",
-                                  "axon.kafka.consumer.key-deserializer = org.apache.kafka.common.serialization.LongDeserializer",
-                                  "axon.kafka.consumer.value-deserializer = org.apache.kafka.common.serialization.IntegerDeserializer"
-                          ).run(context -> {
+                .withPropertyValues(
+                        "axon.kafka.default-topic=testTopic",
+                        // Overrides 'axon.kafka.bootstrap-servers'
+                        "axon.kafka.bootstrap-servers=foo:1234",
+                        "axon.kafka.properties.foo=bar",
+                        "axon.kafka.default-topic=testTopic",
+                        "axon.kafka.properties.baz=qux",
+                        "axon.kafka.properties.foo.bar.baz=qux.fiz.buz",
+                        "axon.kafka.ssl.key-password=p1",
+                        "axon.kafka.ssl.keystore-location=classpath:ksLoc",
+                        "axon.kafka.ssl.keystore-password=p2",
+                        "axon.kafka.ssl.truststore-location=classpath:tsLoc",
+                        "axon.kafka.ssl.truststore-password=p3",
+                        "axon.kafka.consumer.auto-commit-interval=123",
+                        "axon.kafka.consumer.max-poll-records=42",
+                        "axon.kafka.consumer.auto-offset-reset=earliest",
+                        "axon.kafka.consumer.client-id=some-client-id",
+                        "axon.kafka.consumer.enable-auto-commit=false",
+                        "axon.kafka.consumer.fetch-max-wait=456",
+                        "axon.kafka.consumer.properties.fiz.buz=fix.fox",
+                        "axon.kafka.consumer.fetch-min-size=789",
+                        "axon.kafka.consumer.group-id=bar",
+                        "axon.kafka.consumer.heartbeat-interval=234",
+                        "axon.kafka.consumer.key-deserializer = org.apache.kafka.common.serialization.LongDeserializer",
+                        "axon.kafka.consumer.value-deserializer = org.apache.kafka.common.serialization.IntegerDeserializer"
+                ).run(context -> {
             // Required bean assertions
             assertNotNull(context.getBeanNamesForType(KafkaMessageConverter.class));
             assertNotNull(context.getBeanNamesForType(ConsumerFactory.class));
@@ -205,27 +256,27 @@ class KafkaAutoConfigurationTest {
     @Test
     void testProducerPropertiesAreAdjustedAsExpected() {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
-                          .withPropertyValues(
-                                  "axon.kafka.clientId=cid",
-                                  "axon.kafka.default-topic=testTopic",
-                                  "axon.kafka.producer.transaction-id-prefix=foo",
-                                  "axon.kafka.properties.foo.bar.baz=qux.fiz.buz",
-                                  "axon.kafka.producer.acks=all",
-                                  "axon.kafka.producer.batch-size=20",
-                                  // Overrides "axon.kafka.producer.bootstrap-servers"
-                                  "axon.kafka.producer.bootstrap-servers=bar:1234",
-                                  "axon.kafka.producer.buffer-memory=12345",
-                                  "axon.kafka.producer.compression-type=gzip",
-                                  "axon.kafka.producer.key-serializer=org.apache.kafka.common.serialization.LongSerializer",
-                                  "axon.kafka.producer.retries=2",
-                                  "axon.kafka.producer.properties.fiz.buz=fix.fox",
-                                  "axon.kafka.producer.ssl.key-password=p4",
-                                  "axon.kafka.producer.ssl.keystore-location=classpath:ksLocP",
-                                  "axon.kafka.producer.ssl.keystore-password=p5",
-                                  "axon.kafka.producer.ssl.truststore-location=classpath:tsLocP",
-                                  "axon.kafka.producer.ssl.truststore-password=p6",
-                                  "axon.kafka.producer.value-serializer=org.apache.kafka.common.serialization.IntegerSerializer"
-                          ).run(context -> {
+                .withPropertyValues(
+                        "axon.kafka.clientId=cid",
+                        "axon.kafka.default-topic=testTopic",
+                        "axon.kafka.producer.transaction-id-prefix=foo",
+                        "axon.kafka.properties.foo.bar.baz=qux.fiz.buz",
+                        "axon.kafka.producer.acks=all",
+                        "axon.kafka.producer.batch-size=20",
+                        // Overrides "axon.kafka.producer.bootstrap-servers"
+                        "axon.kafka.producer.bootstrap-servers=bar:1234",
+                        "axon.kafka.producer.buffer-memory=12345",
+                        "axon.kafka.producer.compression-type=gzip",
+                        "axon.kafka.producer.key-serializer=org.apache.kafka.common.serialization.LongSerializer",
+                        "axon.kafka.producer.retries=2",
+                        "axon.kafka.producer.properties.fiz.buz=fix.fox",
+                        "axon.kafka.producer.ssl.key-password=p4",
+                        "axon.kafka.producer.ssl.keystore-location=classpath:ksLocP",
+                        "axon.kafka.producer.ssl.keystore-password=p5",
+                        "axon.kafka.producer.ssl.truststore-location=classpath:tsLocP",
+                        "axon.kafka.producer.ssl.truststore-password=p6",
+                        "axon.kafka.producer.value-serializer=org.apache.kafka.common.serialization.IntegerSerializer"
+                ).run(context -> {
             DefaultProducerFactory<?, ?> producerFactory = context.getBean(DefaultProducerFactory.class);
             Map<String, Object> configs = producerFactory.configurationProperties();
 
@@ -260,13 +311,13 @@ class KafkaAutoConfigurationTest {
     @Test
     void testKafkaPropertiesTrackingProducerMode() {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
-                          .withPropertyValues(
-                                  // Minimal Required Properties
-                                  "axon.kafka.default-topic=testTopic",
-                                  "axon.kafka.producer.transaction-id-prefix=foo",
-                                  // Event Producing Mode
-                                  "axon.kafka.producer.event-processor-mode=TRACKING"
-                          ).run(context -> {
+                .withPropertyValues(
+                        // Minimal Required Properties
+                        "axon.kafka.default-topic=testTopic",
+                        "axon.kafka.producer.transaction-id-prefix=foo",
+                        // Event Producing Mode
+                        "axon.kafka.producer.event-processor-mode=TRACKING"
+                ).run(context -> {
             KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
             assertEquals(
                     KafkaProperties.EventProcessorMode.TRACKING,
@@ -286,13 +337,13 @@ class KafkaAutoConfigurationTest {
     @Test
     void testKafkaPropertiesSubscribingProducerMode() {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
-                          .withPropertyValues(
-                                  // Minimal Required Properties
-                                  "axon.kafka.default-topic=testTopic",
-                                  "axon.kafka.producer.transaction-id-prefix=foo",
-                                  // Event Producing Mode
-                                  "axon.kafka.producer.event-processor-mode=SUBSCRIBING"
-                          ).run(context -> {
+                .withPropertyValues(
+                        // Minimal Required Properties
+                        "axon.kafka.default-topic=testTopic",
+                        "axon.kafka.producer.transaction-id-prefix=foo",
+                        // Event Producing Mode
+                        "axon.kafka.producer.event-processor-mode=SUBSCRIBING"
+                ).run(context -> {
             KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
             assertEquals(
                     KafkaProperties.EventProcessorMode.SUBSCRIBING,
@@ -312,13 +363,13 @@ class KafkaAutoConfigurationTest {
     @Test
     void testKafkaPropertiesTrackingConsumerMode() {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
-                          .withPropertyValues(
-                                  // Minimal Required Properties
-                                  "axon.kafka.default-topic=testTopic",
-                                  "axon.kafka.producer.transaction-id-prefix=foo",
-                                  // Event Consumption Mode
-                                  "axon.kafka.consumer.event-processor-mode=TRACKING"
-                          ).run(context -> {
+                .withPropertyValues(
+                        // Minimal Required Properties
+                        "axon.kafka.default-topic=testTopic",
+                        "axon.kafka.producer.transaction-id-prefix=foo",
+                        // Event Consumption Mode
+                        "axon.kafka.consumer.event-processor-mode=TRACKING"
+                ).run(context -> {
             KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
             assertEquals(
                     KafkaProperties.EventProcessorMode.TRACKING,
@@ -331,13 +382,13 @@ class KafkaAutoConfigurationTest {
     @Test
     void testKafkaPropertiesSubscribingConsumerMode() {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
-                          .withPropertyValues(
-                                  // Minimal Required Properties
-                                  "axon.kafka.default-topic=testTopic",
-                                  "axon.kafka.producer.transaction-id-prefix=foo",
-                                  // Event Consumption Mode
-                                  "axon.kafka.consumer.event-processor-mode=SUBSCRIBING"
-                          ).run(context -> {
+                .withPropertyValues(
+                        // Minimal Required Properties
+                        "axon.kafka.default-topic=testTopic",
+                        "axon.kafka.producer.transaction-id-prefix=foo",
+                        // Event Consumption Mode
+                        "axon.kafka.consumer.event-processor-mode=SUBSCRIBING"
+                ).run(context -> {
             KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
             assertEquals(
                     KafkaProperties.EventProcessorMode.SUBSCRIBING,
