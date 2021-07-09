@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,20 +16,23 @@
 
 package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
-import org.axonframework.serialization.xml.XStreamSerializer;
-import org.junit.jupiter.api.BeforeEach;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.KeyDeserializer;
+import org.apache.kafka.common.TopicPartition;
 
 /**
- * Tests XStream serialization the {@link KafkaTrackingToken}.
- *
+ * Custom {@link KeyDeserializer} used to deserialize the {@link TopicPartition}.
  * @author leechedan
  * @since 4.0
  */
-public class XStreamKafkaTrackingTokenSerializeTest extends AbstractKafkaTrackingTokenSerializeTest {
+public class PartitionDeserializer extends KeyDeserializer {
 
-    @BeforeEach
-    void setup(){
-        serializer = XStreamSerializer.builder().build();
+    @Override
+    public TopicPartition deserializeKey(String key, DeserializationContext context) {
+        if (null == key || key.lastIndexOf('-') == -1){
+            return null;
+        }
+        int i = key.lastIndexOf('-');
+        return new TopicPartition(key.substring(0, i), Integer.valueOf(key.substring(i+1)));
     }
-
 }

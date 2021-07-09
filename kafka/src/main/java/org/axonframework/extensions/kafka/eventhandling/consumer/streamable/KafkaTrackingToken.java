@@ -21,7 +21,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.apache.kafka.common.TopicPartition;
 import org.axonframework.eventhandling.TrackingToken;
-import org.axonframework.extensions.kafka.eventhandling.PartitionDeserializer;
 
 import java.io.Serializable;
 import java.util.Collections;
@@ -110,7 +109,6 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
     /**
      * Retrieve the {@link TopicPartition}/offset {@link Map} stored in this {@link TrackingToken}. This collection
      * corresponds to the actual progress of a Consumer polling for records.
-     * JacksonSerializer require the method format in 'getField()" in the absence of certain serializer module.
      *
      * @return the {@link TopicPartition}/offset {@link Map} stored in this {@link TrackingToken}
      */
