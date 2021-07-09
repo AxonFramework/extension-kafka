@@ -43,10 +43,10 @@ public class PartitionDeserializer extends KeyDeserializer {
         try {
             pos = Integer.valueOf(posStr);
         } catch(NumberFormatException e) {
-            logger.info("cannot parse the pos of TopicPartition json from {}", key);
+            logger.info("cannot parse the pos of TopicPartition from json:{}", key);
         }
         if (pos < 0){
-            logger.warn("pos of TopicPartition should greater then zero");
+            logger.warn("pos of TopicPartition should be greater than zero");
         }
         return new TopicPartition(key.substring(0, i), pos);
     }
