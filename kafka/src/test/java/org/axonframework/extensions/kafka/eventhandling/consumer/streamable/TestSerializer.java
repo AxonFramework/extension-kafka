@@ -16,18 +16,11 @@
 
 package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
-import com.fasterxml.jackson.annotation.JsonCreator.Mode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.cfg.MapperConfig;
-import com.fasterxml.jackson.databind.introspect.Annotated;
-import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
-
 import org.axonframework.serialization.*;
 import org.axonframework.serialization.json.JacksonSerializer;
 import org.axonframework.serialization.xml.XStreamSerializer;
 import org.junit.Ignore;
 
-import java.beans.ConstructorProperties;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -109,18 +102,5 @@ public enum TestSerializer {
         SimpleSerializedType serializedType = new SimpleSerializedType(type.getName(), null);
         return new SimpleSerializedObject<>(serialized, byte[].class, serializedType);
     }
-    
-    /*private static class OnlyAcceptConstructorPropertiesAnnotation extends JacksonAnnotationIntrospector {
 
-        private static final long serialVersionUID = 1L;
-
-        public static final ObjectMapper attachTo(ObjectMapper objectMapper) {
-            return objectMapper.setAnnotationIntrospector(new OnlyAcceptConstructorPropertiesAnnotation());
-        }
-
-        @Override
-        public Mode findCreatorAnnotation(MapperConfig<?> config, Annotated annotated) {
-            return (annotated.hasAnnotation(ConstructorProperties.class)) ? super.findCreatorAnnotation(config, annotated) : Mode.DISABLED;
-        }
-    }*/
 }
