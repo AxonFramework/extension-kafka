@@ -19,22 +19,20 @@ package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.KeyDeserializer;
 import org.apache.kafka.common.TopicPartition;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.axonframework.serialization.SerializationException;
 
 /**
  * Custom {@link KeyDeserializer} used to deserialize the {@link TopicPartition}.
+ *
  * @author leechedan
  * @since 4.0
  */
-public class PartitionDeserializer extends KeyDeserializer {
-
-    private static final Logger logger = LoggerFactory.getLogger(PartitionDeserializer.class);
+public class TopicPartitionDeserializer extends KeyDeserializer {
 
     @Override
     public TopicPartition deserializeKey(String key, DeserializationContext context) {
 
-        if (null == key || key.lastIndexOf('-') < 1){
+        if (null == key || key.lastIndexOf('-') < 1) {
             return null;
         }
         int i = key.lastIndexOf('-');
@@ -42,11 +40,12 @@ public class PartitionDeserializer extends KeyDeserializer {
         int pos = 0;
         try {
             pos = Integer.valueOf(posStr);
-        } catch(NumberFormatException e) {
-            logger.info("cannot parse the pos of TopicPartition from json:{}", key);
+        } catch (NumberFormatException e) {
+            throw new SerializationException(String.format("cannot parse the pos of TopicPartition from json:[%s]",
+                                                           key));
         }
-        if (pos < 0){
-            logger.warn("pos of TopicPartition should be greater than zero");
+        if (pos < 0) {
+            throw new SerializationException("pos of TopicPartition should be greater than zero");
         }
         return new TopicPartition(key.substring(0, i), pos);
     }

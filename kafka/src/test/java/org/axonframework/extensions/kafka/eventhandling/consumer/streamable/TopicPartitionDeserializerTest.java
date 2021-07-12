@@ -17,7 +17,7 @@
 package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
 import org.apache.kafka.common.TopicPartition;
-import org.junit.Test;
+import org.junit.*;
 
 import java.util.Arrays;
 import java.util.List;
@@ -25,13 +25,13 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tests for the {@link PartitionDeserializer}.
+ * Tests for the {@link TopicPartitionDeserializer}.
  *
  * @author leechedan
  */
-public class PartitionDeserializerTest {
+public class TopicPartitionDeserializerTest {
 
-    final PartitionDeserializer deserializer = new PartitionDeserializer();
+    final TopicPartitionDeserializer deserializer = new TopicPartitionDeserializer();
 
     final List<TopicPartition> TOPIC_PARTITIONS = Arrays.asList(
             new TopicPartition("local", 0),
@@ -40,9 +40,11 @@ public class PartitionDeserializerTest {
     );
 
     @Test
-    public void testDeserializeShouldSuccess(){
-        TOPIC_PARTITIONS.stream().forEach(item->
-                assertEquals(item, deserializer.deserializeKey(item.toString(), null), item.toString() + " fail")
+    public void testDeserializeShouldSuccess() {
+        TOPIC_PARTITIONS.stream().forEach(item ->
+                                                  assertEquals(item,
+                                                               deserializer.deserializeKey(item.toString(), null),
+                                                               item.toString() + " fail")
         );
     }
 }

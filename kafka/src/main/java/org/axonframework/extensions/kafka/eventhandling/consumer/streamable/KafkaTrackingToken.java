@@ -41,7 +41,7 @@ import static org.axonframework.common.Assert.isTrue;
  */
 public class KafkaTrackingToken implements TrackingToken, Serializable {
 
-    @JsonDeserialize(keyUsing = PartitionDeserializer.class)
+    @JsonDeserialize(keyUsing = TopicPartitionDeserializer.class)
     private final Map<TopicPartition, Long> positions;
 
     private KafkaTrackingToken(Map<TopicPartition, Long> positions) {
