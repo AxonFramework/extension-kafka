@@ -18,6 +18,7 @@ package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.apache.kafka.common.TopicPartition;
 import org.axonframework.eventhandling.TrackingToken;
 
@@ -40,6 +41,7 @@ import static org.axonframework.common.Assert.isTrue;
  */
 public class KafkaTrackingToken implements TrackingToken, Serializable {
 
+    @JsonDeserialize(keyUsing = TopicPartitionDeserializer.class)
     private final Map<TopicPartition, Long> positions;
 
     private KafkaTrackingToken(Map<TopicPartition, Long> positions) {
@@ -110,7 +112,7 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
      *
      * @return the {@link TopicPartition}/offset {@link Map} stored in this {@link TrackingToken}
      */
-    public Map<TopicPartition, Long> positions() {
+    public Map<TopicPartition, Long> getPositions() {
         return positions;
     }
 
@@ -133,7 +135,7 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
     }
 
     private KafkaTrackingToken advancedTo(TopicPartition topicPartition, long offset) {
-        Map<TopicPartition, Long> updatedPositions = new HashMap<>(positions());
+        Map<TopicPartition, Long> updatedPositions = new HashMap<>(getPositions());
         updatedPositions.put(topicPartition, offset);
         return new KafkaTrackingToken(updatedPositions);
     }
@@ -153,13 +155,13 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
     }
 
     private Map<TopicPartition, Long> bounds(KafkaTrackingToken other, BiFunction<Long, Long, Long> boundsFunction) {
-        Map<TopicPartition, Long> intersection = new HashMap<>(positions());
-        other.positions().forEach(intersection::putIfAbsent);
+        Map<TopicPartition, Long> intersection = new HashMap<>(getPositions());
+        other.getPositions().forEach(intersection::putIfAbsent);
 
         intersection.keySet()
                     .forEach(topicPartition -> intersection.put(topicPartition, boundsFunction.apply(
-                            this.positions().getOrDefault(topicPartition, 0L),
-                            other.positions().getOrDefault(topicPartition, 0L))
+                            this.getPositions().getOrDefault(topicPartition, 0L),
+                            other.getPositions().getOrDefault(topicPartition, 0L))
                     ));
         return intersection;
     }
@@ -170,13 +172,13 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
         //noinspection ConstantConditions - Verified cast through `Assert.isTrue` operation
         KafkaTrackingToken otherToken = (KafkaTrackingToken) other;
 
-        return otherToken.positions()
+        return otherToken.getPositions()
                          .entrySet().stream()
                          .allMatch(offsetsEntry -> match(offsetsEntry.getKey(), offsetsEntry.getValue()));
     }
 
     private boolean match(TopicPartition otherTopicPartition, long otherOffset) {
-        return otherOffset <= this.positions().getOrDefault(otherTopicPartition, -1L);
+        return otherOffset <= this.getPositions().getOrDefault(otherTopicPartition, -1L);
     }
 
     @Override

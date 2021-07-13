@@ -106,7 +106,7 @@ class KafkaTrackingTokenTest {
         KafkaTrackingToken testSubject = testToken.advancedTo(TEST_TOPIC, TEST_PARTITION, 1L);
 
         assertNotSame(testSubject, testToken);
-        assertEquals(Long.valueOf(1), testSubject.positions().get(TEST_TOPIC_PARTITION));
+        assertEquals(Long.valueOf(1), testSubject.getPositions().get(TEST_TOPIC_PARTITION));
         assertKnownEventIds(testSubject, TEST_TOPIC_PARTITION, new TopicPartition(TEST_TOPIC, 1));
     }
 
@@ -120,14 +120,14 @@ class KafkaTrackingTokenTest {
         KafkaTrackingToken testSubject = testToken.advancedTo(TEST_TOPIC, TEST_PARTITION, 0L);
 
         assertNotSame(testSubject, testToken);
-        assertEquals(Long.valueOf(0), testSubject.positions().get(TEST_TOPIC_PARTITION));
+        assertEquals(Long.valueOf(0), testSubject.getPositions().get(TEST_TOPIC_PARTITION));
         assertKnownEventIds(testSubject, TEST_TOPIC_PARTITION, new TopicPartition(TEST_TOPIC, 1));
     }
 
     private static void assertKnownEventIds(KafkaTrackingToken token, TopicPartition... expectedKnownIds) {
         assertEquals(
                 Stream.of(expectedKnownIds).collect(toSet()),
-                new HashSet<>(token.positions().keySet())
+                new HashSet<>(token.getPositions().keySet())
         );
     }
 
