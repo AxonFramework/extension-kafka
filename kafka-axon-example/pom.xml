@@ -31,7 +31,7 @@
 
     <properties>
         <kotlin.version>1.5.21</kotlin.version>
-        <kotlin-logging-jvm.version>2.0.8</kotlin-logging-jvm.version>
+        <kotlin-logging-jvm.version>2.0.10</kotlin-logging-jvm.version>
         <jackson.version>2.12.4</jackson.version>
         <apache.kafka.version>2.3.0</apache.kafka.version>
     </properties>
