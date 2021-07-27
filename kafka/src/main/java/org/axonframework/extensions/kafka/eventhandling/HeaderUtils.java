@@ -1,10 +1,11 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,6 +25,7 @@ import org.axonframework.serialization.SerializedObject;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
@@ -46,7 +48,7 @@ import static org.axonframework.messaging.Headers.defaultHeaders;
  */
 public abstract class HeaderUtils {
 
-    private static final Charset UTF_8 = Charset.forName("UTF-8");
+    private static final Charset UTF_8 = StandardCharsets.UTF_8;
     private static final String KEY_DELIMITER = "-";
 
     private HeaderUtils() {
@@ -64,8 +66,8 @@ public abstract class HeaderUtils {
     }
 
     /**
-     * Return a {@link Long} representation of the {@code value} stored under a given {@code key} inside the
-     * {@link Headers}. In case of a missing entry {@code null} is returned.
+     * Return a {@link Long} representation of the {@code value} stored under a given {@code key} inside the {@link
+     * Headers}. In case of a missing entry {@code null} is returned.
      *
      * @param headers the Kafka {@code headers} to pull the {@link Long} value from
      * @param key     the key corresponding to the expected {@link Long} value
@@ -86,8 +88,8 @@ public abstract class HeaderUtils {
     }
 
     /**
-     * Return a {@link String} representation of the {@code value} stored under a given {@code key} inside the
-     * {@link Headers}. In case of a missing entry {@code null} is returned.
+     * Return a {@link String} representation of the {@code value} stored under a given {@code key} inside the {@link
+     * Headers}. In case of a missing entry {@code null} is returned.
      *
      * @param headers the Kafka {@code headers} to pull the {@link String} value from
      * @param key     the key corresponding to the expected {@link String} value
@@ -98,8 +100,8 @@ public abstract class HeaderUtils {
     }
 
     /**
-     * Return a {@link String} representation of the {@code value} stored under a given {@code key} inside the
-     * {@link Headers}. In case of a missing entry the {@code defaultValue} is returned.
+     * Return a {@link String} representation of the {@code value} stored under a given {@code key} inside the {@link
+     * Headers}. In case of a missing entry the {@code defaultValue} is returned.
      *
      * @param headers      the Kafka {@code headers} to pull the {@link String} value from
      * @param key          the key corresponding to the expected {@link String} value
@@ -177,8 +179,8 @@ public abstract class HeaderUtils {
     }
 
     /**
-     * Creates a new {@link org.apache.kafka.common.header.internals.RecordHeader} based on {@code key} and
-     * {@code value} and adds it to {@code headers}. The {@code value} is converted to bytes and follows this logic:
+     * Creates a new {@link org.apache.kafka.common.header.internals.RecordHeader} based on {@code key} and {@code
+     * value} and adds it to {@code headers}. The {@code value} is converted to bytes and follows this logic:
      * <ul>
      * <li>Instant - calls {@link Instant#toEpochMilli()}</li>
      * <li>Number - calls {@link HeaderUtils#toBytes} </li>
@@ -220,8 +222,8 @@ public abstract class HeaderUtils {
     }
 
     /**
-     * Generates a meta data {@code key} used to identify Axon {@link org.axonframework.messaging.MetaData} in a
-     * {@link RecordHeader}.
+     * Generates a meta data {@code key} used to identify Axon {@link org.axonframework.messaging.MetaData} in a {@link
+     * RecordHeader}.
      *
      * @param key the key to create an identifiable {@link org.axonframework.messaging.MetaData} key out of
      * @return the generated metadata key
@@ -231,8 +233,8 @@ public abstract class HeaderUtils {
     }
 
     /**
-     * Extracts the actual key name used to send over Axon {@link org.axonframework.messaging.MetaData} values.
-     * E.g. from {@code 'axon-metadata-foo'} this method will extract {@code foo}.
+     * Extracts the actual key name used to send over Axon {@link org.axonframework.messaging.MetaData} values. E.g.
+     * from {@code 'axon-metadata-foo'} this method will extract {@code foo}.
      *
      * @param metaDataKey the generated metadata key to extract from
      * @return the extracted key
@@ -248,13 +250,13 @@ public abstract class HeaderUtils {
     }
 
     /**
-     * Extract all Axon {@link org.axonframework.messaging.MetaData} (if any) attached in the given {@code headers}.
-     * If a {@link Header#key()} matches with the {@link #isValidMetadataKey(String)} call, the given {@code header}
-     * will be added to the map
+     * Extract all Axon {@link org.axonframework.messaging.MetaData} (if any) attached in the given {@code headers}. If
+     * a {@link Header#key()} matches with the {@link #isValidMetadataKey(String)} call, the given {@code header} will
+     * be added to the map
      *
      * @param headers the Kafka {@link Headers} to extract a {@link org.axonframework.messaging.MetaData} map for
-     * @return the map of all Axon related {@link org.axonframework.messaging.MetaData} retrieved from the given
-     * {@code headers}
+     * @return the map of all Axon related {@link org.axonframework.messaging.MetaData} retrieved from the given {@code
+     * headers}
      */
     public static Map<String, Object> extractAxonMetadata(Headers headers) {
         notNull(headers, () -> "Headers may not be null");

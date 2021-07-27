@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,9 +72,9 @@ class HeaderUtilsTest {
         return ByteBuffer.wrap(Objects.requireNonNull(value(target, "short"))).getShort();
     }
 
-    @SuppressWarnings("unchecked")
     private static SerializedObject<byte[]> serializedObject() {
-        SerializedObject serializedObject = mock(SerializedObject.class);
+        //noinspection unchecked
+        SerializedObject<byte[]> serializedObject = mock(SerializedObject.class);
         when(serializedObject.getType()).thenReturn(new SimpleSerializedType("someObjectType", "10"));
         return serializedObject;
     }
@@ -93,6 +93,7 @@ class HeaderUtilsTest {
         assertNull(value(new RecordHeaders(), "123"));
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Test
     void testReadingValueFromNullHeaderShouldThrowException() {
         assertThrows(IllegalArgumentException.class, () -> value(null, "bar"));
@@ -256,6 +257,7 @@ class HeaderUtilsTest {
         assertEquals("foo", extractKey(generateMetadataKey("foo")));
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Test
     void testExtractingKeyNullMetadataKeyShouldThrowAnException() {
         assertThrows(IllegalArgumentException.class, () -> extractKey(null));
@@ -360,7 +362,7 @@ class HeaderUtilsTest {
 
     private static class Bar {
 
-        private int count;
+        private final int count;
 
         Bar(int count) {
             this.count = count;

@@ -29,24 +29,30 @@ import org.axonframework.serialization.SerializationException;
  */
 public class TopicPartitionDeserializer extends KeyDeserializer {
 
+    private static final char HYPHEN = '-';
+
     @Override
     public TopicPartition deserializeKey(String key, DeserializationContext context) {
-
-        if (null == key || key.lastIndexOf('-') < 1) {
+        if (null == key || key.lastIndexOf(HYPHEN) < 1) {
             return null;
         }
-        int i = key.lastIndexOf('-');
-        String posStr = key.substring(i + 1);
-        int pos = 0;
+
+        int hyphenIndex = key.lastIndexOf(HYPHEN);
+        String positionString = key.substring(hyphenIndex + 1);
+
+        int position;
         try {
-            pos = Integer.valueOf(posStr);
+            position = Integer.parseInt(positionString);
         } catch (NumberFormatException e) {
-            throw new SerializationException(String.format("cannot parse the pos of TopicPartition from json:[%s]",
-                                                           key));
+            throw new SerializationException(String.format(
+                    "Cannot parse the position of TopicPartition from json:[%s].", key
+            ));
         }
-        if (pos < 0) {
-            throw new SerializationException("pos of TopicPartition should be greater than zero");
+
+        if (position < 0) {
+            throw new SerializationException("The position of the TopicPartition should be greater than zero.");
         }
-        return new TopicPartition(key.substring(0, i), pos);
+
+        return new TopicPartition(key.substring(0, hyphenIndex), position);
     }
 }

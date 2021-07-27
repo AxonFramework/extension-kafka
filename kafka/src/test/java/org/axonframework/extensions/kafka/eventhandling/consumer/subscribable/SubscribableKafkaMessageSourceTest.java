@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,11 +65,11 @@ class SubscribableKafkaMessageSourceTest {
         fetcher = mock(Fetcher.class);
 
         testSubject = SubscribableKafkaMessageSource.<String, String>builder()
-                .topics(Collections.singletonList(TEST_TOPIC))
-                .groupId(DEFAULT_GROUP_ID)
-                .consumerFactory(consumerFactory)
-                .fetcher(fetcher)
-                .build();
+                                                    .topics(Collections.singletonList(TEST_TOPIC))
+                                                    .groupId(DEFAULT_GROUP_ID)
+                                                    .consumerFactory(consumerFactory)
+                                                    .fetcher(fetcher)
+                                                    .build();
     }
 
     @AfterEach
@@ -129,13 +129,14 @@ class SubscribableKafkaMessageSourceTest {
     void testAutoStartInitiatesProcessingOnFirstEventProcessor() {
         when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(NO_OP_FETCHER_REGISTRATION);
 
-        SubscribableKafkaMessageSource<String, String> testSubject = SubscribableKafkaMessageSource.<String, String>builder()
-                .topics(Collections.singletonList(TEST_TOPIC))
-                .groupId(DEFAULT_GROUP_ID)
-                .consumerFactory(consumerFactory)
-                .fetcher(fetcher)
-                .autoStart()
-                .build();
+        SubscribableKafkaMessageSource<String, String> testSubject =
+                SubscribableKafkaMessageSource.<String, String>builder()
+                                              .topics(Collections.singletonList(TEST_TOPIC))
+                                              .groupId(DEFAULT_GROUP_ID)
+                                              .consumerFactory(consumerFactory)
+                                              .fetcher(fetcher)
+                                              .autoStart()
+                                              .build();
 
         testSubject.subscribe(NO_OP_EVENT_PROCESSOR);
 
@@ -152,13 +153,14 @@ class SubscribableKafkaMessageSourceTest {
             return true;
         });
 
-        SubscribableKafkaMessageSource<String, String> testSubject = SubscribableKafkaMessageSource.<String, String>builder()
-                .topics(Collections.singletonList(TEST_TOPIC))
-                .groupId(DEFAULT_GROUP_ID)
-                .consumerFactory(consumerFactory)
-                .fetcher(fetcher)
-                .autoStart() // This enables auto close
-                .build();
+        SubscribableKafkaMessageSource<String, String> testSubject =
+                SubscribableKafkaMessageSource.<String, String>builder()
+                                              .topics(Collections.singletonList(TEST_TOPIC))
+                                              .groupId(DEFAULT_GROUP_ID)
+                                              .consumerFactory(consumerFactory)
+                                              .fetcher(fetcher)
+                                              .autoStart() // This enables auto close
+                                              .build();
 
         Registration registration = testSubject.subscribe(NO_OP_EVENT_PROCESSOR);
         testSubject.start();
@@ -192,12 +194,13 @@ class SubscribableKafkaMessageSourceTest {
         testTopics.add("topicOne");
         testTopics.add("topicTwo");
 
-        SubscribableKafkaMessageSource<String, String> testSubject = SubscribableKafkaMessageSource.<String, String>builder()
-                .topics(testTopics)
-                .groupId(DEFAULT_GROUP_ID)
-                .consumerFactory(consumerFactory)
-                .fetcher(fetcher)
-                .build();
+        SubscribableKafkaMessageSource<String, String> testSubject =
+                SubscribableKafkaMessageSource.<String, String>builder()
+                                              .topics(testTopics)
+                                              .groupId(DEFAULT_GROUP_ID)
+                                              .consumerFactory(consumerFactory)
+                                              .fetcher(fetcher)
+                                              .build();
 
         testSubject.subscribe(NO_OP_EVENT_PROCESSOR);
         testSubject.start();
@@ -213,13 +216,14 @@ class SubscribableKafkaMessageSourceTest {
 
         when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(NO_OP_FETCHER_REGISTRATION);
 
-        SubscribableKafkaMessageSource<String, String> testSubject = SubscribableKafkaMessageSource.<String, String>builder()
-                .topics(Collections.singletonList(TEST_TOPIC))
-                .groupId(DEFAULT_GROUP_ID)
-                .consumerFactory(consumerFactory)
-                .fetcher(fetcher)
-                .consumerCount(expectedNumberOfConsumers)
-                .build();
+        SubscribableKafkaMessageSource<String, String> testSubject =
+                SubscribableKafkaMessageSource.<String, String>builder()
+                                              .topics(Collections.singletonList(TEST_TOPIC))
+                                              .groupId(DEFAULT_GROUP_ID)
+                                              .consumerFactory(consumerFactory)
+                                              .fetcher(fetcher)
+                                              .consumerCount(expectedNumberOfConsumers)
+                                              .build();
 
         testSubject.subscribe(NO_OP_EVENT_PROCESSOR);
         testSubject.start();
@@ -245,14 +249,15 @@ class SubscribableKafkaMessageSourceTest {
                     return true;
                 });
 
-        SubscribableKafkaMessageSource<String, String> testSubject = SubscribableKafkaMessageSource.<String, String>builder()
-                .topics(Collections.singletonList(TEST_TOPIC))
-                .groupId(DEFAULT_GROUP_ID)
-                .consumerFactory(consumerFactory)
-                .fetcher(fetcher)
-                .autoStart()
-                .consumerCount(expectedNumberOfConsumers)
-                .build();
+        SubscribableKafkaMessageSource<String, String> testSubject =
+                SubscribableKafkaMessageSource.<String, String>builder()
+                                              .topics(Collections.singletonList(TEST_TOPIC))
+                                              .groupId(DEFAULT_GROUP_ID)
+                                              .consumerFactory(consumerFactory)
+                                              .fetcher(fetcher)
+                                              .autoStart()
+                                              .consumerCount(expectedNumberOfConsumers)
+                                              .build();
 
         testSubject.subscribe(NO_OP_EVENT_PROCESSOR);
         testSubject.close();

@@ -19,19 +19,24 @@ package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 import org.apache.kafka.common.TopicPartition;
 import org.axonframework.eventhandling.ReplayToken;
 import org.axonframework.eventhandling.TrackingToken;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.*;
+import org.junit.runner.*;
+import org.junit.runners.*;
 
 import java.util.Collection;
 
 import static java.util.Collections.singletonMap;
 import static org.axonframework.extensions.kafka.eventhandling.consumer.streamable.KafkaTrackingToken.newInstance;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Test class validating the {@link KafkaTrackingToken} can be serialized and deserialized with a {@link
+ * org.axonframework.serialization.Serializer}.
+ *
+ * @author leechedan
+ */
 @RunWith(Parameterized.class)
 public class KafkaTrackingTokenSerializationTest {
-
 
     private static final String TEST_TOPIC = "topic";
     private static final int TEST_PARTITION = 0;
@@ -42,10 +47,10 @@ public class KafkaTrackingTokenSerializationTest {
     public KafkaTrackingTokenSerializationTest(TestSerializer serializer) {
         this.serializer = serializer;
     }
-    
+
     @Parameterized.Parameters(name = "{index} {0}")
     public static Collection<TestSerializer> serializers() {
-       return TestSerializer.all();
+        return TestSerializer.all();
     }
 
     @Test
@@ -55,20 +60,19 @@ public class KafkaTrackingTokenSerializationTest {
         ReplayToken replayToken = new ReplayToken(tokenReset, tokenStart);
         String serializeReplayToken = serializer.serialize(replayToken);
         TrackingToken deserializeReplayToken = serializer.deserialize(serializeReplayToken, ReplayToken.class);
-        assertTrue(deserializeReplayToken.equals(replayToken));
+        assertEquals(deserializeReplayToken, replayToken);
     }
 
     @Test
-    public void testTokenShouldBeSerializable(){
+    public void testTokenShouldBeSerializable() {
         KafkaTrackingToken token = nonEmptyToken(TEST_TOPIC_PARTITION, 0L);
         String serializeCopy = serializer.serialize(token);
         KafkaTrackingToken deserializeCopy = serializer.deserialize(serializeCopy, KafkaTrackingToken.class);
-        assertTrue(deserializeCopy.equals(token));
+        assertEquals(deserializeCopy, token);
     }
 
-
-    public static KafkaTrackingToken nonEmptyToken(TopicPartition topic, Long pos) {
+    @SuppressWarnings("SameParameterValue")
+    private static KafkaTrackingToken nonEmptyToken(TopicPartition topic, Long pos) {
         return newInstance(singletonMap(topic, pos));
     }
-
 }

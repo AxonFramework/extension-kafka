@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -43,8 +43,8 @@ public interface KafkaMessageConverter<K, V> {
     ProducerRecord<K, V> createKafkaMessage(EventMessage<?> eventMessage, String topic);
 
     /**
-     * Reconstruct an {@link EventMessage} from the given  {@link ConsumerRecord}. The returned optional
-     * resolves to a message if the given input parameters represented a correct EventMessage.
+     * Reconstruct an {@link EventMessage} from the given  {@link ConsumerRecord}. The returned optional resolves to a
+     * message if the given input parameters represented a correct EventMessage.
      *
      * @param consumerRecord the Event Message represented inside Kafka
      * @return the converted {@code consumerRecord} as an {@link EventMessage}

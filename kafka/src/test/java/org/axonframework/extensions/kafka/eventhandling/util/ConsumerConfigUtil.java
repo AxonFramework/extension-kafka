@@ -1,10 +1,11 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -50,7 +51,7 @@ public abstract class ConsumerConfigUtil {
      * kafkaContainer} and {@code valueDeserializer}
      */
     public static ConsumerFactory<String, Object> transactionalConsumerFactory(String bootstrapServer,
-                                                                               Class valueDeserializer) {
+                                                                               Class<?> valueDeserializer) {
         return new DefaultConsumerFactory<>(minimalTransactional(bootstrapServer, valueDeserializer));
     }
 
@@ -62,7 +63,7 @@ public abstract class ConsumerConfigUtil {
      * @return a minimal, transactional, {@link org.apache.kafka.clients.consumer.Consumer} configuration {@link Map}
      */
     @SuppressWarnings("WeakerAccess")
-    public static Map<String, Object> minimalTransactional(String bootstrapServer, Class valueDeserializer) {
+    public static Map<String, Object> minimalTransactional(String bootstrapServer, Class<?> valueDeserializer) {
         Map<String, Object> configs = minimal(bootstrapServer, valueDeserializer);
         configs.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
         return configs;
@@ -96,7 +97,7 @@ public abstract class ConsumerConfigUtil {
      * @param valueDeserializer a {@link Class} defining the type of value deserializer to be used
      * @return a minimal {@link org.apache.kafka.clients.consumer.Consumer} configuration {@link Map}
      */
-    public static Map<String, Object> minimal(String bootstrapServer, Class valueDeserializer) {
+    public static Map<String, Object> minimal(String bootstrapServer, Class<?> valueDeserializer) {
         Map<String, Object> config = new HashMap<>();
         config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);

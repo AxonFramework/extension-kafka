@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ import static org.axonframework.common.Assert.notNull;
  * @author Steven van Beelen
  * @since 4.0
  */
-public class SortedKafkaMessageBuffer<E extends Comparable & KafkaRecordMetaData> implements Buffer<E> {
+public class SortedKafkaMessageBuffer<E extends Comparable<?> & KafkaRecordMetaData<?>> implements Buffer<E> {
 
     private static final Logger logger = LoggerFactory.getLogger(SortedKafkaMessageBuffer.class);
 

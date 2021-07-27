@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,7 +84,6 @@ class KafkaTrackingTokenTest {
         assertEquals(original.hashCode(), copy.hashCode());
         assertNotEquals(forge, original);
         assertNotEquals(forge.hashCode(), original.hashCode());
-        assertNotEquals("foo", original);
     }
 
     @Test
