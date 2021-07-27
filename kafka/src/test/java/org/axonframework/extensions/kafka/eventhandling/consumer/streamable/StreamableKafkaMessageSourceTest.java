@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,11 +60,11 @@ class StreamableKafkaMessageSourceTest {
         fetcher = mock(Fetcher.class);
 
         testSubject = StreamableKafkaMessageSource.<String, String>builder()
-                .groupIdPrefix(GROUP_ID_PREFIX)
-                .groupIdSuffixFactory(() -> GROUP_ID_SUFFIX)
-                .consumerFactory(consumerFactory)
-                .fetcher(fetcher)
-                .build();
+                                                  .groupIdPrefix(GROUP_ID_PREFIX)
+                                                  .groupIdSuffixFactory(() -> GROUP_ID_SUFFIX)
+                                                  .consumerFactory(consumerFactory)
+                                                  .fetcher(fetcher)
+                                                  .build();
     }
 
     @Test
@@ -137,12 +137,13 @@ class StreamableKafkaMessageSourceTest {
         String testSuffix = "group-id-suffix";
         when(consumerFactory.createConsumer(testPrefix + testSuffix)).thenReturn(mockConsumer);
 
-        StreamableKafkaMessageSource<String, String> testSubject = StreamableKafkaMessageSource.<String, String>builder()
-                .groupIdPrefix(testPrefix)
-                .groupIdSuffixFactory(() -> testSuffix)
-                .consumerFactory(consumerFactory)
-                .fetcher(fetcher)
-                .build();
+        StreamableKafkaMessageSource<String, String> testSubject =
+                StreamableKafkaMessageSource.<String, String>builder()
+                                            .groupIdPrefix(testPrefix)
+                                            .groupIdSuffixFactory(() -> testSuffix)
+                                            .consumerFactory(consumerFactory)
+                                            .fetcher(fetcher)
+                                            .build();
 
         testSubject.openStream(null).close();
 

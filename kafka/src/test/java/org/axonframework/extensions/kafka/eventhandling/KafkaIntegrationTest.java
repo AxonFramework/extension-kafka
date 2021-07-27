@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ class KafkaIntegrationTest extends KafkaContainerTest {
 
     private static final String TEST_TOPIC = "integration";
     private static final Integer NR_PARTITIONS = 5;
-    private Configurer configurer = DefaultConfigurer.defaultConfiguration();
+    private final Configurer configurer = DefaultConfigurer.defaultConfiguration();
     private EventBus eventBus;
     private ProducerFactory<String, byte[]> producerFactory;
     private KafkaPublisher<String, byte[]> publisher;
@@ -77,9 +77,9 @@ class KafkaIntegrationTest extends KafkaContainerTest {
     void setUp() {
         producerFactory = ProducerConfigUtil.ackProducerFactory(getBootstrapServers(), ByteArraySerializer.class);
         publisher = KafkaPublisher.<String, byte[]>builder()
-                .producerFactory(producerFactory)
-                .topic(TEST_TOPIC)
-                .build();
+                                  .producerFactory(producerFactory)
+                                  .topic(TEST_TOPIC)
+                                  .build();
         KafkaEventPublisher<String, byte[]> sender =
                 KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(publisher).build();
         configurer.eventProcessing(
@@ -89,8 +89,8 @@ class KafkaIntegrationTest extends KafkaContainerTest {
         consumerFactory = new DefaultConsumerFactory<>(minimal(getBootstrapServers(), ByteArrayDeserializer.class));
 
         fetcher = AsyncFetcher.<String, byte[], KafkaEventMessage>builder()
-                .pollTimeout(300)
-                .build();
+                              .pollTimeout(300)
+                              .build();
 
         eventBus = SimpleEventBus.builder().build();
         configurer.configureEventBus(configuration -> eventBus);
@@ -109,10 +109,10 @@ class KafkaIntegrationTest extends KafkaContainerTest {
     void testPublishAndReadMessages() throws Exception {
         StreamableKafkaMessageSource<String, byte[]> streamableMessageSource =
                 StreamableKafkaMessageSource.<String, byte[]>builder()
-                        .topics(Collections.singletonList(TEST_TOPIC))
-                        .consumerFactory(consumerFactory)
-                        .fetcher(fetcher)
-                        .build();
+                                            .topics(Collections.singletonList(TEST_TOPIC))
+                                            .consumerFactory(consumerFactory)
+                                            .fetcher(fetcher)
+                                            .build();
 
         BlockingStream<TrackedEventMessage<?>> stream1 = streamableMessageSource.openStream(null);
         stream1.close();

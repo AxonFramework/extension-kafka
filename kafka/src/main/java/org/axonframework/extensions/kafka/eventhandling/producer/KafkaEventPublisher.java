@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,8 +38,8 @@ import static org.axonframework.common.BuilderUtils.assertNonNull;
 public class KafkaEventPublisher<K, V> implements EventMessageHandler {
 
     /**
-     * The default Kafka Event Handler processing group.
-     * Not intended to be used by other Event Handling Components than {@link KafkaEventPublisher}.
+     * The default Kafka Event Handler processing group. Not intended to be used by other Event Handling Components than
+     * {@link KafkaEventPublisher}.
      */
     public static final String DEFAULT_PROCESSING_GROUP = "__axon-kafka-event-publishing-group";
     private static final boolean DOES_NOT_SUPPORT_RESET = false;
@@ -62,8 +62,8 @@ public class KafkaEventPublisher<K, V> implements EventMessageHandler {
     /**
      * Instantiate a {@link KafkaEventPublisher} based on the fields contained in the {@link Builder}.
      * <p>
-     * Will assert that the {@link KafkaPublisher} is not {@code null}, and will throw an
-     * {@link AxonConfigurationException} if it is.
+     * Will assert that the {@link KafkaPublisher} is not {@code null}, and will throw an {@link
+     * AxonConfigurationException} if it is.
      *
      * @param builder the {@link Builder} used to instantiate a {@link KafkaEventPublisher} instance
      */
@@ -96,8 +96,8 @@ public class KafkaEventPublisher<K, V> implements EventMessageHandler {
         private KafkaPublisher<K, V> kafkaPublisher;
 
         /**
-         * Sets the {@link KafkaPublisher} to be used by this {@link EventMessageHandler} to publish
-         * {@link EventMessage} on.
+         * Sets the {@link KafkaPublisher} to be used by this {@link EventMessageHandler} to publish {@link
+         * EventMessage} on.
          *
          * @param kafkaPublisher the {@link KafkaPublisher} to be used by this {@link EventMessageHandler} to publish
          *                       {@link EventMessage} on

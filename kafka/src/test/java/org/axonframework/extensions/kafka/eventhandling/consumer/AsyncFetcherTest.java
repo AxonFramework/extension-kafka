@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -104,7 +104,7 @@ class AsyncFetcherTest extends KafkaContainerTest {
             received.put(m.partition(), received.get(m.partition()) + 1);
         }
         assertEquals(4, received.get(partitionZero));
-        assertEquals(8,received.get(partitionOne));
+        assertEquals(8, received.get(partitionOne));
         assertNull(received.get(partitionTwo));
         assertEquals(5, received.get(partitionThree));
         assertEquals(9, received.get(partitionFour));
@@ -113,7 +113,7 @@ class AsyncFetcherTest extends KafkaContainerTest {
     @BeforeEach
     void setUp() {
         testSubject = AsyncFetcher.<String, String, KafkaEventMessage>builder()
-                .executorService(newSingleThreadExecutor()).build();
+                                  .executorService(newSingleThreadExecutor()).build();
     }
 
     @AfterEach

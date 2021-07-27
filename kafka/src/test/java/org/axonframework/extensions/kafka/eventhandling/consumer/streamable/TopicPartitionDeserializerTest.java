@@ -31,20 +31,18 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 public class TopicPartitionDeserializerTest {
 
-    final TopicPartitionDeserializer deserializer = new TopicPartitionDeserializer();
-
-    final List<TopicPartition> TOPIC_PARTITIONS = Arrays.asList(
+    private static final List<TopicPartition> TOPIC_PARTITIONS = Arrays.asList(
             new TopicPartition("local", 0),
             new TopicPartition("local-", 1),
             new TopicPartition("local-event", 100)
     );
 
+    private final TopicPartitionDeserializer testSubject = new TopicPartitionDeserializer();
+
     @Test
     public void testDeserializeShouldSuccess() {
-        TOPIC_PARTITIONS.stream().forEach(item ->
-                                                  assertEquals(item,
-                                                               deserializer.deserializeKey(item.toString(), null),
-                                                               item.toString() + " fail")
+        TOPIC_PARTITIONS.forEach(
+                item -> assertEquals(item, testSubject.deserializeKey(item.toString(), null), item + " fail")
         );
     }
 }

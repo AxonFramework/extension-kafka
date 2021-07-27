@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,8 +45,8 @@ import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage
 /**
  * This compares the speed of operations that can be performed on the bundled {@link SortedKafkaMessageBuffer}. Re-run
  * this benchmark when changing internals of {@link SortedKafkaMessageBuffer}. The {@link SortedKafkaMessageBuffer}
- * bundled buffer aims to be efficient in terms of operations performed on the buffer. It may not always be fastest,
- * but we should try to keep it competitive.
+ * bundled buffer aims to be efficient in terms of operations performed on the buffer. It may not always be fastest, but
+ * we should try to keep it competitive.
  *
  * @author Nakul Mishra
  * @author Allard Buijze

@@ -16,10 +16,14 @@
 
 package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
-import org.axonframework.serialization.*;
+import org.axonframework.serialization.JavaSerializer;
+import org.axonframework.serialization.SerializedObject;
+import org.axonframework.serialization.Serializer;
+import org.axonframework.serialization.SimpleSerializedObject;
+import org.axonframework.serialization.SimpleSerializedType;
 import org.axonframework.serialization.json.JacksonSerializer;
 import org.axonframework.serialization.xml.XStreamSerializer;
-import org.junit.Ignore;
+import org.junit.*;
 
 import java.util.Base64;
 import java.util.Collection;
@@ -27,7 +31,7 @@ import java.util.EnumSet;
 
 /**
  * Enumeration of serializers for testing purposes.
- * 
+ *
  * @author JohT
  */
 @Ignore
@@ -35,15 +39,15 @@ public enum TestSerializer {
 
     JAVA {
         @SuppressWarnings("deprecation")
-        private Serializer serializer = JavaSerializer.builder().build();
-        
+        private final Serializer serializer = JavaSerializer.builder().build();
+
         @Override
         public Serializer getSerializer() {
             return serializer;
         }
-        
+
         @Override
-        protected  String serialize(Object object) {
+        protected String serialize(Object object) {
             return Base64.getEncoder().encodeToString(getSerializer().serialize(object, byte[].class).getData());
         }
 
@@ -51,10 +55,9 @@ public enum TestSerializer {
         protected <T> T deserialize(String serialized, Class<T> type) {
             return getSerializer().deserialize(asSerializedData(Base64.getDecoder().decode(serialized), type));
         }
-       
     },
-    XTREAM {
-        private Serializer serializer = createSerializer();
+    XSTREAM {
+        private final Serializer serializer = createSerializer();
 
         private XStreamSerializer createSerializer() {
             XStreamSerializer xStreamSerializer = XStreamSerializer.builder().build();
@@ -68,33 +71,25 @@ public enum TestSerializer {
         }
     },
     JACKSON {
-        private Serializer serializer = JacksonSerializer.builder().build();
+        private final Serializer serializer = JacksonSerializer.builder().build();
 
         @Override
         public Serializer getSerializer() {
             return serializer;
         }
-        
-    },
+    };
 
-    ;
-
-    protected  String serialize(Object object) {
+    protected String serialize(Object object) {
         return new String(getSerializer().serialize(object, byte[].class).getData());
     }
 
     protected <T> T deserialize(String serialized, Class<T> type) {
         return getSerializer().deserialize(asSerializedData(serialized.getBytes(), type));
     }
-    
+
     public abstract Serializer getSerializer();
 
-    @SuppressWarnings("unchecked")
-    public <T> T serializeDeserialize(T object) {
-        return deserialize(serialize(object), (Class<T>) object.getClass());
-    }
-
-    public static final Collection<TestSerializer> all() {
+    public static Collection<TestSerializer> all() {
         return EnumSet.allOf(TestSerializer.class);
     }
 
@@ -102,5 +97,4 @@ public enum TestSerializer {
         SimpleSerializedType serializedType = new SimpleSerializedType(type.getName(), null);
         return new SimpleSerializedObject<>(serialized, byte[].class, serializedType);
     }
-
 }

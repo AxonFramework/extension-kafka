@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -124,7 +124,7 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
         assertThrows(IllegalArgumentException.class, () -> new SortedKafkaMessageBuffer<>(-1));
     }
 
-    public void testPutInvalidMessageInABuffer() throws InterruptedException {
+    public void testPutInvalidMessageInABuffer() {
         assertThrows(IllegalArgumentException.class, () -> new SortedKafkaMessageBuffer<>().put(null));
     }
 
@@ -132,7 +132,7 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
      * A new buffer has the indicated capacity
      */
     public void testCreateBuffer() {
-        assertEquals(SIZE, new SortedKafkaMessageBuffer(SIZE).remainingCapacity());
+        assertEquals(SIZE, new SortedKafkaMessageBuffer<>(SIZE).remainingCapacity());
     }
 
     /**
@@ -156,7 +156,7 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
     }
 
     public void testIsEmpty() {
-        SortedKafkaMessageBuffer<? extends Comparable> buff = new SortedKafkaMessageBuffer<>();
+        SortedKafkaMessageBuffer<? extends Comparable<?>> buff = new SortedKafkaMessageBuffer<>();
         assertTrue(buff.isEmpty());
         assertEquals(0, buff.size());
     }
@@ -302,7 +302,6 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
         assertEquals("m9", buffer.poll(0, NANOSECONDS).value().getPayload());
         assertEquals("m10", buffer.poll(0, NANOSECONDS).value().getPayload());
         assertEquals("m11", buffer.poll(0, NANOSECONDS).value().getPayload());
-        //noinspection unchecked
         assertNull(new SortedKafkaMessageBuffer<>().poll(0, NANOSECONDS));
     }
 
@@ -318,7 +317,6 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
         assertEquals("m9", buffer.take().value().getPayload());
         assertEquals("m10", buffer.take().value().getPayload());
         assertEquals("m11", buffer.take().value().getPayload());
-        //noinspection unchecked
         assertNull(new SortedKafkaMessageBuffer<>().poll(0, NANOSECONDS));
     }
 
@@ -431,7 +429,6 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
                                                   message(2, 1, 1, "m1"),
                                                   message(1, 0, 1, "m2")
         );
-        //noinspection unchecked
         assertNull(new SortedKafkaMessageBuffer<>().peek());
         for (KafkaEventMessage message : messages) {
             buffer.put(message);
@@ -530,7 +527,7 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
         try {
             SortedKafkaMessageBuffer<KafkaEventMessage> buffer = new SortedKafkaMessageBuffer<>();
             Thread.currentThread().interrupt();
-            assertThrows(InterruptedException.class, () -> buffer.take());
+            assertThrows(InterruptedException.class, buffer::take);
         } finally {
             //noinspection ResultOfMethodCallIgnored
             Thread.interrupted();

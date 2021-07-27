@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.errors.ProducerFencedException;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.config.Configurer;
 import org.axonframework.config.DefaultConfigurer;
 import org.axonframework.eventhandling.GenericDomainEventMessage;
@@ -44,6 +45,7 @@ import org.junit.jupiter.api.*;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
@@ -65,10 +67,9 @@ import static org.mockito.Mockito.*;
 /**
  * Tests for {@link KafkaPublisher} asserting utilization of the class.
  *
- * @author Nakul Mishra
  * @author Steven van Beelen
+ * @author Nakul Mishra
  */
-
 class KafkaPublisherTest extends KafkaContainerTest {
 
     private static final String[] TOPICS = {
@@ -159,8 +160,12 @@ class KafkaPublisherTest extends KafkaContainerTest {
         }
         this.monitor.reset();
         this.testConsumer.close();
-        this.testSubject.shutDown();
-        this.testProducerFactory.shutDown();
+
+        // the KafkaPublisher.Builder tests do not set the regular test subjects
+        if (Objects.nonNull(testSubject)) {
+            this.testSubject.shutDown();
+            this.testProducerFactory.shutDown();
+        }
     }
 
     @Test
@@ -283,7 +288,6 @@ class KafkaPublisherTest extends KafkaContainerTest {
 
         eventBus.publish(testMessage);
 
-        //noinspection CatchMayIgnoreException
         try {
             uow.commit();
             fail("Expected a RuntimeException to be thrown");
@@ -330,7 +334,6 @@ class KafkaPublisherTest extends KafkaContainerTest {
 
         eventBus.publish(testMessage);
 
-        //noinspection CatchMayIgnoreException
         try {
             uow.commit();
             fail("Expected a RuntimeException to be thrown");
@@ -342,18 +345,53 @@ class KafkaPublisherTest extends KafkaContainerTest {
         assertTrue(getRecords(testConsumer, 100).isEmpty(), "Didn't expect any consumer records");
     }
 
+    @Test
+    void testConfiguringInvalidProducerFactory() {
+        KafkaPublisher.Builder<Object, Object> builderTestSubject = KafkaPublisher.builder();
+
+        assertThrows(AxonConfigurationException.class, () -> builderTestSubject.producerFactory(null));
+    }
+
+    @Test
+    void testConfiguringInvalidMessageConverter() {
+        KafkaPublisher.Builder<Object, Object> builderTestSubject = KafkaPublisher.builder();
+
+        assertThrows(AxonConfigurationException.class, () -> builderTestSubject.messageConverter(null));
+    }
+
+    @Test
+    void testConfiguringInvalidMessageMonitor() {
+        KafkaPublisher.Builder<Object, Object> builderTestSubject = KafkaPublisher.builder();
+
+        assertThrows(AxonConfigurationException.class, () -> builderTestSubject.messageMonitor(null));
+    }
+
+    @Test
+    void testConfiguringInvalidKafkaTopic() {
+        KafkaPublisher.Builder<Object, Object> builderTestSubject = KafkaPublisher.builder();
+
+        assertThrows(AxonConfigurationException.class, () -> builderTestSubject.topic(null));
+    }
+
+    @Test
+    void testConfiguringInvalidAckTimeout() {
+        KafkaPublisher.Builder<Object, Object> builderTestSubject = KafkaPublisher.builder();
+
+        assertThrows(AxonConfigurationException.class, () -> builderTestSubject.publisherAckTimeout(-12));
+    }
+
     private KafkaPublisher<String, byte[]> buildPublisher(String topic) {
         DefaultKafkaMessageConverter messageConverter =
                 DefaultKafkaMessageConverter.builder()
                                             .serializer(XStreamSerializer.builder().build())
                                             .build();
         KafkaPublisher<String, byte[]> kafkaPublisher = KafkaPublisher.<String, byte[]>builder()
-                .producerFactory(testProducerFactory)
-                .messageConverter(messageConverter)
-                .messageMonitor(monitor)
-                .topic(topic)
-                .publisherAckTimeout(1000)
-                .build();
+                                                                      .producerFactory(testProducerFactory)
+                                                                      .messageConverter(messageConverter)
+                                                                      .messageMonitor(monitor)
+                                                                      .topic(topic)
+                                                                      .publisherAckTimeout(1000)
+                                                                      .build();
         KafkaEventPublisher<String, byte[]> kafkaEventPublisher =
                 KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(kafkaPublisher).build();
         /*
@@ -401,7 +439,7 @@ class KafkaPublisherTest extends KafkaContainerTest {
         private final AtomicInteger failureCounter = new AtomicInteger(0);
         private final AtomicInteger ignoreCounter = new AtomicInteger(0);
 
-        private List<Message<?>> received = new CopyOnWriteArrayList<>();
+        private final List<Message<?>> received = new CopyOnWriteArrayList<>();
 
         @Override
         public MonitorCallback onMessageIngested(Message<?> message) {

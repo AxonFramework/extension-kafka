@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package org.axonframework.extensions.kafka.eventhandling;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Headers;
+import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.eventhandling.DomainEventMessage;
 import org.axonframework.eventhandling.EventMessage;
 import org.axonframework.eventhandling.GenericDomainEventMessage;
@@ -43,6 +44,8 @@ import static org.mockito.Mockito.*;
 /**
  * Tests for {@link DefaultKafkaMessageConverter}.
  *
+ * @author Lucas Campos
+ * @author Steven van Beelen
  * @author Nakul Mishra
  */
 class DefaultKafkaMessageConverterTest {
@@ -120,19 +123,18 @@ class DefaultKafkaMessageConverterTest {
         assertDomainHeaders(expected, senderMessage.headers());
     }
 
-    @SuppressWarnings("unchecked")
     @Test
-    void testReadingMessage_WhenKafkaReturnNullHeaders_ShouldReturnEmptyMessage() {
-        ConsumerRecord source = mock(ConsumerRecord.class);
+    void testReadingMessage_WhenKafkaReturnNullHeadersShouldReturnEmptyMessage() {
+        //noinspection unchecked
+        ConsumerRecord<String, byte[]> source = mock(ConsumerRecord.class);
         when(source.headers()).thenReturn(null);
 
         assertFalse(testSubject.readKafkaMessage(source).isPresent());
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     void testReadingMessageMissingAxonHeaderShouldReturnEmptyMessage() {
-        ConsumerRecord msgWithoutHeaders = new ConsumerRecord("foo", 0, 0, "abc", 1);
+        ConsumerRecord<String, byte[]> msgWithoutHeaders = new ConsumerRecord<>("foo", 0, 0, "abc", new byte[0]);
 
         assertFalse(testSubject.readKafkaMessage(msgWithoutHeaders).isPresent());
     }
@@ -155,18 +157,21 @@ class DefaultKafkaMessageConverterTest {
         assertFalse(testSubject.readKafkaMessage(toReceiverRecord(msg)).isPresent());
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     void testReadingMessagePayloadDifferentThanByteShouldReturnEmptyMessage() {
         EventMessage<Object> eventMessage = eventMessage();
-        SerializedObject serializedObject = mock(SerializedObject.class);
+        //noinspection unchecked
+        SerializedObject<byte[]> serializedObject = mock(SerializedObject.class);
         when(serializedObject.getType()).thenReturn(new SimpleSerializedType("foo", null));
         Headers headers = toHeaders(eventMessage, serializedObject, byteMapper());
-        ConsumerRecord payloadDifferentThanByte = new ConsumerRecord(
+
+        //noinspection rawtypes
+        ConsumerRecord payloadDifferentThanByte = new ConsumerRecord<>(
                 "foo", 0, 0, NO_TIMESTAMP, NO_TIMESTAMP_TYPE,
-                -1L, NULL_SIZE, NULL_SIZE, 1, "123", headers
+                -1L, NULL_SIZE, NULL_SIZE, "123", "some-wrong-input", headers
         );
 
+        //noinspection unchecked
         assertFalse(testSubject.readKafkaMessage(payloadDifferentThanByte).isPresent());
     }
 
@@ -198,6 +203,34 @@ class DefaultKafkaMessageConverterTest {
 
         assertEventMessage(actual, expected);
         assertDomainMessage((DomainEventMessage<?>) actual, expected);
+    }
+
+    @Test
+    void testBuildWithoutSerializerThrowsAxonConfigurationException() {
+        DefaultKafkaMessageConverter.Builder testSubject = DefaultKafkaMessageConverter.builder();
+
+        assertThrows(AxonConfigurationException.class, testSubject::build);
+    }
+
+    @Test
+    void testBuildWithNullSerializerThrowsAxonConfigurationException() {
+        DefaultKafkaMessageConverter.Builder testSubject = DefaultKafkaMessageConverter.builder();
+
+        assertThrows(AxonConfigurationException.class, () -> testSubject.serializer(null));
+    }
+
+    @Test
+    void testBuildWithNullSequencingPolicyThrowsAxonConfigurationException() {
+        DefaultKafkaMessageConverter.Builder testSubject = DefaultKafkaMessageConverter.builder();
+
+        assertThrows(AxonConfigurationException.class, () -> testSubject.sequencingPolicy(null));
+    }
+
+    @Test
+    void testBuildWithNullHeaderValueMapperThrowsAxonConfigurationException() {
+        DefaultKafkaMessageConverter.Builder testSubject = DefaultKafkaMessageConverter.builder();
+
+        assertThrows(AxonConfigurationException.class, () -> testSubject.headerValueMapper(null));
     }
 
     private void assertDomainMessage(DomainEventMessage<?> actual, DomainEventMessage<?> expected) {

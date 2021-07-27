@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,7 +55,8 @@ public class KafkaMessageSourceConfigurer implements ModuleConfiguration {
      * @param subscribableKafkaMessageSource the {@link Function} which will build a {@link SubscribableKafkaMessageSource}
      */
     public void registerSubscribableSource(
-            Function<Configuration, SubscribableKafkaMessageSource<?, ?>> subscribableKafkaMessageSource) {
+            Function<Configuration, SubscribableKafkaMessageSource<?, ?>> subscribableKafkaMessageSource
+    ) {
         subscribableKafkaMessageSources.add(new Component<>(
                 () -> configuration, "subscribableKafkaMessageSource", subscribableKafkaMessageSource
         ));

@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -76,7 +76,7 @@ public abstract class ProducerConfigUtil {
      * @param valueSerializer the serializer for <code>value</code> that implements {@link Serializer}.
      * @return the configuration.
      */
-    public static Map<String, Object> minimal(String bootstrapServer, Class valueSerializer) {
+    public static Map<String, Object> minimal(String bootstrapServer, Class<?> valueSerializer) {
         Map<String, Object> configs = new HashMap<>();
         configs.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);
         configs.put(ProducerConfig.RETRIES_CONFIG, 0);
@@ -112,7 +112,7 @@ public abstract class ProducerConfigUtil {
      * @param valueSerializer the serializer for <code>value</code> that implements {@link Serializer}.
      * @return the configuration.
      */
-    public static Map<String, Object> minimalTransactional(String bootstrapServer, Class valueSerializer) {
+    public static Map<String, Object> minimalTransactional(String bootstrapServer, Class<?> valueSerializer) {
         Map<String, Object> configs = minimal(bootstrapServer, valueSerializer);
         configs.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
         configs.put(ProducerConfig.RETRIES_CONFIG, 1);
@@ -132,9 +132,9 @@ public abstract class ProducerConfigUtil {
      */
     public static ProducerFactory<String, String> producerFactory(String bootstrapServer) {
         return DefaultProducerFactory.<String, String>builder()
-                .configuration(minimal(bootstrapServer))
-                .closeTimeout(100, ChronoUnit.MILLIS)
-                .build();
+                                     .configuration(minimal(bootstrapServer))
+                                     .closeTimeout(100, ChronoUnit.MILLIS)
+                                     .build();
     }
 
     /**
@@ -150,12 +150,12 @@ public abstract class ProducerConfigUtil {
      * @return the producer factory.
      */
     public static <V> ProducerFactory<String, V> ackProducerFactory(String bootstrapServer,
-                                                                    Class valueSerializer) {
+                                                                    Class<?> valueSerializer) {
         return DefaultProducerFactory.<String, V>builder()
-                .closeTimeout(1000, ChronoUnit.MILLIS)
-                .configuration(minimal(bootstrapServer, valueSerializer))
-                .confirmationMode(WAIT_FOR_ACK)
-                .build();
+                                     .closeTimeout(1000, ChronoUnit.MILLIS)
+                                     .configuration(minimal(bootstrapServer, valueSerializer))
+                                     .confirmationMode(WAIT_FOR_ACK)
+                                     .build();
     }
 
     /**
@@ -173,10 +173,10 @@ public abstract class ProducerConfigUtil {
     public static ProducerFactory<String, String> transactionalProducerFactory(String bootstrapServer,
                                                                                String transactionalIdPrefix) {
         return DefaultProducerFactory.<String, String>builder()
-                .closeTimeout(100, ChronoUnit.MILLIS)
-                .configuration(minimalTransactional(bootstrapServer))
-                .transactionalIdPrefix(transactionalIdPrefix)
-                .build();
+                                     .closeTimeout(100, ChronoUnit.MILLIS)
+                                     .configuration(minimalTransactional(bootstrapServer))
+                                     .transactionalIdPrefix(transactionalIdPrefix)
+                                     .build();
     }
 
     /**
@@ -186,18 +186,18 @@ public abstract class ProducerConfigUtil {
      * <li><code>key.serializer</code> - {@link org.apache.kafka.common.serialization.StringSerializer}.</li>
      * </ul>
      *
-     * @param bootstrapServer
+     * @param bootstrapServer       the Kafka Container address
      * @param transactionalIdPrefix prefix for generating <code>transactional.id</code>.
      * @param valueSerializer       The serializer for <code>value</code> that implements {@link Serializer}.
      * @return the producer factory.
      */
     public static <V> ProducerFactory<String, V> transactionalProducerFactory(String bootstrapServer,
                                                                               String transactionalIdPrefix,
-                                                                              Class valueSerializer) {
+                                                                              Class<?> valueSerializer) {
         return DefaultProducerFactory.<String, V>builder()
-                .closeTimeout(100, ChronoUnit.MILLIS)
-                .configuration(minimalTransactional(bootstrapServer, valueSerializer))
-                .transactionalIdPrefix(transactionalIdPrefix)
-                .build();
+                                     .closeTimeout(100, ChronoUnit.MILLIS)
+                                     .configuration(minimalTransactional(bootstrapServer, valueSerializer))
+                                     .transactionalIdPrefix(transactionalIdPrefix)
+                                     .build();
     }
 }
