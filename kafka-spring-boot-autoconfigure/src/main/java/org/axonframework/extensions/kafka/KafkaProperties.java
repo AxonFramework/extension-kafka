@@ -754,7 +754,13 @@ public class KafkaProperties {
          * org.axonframework.extensions.kafka.eventhandling.consumer.streamable.StreamableKafkaMessageSource} will be
          * created for consuming messages.
          */
-        TRACKING
+        TRACKING,
+        /**
+         * Use a {@link org.axonframework.eventhandling.pooled.PooledStreamingEventProcessor} to publish messages. A
+         * {@link org.axonframework.extensions.kafka.eventhandling.consumer.streamable.StreamableKafkaMessageSource}
+         * will be created for consuming messages.
+         */
+        POOLED_STREAMING
     }
 
     /**

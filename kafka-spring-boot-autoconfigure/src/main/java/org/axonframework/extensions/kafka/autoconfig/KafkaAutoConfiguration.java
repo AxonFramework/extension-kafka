@@ -157,6 +157,8 @@ public class KafkaAutoConfiguration {
             eventProcessingConfigurer.registerSubscribingEventProcessor(DEFAULT_PROCESSING_GROUP);
         } else if (processorMode == KafkaProperties.EventProcessorMode.TRACKING) {
             eventProcessingConfigurer.registerTrackingEventProcessor(DEFAULT_PROCESSING_GROUP);
+        } else if (processorMode == KafkaProperties.EventProcessorMode.POOLED_STREAMING) {
+            eventProcessingConfigurer.registerPooledStreamingEventProcessor(DEFAULT_PROCESSING_GROUP);
         } else {
             throw new AxonConfigurationException("Unknown Event Processor Mode [" + processorMode + "] detected");
         }
