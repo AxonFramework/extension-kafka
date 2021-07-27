@@ -152,19 +152,6 @@ public class KafkaAutoConfiguration {
                                          clazz -> clazz.isAssignableFrom(KafkaEventPublisher.class)
                                  );
 
-        /*
-         * TODO: Remove the following line after upgrading Axon Framework to release 4.4.3 or higher
-         *
-         * Prior to the Axon Framework 4.4.3 release, an instance selector must be assigned as type selectors are
-         * ignored. After version 4.4.3, this behaviour has changed and therefore upgrading to 4.4.3 or later releases
-         * will make the following assignment redundant.
-         *
-         * For more information see:
-         *    https://github.com/AxonFramework/extension-kafka/issues/84
-         *    https://github.com/AxonFramework/AxonFramework/commit/e6249f13e71e70e71c187320bd7ecd1401ac8fbc
-         */
-        eventProcessingConfigurer.assignHandlerInstancesMatching(DEFAULT_PROCESSING_GROUP, kafkaEventPublisher::equals);
-
         KafkaProperties.EventProcessorMode processorMode = kafkaProperties.getProducer().getEventProcessorMode();
         if (processorMode == KafkaProperties.EventProcessorMode.SUBSCRIBING) {
             eventProcessingConfigurer.registerSubscribingEventProcessor(DEFAULT_PROCESSING_GROUP);
