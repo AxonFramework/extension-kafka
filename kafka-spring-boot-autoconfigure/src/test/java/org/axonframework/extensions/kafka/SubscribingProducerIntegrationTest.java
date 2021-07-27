@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2010-2021. Axon Framework
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.axonframework.extensions.kafka;
 
 import org.axonframework.eventhandling.EventBus;
@@ -31,14 +47,13 @@ import static org.mockito.Mockito.*;
 class SubscribingProducerIntegrationTest {
 
     @MockBean
-    private KafkaPublisher kafkaPublisher;
+    private KafkaPublisher<String, byte[]> kafkaPublisher;
 
     @Autowired
     private EventBus eventBus;
 
     @Test
     void shouldPublishMessagesSynchronously() throws Exception {
-
         // given
         ThreadIdCaptor threadIdCaptor = new ThreadIdCaptor();
         doAnswer(threadIdCaptor).when(kafkaPublisher).send(any());
@@ -55,16 +70,17 @@ class SubscribingProducerIntegrationTest {
         private static final int TIMEOUT = 10;
 
         private Long threadId;
-        private CountDownLatch latch = new CountDownLatch(1);
+        private final CountDownLatch latch = new CountDownLatch(1);
 
         @Override
-        public Void answer(InvocationOnMock invocationOnMock) throws Throwable {
+        public Void answer(InvocationOnMock invocationOnMock) {
             threadId = Thread.currentThread().getId();
             latch.countDown();
             return null;
         }
 
         public Long getThreadId() throws InterruptedException {
+            //noinspection ResultOfMethodCallIgnored
             latch.await(TIMEOUT, TimeUnit.SECONDS);
             if (threadId == null) {
                 throw new IllegalStateException("Unable to capture thread id in " + TIMEOUT + " minutes.");

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,7 +48,6 @@ class KafkaPropertiesTest {
     private static final String PROPERTY_KEY_FIVE = "keyFive";
     private static final String PROPERTY_VALUE_FIVE = "valueFive";
 
-    @SuppressWarnings("SpringJavaAutowiredMembersInspection")
     @Autowired
     private KafkaProperties testSubject;
 

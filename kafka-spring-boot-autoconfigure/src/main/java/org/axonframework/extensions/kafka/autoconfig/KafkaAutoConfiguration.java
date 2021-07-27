@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -78,10 +78,12 @@ public class KafkaAutoConfiguration {
         this.properties = properties;
     }
 
+    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Bean
     @ConditionalOnMissingBean
     public KafkaMessageConverter<String, byte[]> kafkaMessageConverter(
-            @Qualifier("eventSerializer") Serializer eventSerializer) {
+            @Qualifier("eventSerializer") Serializer eventSerializer
+    ) {
         return DefaultKafkaMessageConverter.builder().serializer(eventSerializer).build();
     }
 
@@ -91,9 +93,10 @@ public class KafkaAutoConfiguration {
         ConfirmationMode confirmationMode = properties.getPublisher().getConfirmationMode();
         String transactionIdPrefix = properties.getProducer().getTransactionIdPrefix();
 
-        DefaultProducerFactory.Builder<String, byte[]> builder = DefaultProducerFactory.<String, byte[]>builder()
-                .configuration(properties.buildProducerProperties())
-                .confirmationMode(confirmationMode);
+        DefaultProducerFactory.Builder<String, byte[]> builder =
+                DefaultProducerFactory.<String, byte[]>builder()
+                                      .configuration(properties.buildProducerProperties())
+                                      .confirmationMode(confirmationMode);
 
         if (isNonEmptyString(transactionIdPrefix)) {
             builder.transactionalIdPrefix(transactionIdPrefix)
@@ -114,6 +117,7 @@ public class KafkaAutoConfiguration {
         return s != null && !s.equals("");
     }
 
+    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @ConditionalOnMissingBean
     @Bean(destroyMethod = "shutDown")
     @ConditionalOnBean({ProducerFactory.class, KafkaMessageConverter.class})
@@ -121,13 +125,14 @@ public class KafkaAutoConfiguration {
                                                          KafkaMessageConverter<String, byte[]> kafkaMessageConverter,
                                                          AxonConfiguration configuration) {
         return KafkaPublisher.<String, byte[]>builder()
-                .producerFactory(axonKafkaProducerFactory)
-                .messageConverter(kafkaMessageConverter)
-                .messageMonitor(configuration.messageMonitor(KafkaPublisher.class, "kafkaPublisher"))
-                .topic(properties.getDefaultTopic())
-                .build();
+                             .producerFactory(axonKafkaProducerFactory)
+                             .messageConverter(kafkaMessageConverter)
+                             .messageMonitor(configuration.messageMonitor(KafkaPublisher.class, "kafkaPublisher"))
+                             .topic(properties.getDefaultTopic())
+                             .build();
     }
 
+    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnBean({KafkaPublisher.class})
@@ -139,7 +144,7 @@ public class KafkaAutoConfiguration {
 
         /*
          * Register an invocation error handler which re-throws any exception.
-         * This will ensure a TrackingEventProcessor to enter the error mode which will retry, and it will ensure the
+         * This will ensure a StreamingEventProcessor to enter the error mode which will retry, and it will ensure the
          * SubscribingEventProcessor to bubble the exception to the callee. For more information see
          *  https://docs.axoniq.io/reference-guide/configuring-infrastructure-components/event-processing/event-processors#error-handling
          */
@@ -190,11 +195,13 @@ public class KafkaAutoConfiguration {
             KafkaMessageConverter<String, byte[]> kafkaMessageConverter
     ) {
         return StreamableKafkaMessageSource.<String, byte[]>builder()
-                .topics(Collections.singletonList(properties.getDefaultTopic()))
-                .consumerFactory(kafkaConsumerFactory)
-                .fetcher(kafkaFetcher)
-                .messageConverter(kafkaMessageConverter)
-                .bufferFactory(() -> new SortedKafkaMessageBuffer<>(properties.getFetcher().getBufferSize()))
-                .build();
+                                           .topics(Collections.singletonList(properties.getDefaultTopic()))
+                                           .consumerFactory(kafkaConsumerFactory)
+                                           .fetcher(kafkaFetcher)
+                                           .messageConverter(kafkaMessageConverter)
+                                           .bufferFactory(() -> new SortedKafkaMessageBuffer<>(
+                                                   properties.getFetcher().getBufferSize()
+                                           ))
+                                           .build();
     }
 }

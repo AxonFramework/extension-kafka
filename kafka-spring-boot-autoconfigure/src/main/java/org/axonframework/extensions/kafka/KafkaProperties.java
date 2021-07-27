@@ -292,7 +292,7 @@ public class KafkaProperties {
         /**
          * Additional producer-specific properties used to configure the client.
          */
-        private Map<String, String> properties = new HashMap<>();
+        private final Map<String, String> properties = new HashMap<>();
 
         /**
          * Controls the mode of event processor responsible for sending messages to Kafka. Depending on this, different
@@ -564,7 +564,7 @@ public class KafkaProperties {
         /**
          * Additional consumer-specific properties used to configure the client.
          */
-        private Map<String, String> properties = new HashMap<>();
+        private final Map<String, String> properties = new HashMap<>();
 
         /**
          * Controls the default message source type which will be responsible for consuming records from Kafka and
