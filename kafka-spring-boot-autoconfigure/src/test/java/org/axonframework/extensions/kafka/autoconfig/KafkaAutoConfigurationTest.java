@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -75,10 +75,72 @@ class KafkaAutoConfigurationTest {
             .withConfiguration(AutoConfigurations.of(KafkaAutoConfiguration.class));
 
     @Test
+    void testAutoConfigurationWithoutProperties() {
+        this.contextRunner.withUserConfiguration(TestConfiguration.class)
+                          .run(context -> {
+                              // Required bean assertions
+                              assertNotNull(context.getBeanNamesForType(KafkaMessageConverter.class));
+                              assertNotNull(context.getBeanNamesForType(ProducerFactory.class));
+                              assertNotNull(context.getBeanNamesForType(KafkaPublisher.class));
+                              assertNotNull(context.getBeanNamesForType(KafkaEventPublisher.class));
+                              assertNotNull(context.getBeanNamesForType(ConsumerFactory.class));
+                              assertNotNull(context.getBeanNamesForType(Fetcher.class));
+                              assertNotNull(context.getBeanNamesForType(StreamableKafkaMessageSource.class));
+
+                              KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
+
+                              assertEquals(KafkaProperties.DEFAULT_TOPIC, kafkaProperties.getDefaultTopic());
+
+                              // Producer assertions
+                              DefaultProducerFactory<?, ?> producerFactory =
+                                      ((DefaultProducerFactory<?, ?>) context.getBean(DefaultProducerFactory.class));
+                              Map<String, Object> producerConfigs =
+                                      ((DefaultProducerFactory<?, ?>) context.getBean(DefaultProducerFactory.class))
+                                              .configurationProperties();
+
+                              assertEquals(ConfirmationMode.NONE, producerFactory.confirmationMode());
+                              assertEquals(StringSerializer.class,
+                                           producerConfigs.get(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG));
+                              assertEquals(ByteArraySerializer.class,
+                                           producerConfigs.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG));
+                              assertEquals(
+                                      KafkaProperties.EventProcessorMode.SUBSCRIBING,
+                                      kafkaProperties.getProducer().getEventProcessorMode()
+                              );
+
+                              // Consumer assertions
+                              Map<String, Object> consumerConfigs =
+                                      ((DefaultConsumerFactory<?, ?>) context.getBean(DefaultConsumerFactory.class))
+                                              .configurationProperties();
+
+                              assertEquals(
+                                      Collections.singletonList("localhost:9092"),
+                                      consumerConfigs.get(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG)
+                              );
+                              assertNull(consumerConfigs.get(ConsumerConfig.CLIENT_ID_CONFIG));
+                              assertNull(consumerConfigs.get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG));
+                              assertNull(consumerConfigs.get(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG));
+                              assertNull(consumerConfigs.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
+                              assertNull(consumerConfigs.get(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG));
+                              assertNull(consumerConfigs.get(ConsumerConfig.FETCH_MIN_BYTES_CONFIG));
+                              assertNull(consumerConfigs.get(ConsumerConfig.MAX_POLL_RECORDS_CONFIG));
+                              assertNull(consumerConfigs.get(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG));
+                              assertEquals(
+                                      StringDeserializer.class,
+                                      consumerConfigs.get(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG)
+                              );
+                              assertEquals(
+                                      ByteArrayDeserializer.class,
+                                      consumerConfigs.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG)
+                              );
+                          });
+    }
+
+    @Test
     void testAutoConfigurationWithMinimalRequiredProperties() {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
                           .withPropertyValues(
-                                  "axon.kafka.default-topic=testTopic",
+                                  "axon.kafka.default-topic=my-topic",
                                   "axon.kafka.producer.transaction-id-prefix=foo"
                           ).run(context -> {
             // Required bean assertions
@@ -90,13 +152,16 @@ class KafkaAutoConfigurationTest {
             assertNotNull(context.getBeanNamesForType(Fetcher.class));
             assertNotNull(context.getBeanNamesForType(StreamableKafkaMessageSource.class));
 
+            KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
+
+            assertEquals("my-topic", kafkaProperties.getDefaultTopic());
+
             // Producer assertions
             DefaultProducerFactory<?, ?> producerFactory =
                     ((DefaultProducerFactory<?, ?>) context.getBean(DefaultProducerFactory.class));
             Map<String, Object> producerConfigs =
                     ((DefaultProducerFactory<?, ?>) context.getBean(DefaultProducerFactory.class))
                             .configurationProperties();
-            KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
 
             assertEquals(ConfirmationMode.TRANSACTIONAL, producerFactory.confirmationMode());
             assertEquals("foo", producerFactory.transactionIdPrefix());

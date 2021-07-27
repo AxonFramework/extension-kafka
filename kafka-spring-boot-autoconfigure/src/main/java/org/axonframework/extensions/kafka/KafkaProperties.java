@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,6 +55,10 @@ import java.util.Map;
 public class KafkaProperties {
 
     /**
+     * The default topic constructed in absence of any configuration.
+     */
+    public static final String DEFAULT_TOPIC = "local.event";
+    /**
      * Comma-delimited list of host:port pairs to use for establishing the initial connection to the Kafka cluster.
      */
     private List<String> bootstrapServers = new ArrayList<>(Collections.singletonList("localhost:9092"));
@@ -65,9 +69,9 @@ public class KafkaProperties {
     private String clientId;
 
     /**
-     * Default topic to which messages will be sent.
+     * Default topic to which messages will be sent. Defaults to a topic called {@code "local.event"}.
      */
-    private String defaultTopic;
+    private String defaultTopic = DEFAULT_TOPIC;
 
     /**
      * Additional properties, common to producers and consumers, used to configure the client.
