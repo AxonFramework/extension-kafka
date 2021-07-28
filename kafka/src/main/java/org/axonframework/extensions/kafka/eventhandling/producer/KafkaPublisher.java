@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,6 +23,8 @@ import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.eventhandling.EventMessage;
 import org.axonframework.extensions.kafka.eventhandling.DefaultKafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
+import org.axonframework.lifecycle.Phase;
+import org.axonframework.lifecycle.ShutdownHandler;
 import org.axonframework.messaging.EventPublicationFailedException;
 import org.axonframework.messaging.unitofwork.CurrentUnitOfWork;
 import org.axonframework.messaging.unitofwork.UnitOfWork;
@@ -210,8 +212,10 @@ public class KafkaPublisher<K, V> {
 
     /**
      * Shuts down this component by calling {@link ProducerFactory#shutDown()} ensuring no new {@link Producer}
-     * instances can be created.
+     * instances can be created. Upon shutdown of an application, this method is invoked in the {@link
+     * Phase#INBOUND_EVENT_CONNECTORS} phase.
      */
+    @ShutdownHandler(phase = Phase.INBOUND_EVENT_CONNECTORS)
     public void shutDown() {
         producerFactory.shutDown();
     }
