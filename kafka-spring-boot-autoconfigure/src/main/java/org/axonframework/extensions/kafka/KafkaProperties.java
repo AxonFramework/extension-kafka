@@ -57,7 +57,7 @@ public class KafkaProperties {
     /**
      * The default topic constructed in absence of any configuration.
      */
-    public static final String DEFAULT_TOPIC = "local.event";
+    public static final String DEFAULT_TOPIC = "Axon.Events";
     /**
      * Comma-delimited list of host:port pairs to use for establishing the initial connection to the Kafka cluster.
      */
@@ -69,7 +69,7 @@ public class KafkaProperties {
     private String clientId;
 
     /**
-     * Default topic to which messages will be sent. Defaults to a topic called {@code "local.event"}.
+     * Default topic to which messages will be sent. Defaults to a topic called {@code "Axon.Events"}.
      */
     private String defaultTopic = DEFAULT_TOPIC;
 
