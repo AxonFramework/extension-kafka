@@ -20,6 +20,7 @@ import org.axonframework.config.Component;
 import org.axonframework.config.Configuration;
 import org.axonframework.config.ModuleConfiguration;
 import org.axonframework.extensions.kafka.eventhandling.consumer.subscribable.SubscribableKafkaMessageSource;
+import org.axonframework.lifecycle.Phase;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -43,12 +43,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
+import org.springframework.boot.autoconfigure.condition.AnyNestedCondition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 
 import java.lang.invoke.MethodHandles;
@@ -188,7 +190,7 @@ public class KafkaAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnBean({ConsumerFactory.class, KafkaMessageConverter.class, Fetcher.class})
-    @ConditionalOnProperty(value = "axon.kafka.consumer.event-processor-mode", havingValue = "TRACKING")
+    @Conditional(StreamingProcessorModeCondition.class)
     public StreamableKafkaMessageSource<String, byte[]> streamableKafkaMessageSource(
             ConsumerFactory<String, byte[]> kafkaConsumerFactory,
             Fetcher<String, byte[], KafkaEventMessage> kafkaFetcher,
@@ -203,5 +205,24 @@ public class KafkaAutoConfiguration {
                                                    properties.getFetcher().getBufferSize()
                                            ))
                                            .build();
+    }
+
+    private static class StreamingProcessorModeCondition extends AnyNestedCondition {
+
+        public StreamingProcessorModeCondition() {
+            super(ConfigurationPhase.REGISTER_BEAN);
+        }
+
+        @SuppressWarnings("unused")
+        @ConditionalOnProperty(name = "axon.kafka.consumer.event-processor-mode", havingValue = "TRACKING")
+        static class TrackingCondition {
+
+        }
+
+        @SuppressWarnings("unused")
+        @ConditionalOnProperty(name = "axon.kafka.consumer.event-processor-mode", havingValue = "POOLED_STREAMING")
+        static class PooledStreamingCondition {
+
+        }
     }
 }

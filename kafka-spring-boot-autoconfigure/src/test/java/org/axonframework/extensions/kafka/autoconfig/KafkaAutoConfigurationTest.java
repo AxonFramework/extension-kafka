@@ -445,9 +445,7 @@ class KafkaAutoConfigurationTest {
                     KafkaProperties.EventProcessorMode.POOLED_STREAMING,
                     kafkaProperties.getConsumer().getEventProcessorMode()
             );
-            assertThrows(
-                    NoSuchBeanDefinitionException.class, () -> context.getBean(StreamableKafkaMessageSource.class)
-            );
+            assertNotNull(context.getBean(StreamableKafkaMessageSource.class));
         });
     }
 
