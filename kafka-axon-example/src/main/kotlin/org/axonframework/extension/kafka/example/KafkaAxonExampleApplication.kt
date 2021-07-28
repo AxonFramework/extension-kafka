@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -120,7 +120,7 @@ class SubscribingConfiguration {
     }
 
     /**
-     * The auto configuration currently does not create a [SubscribableKafkaMessageSource] bean because the user is
+     * The autoconfiguration currently does not create a [SubscribableKafkaMessageSource] bean because the user is
      * inclined to provide the group-id in all scenarios. Doing so provides users the option to create several
      * [org.axonframework.eventhandling.SubscribingEventProcessor] beans belonging to the same group, thus giving
      * Kafka the opportunity to balance the load.
@@ -143,7 +143,7 @@ class SubscribingConfiguration {
                 .fetcher(fetcher)
                 .messageConverter(messageConverter)
                 .build()
-        kafkaMessageSourceConfigurer.registerSubscribableSource { subscribableKafkaMessageSource }
+        kafkaMessageSourceConfigurer.configureSubscribableSource { subscribableKafkaMessageSource }
         return subscribableKafkaMessageSource
     }
 
@@ -151,5 +151,21 @@ class SubscribingConfiguration {
     fun configureSubscribableKafkaSource(eventProcessingConfigurer: EventProcessingConfigurer,
                                          subscribableKafkaMessageSource: SubscribableKafkaMessageSource<String, ByteArray>) {
         eventProcessingConfigurer.registerSubscribingEventProcessor("kafka-group") { subscribableKafkaMessageSource }
+    }
+}
+
+/**
+ * If the Consumer Processor Mode is set to Pooled Streaming, that's when we register a
+ * [org.axonframework.eventhandling.pooled.PooledStreamingEventProcessor] using the [StreamableKafkaMessageSource] which the auto
+ * configuration creates.
+ */
+@Configuration
+@ConditionalOnProperty(value = ["axon.kafka.consumer.event-processor-mode"], havingValue = "POOLED_STREAMING")
+class PooledStreamingConfiguration {
+
+    @Autowired
+    fun configureStreamableKafkaSource(configurer: EventProcessingConfigurer,
+                                       streamableKafkaMessageSource: StreamableKafkaMessageSource<String, ByteArray>) {
+        configurer.registerPooledStreamingEventProcessor("kafka-group") { streamableKafkaMessageSource }
     }
 }
