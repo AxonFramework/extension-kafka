@@ -6,7 +6,7 @@
 _Note:_ This project is still in a beta stage with a 'release candidate' (three) being available.
 
 Axon Framework is a framework for building evolutionary, event-driven microservice systems,
-based on the principles of Domain-Driven Design, Command-Query Responsibility Segregation (CQRS), and Event Sourcing.
+based on the principles of Domain-Driven Design, Command-Query Responsibility Separation (CQRS), and Event Sourcing.
 
 As such, it provides the necessary building blocks to follow these principles.
 Examples of these building blocks are Aggregate factories and Repositories, Command, Event and Query Buses, and an Event Store.
