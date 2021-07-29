@@ -147,7 +147,7 @@ public class KafkaAutoConfiguration {
         /*
          * Register an invocation error handler which re-throws any exception.
          * This will ensure a StreamingEventProcessor to enter the error mode which will retry, and it will ensure the
-         * SubscribingEventProcessor to bubble the exception to the callee. For more information see
+         * SubscribingEventProcessor to bubble the exception to the caller. For more information see
          *  https://docs.axoniq.io/reference-guide/configuring-infrastructure-components/event-processing/event-processors#error-handling
          */
         eventProcessingConfigurer.registerEventHandler(configuration -> kafkaEventPublisher)
