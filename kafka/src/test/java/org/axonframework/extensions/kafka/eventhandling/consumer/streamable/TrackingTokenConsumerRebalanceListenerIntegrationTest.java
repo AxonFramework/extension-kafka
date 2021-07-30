@@ -163,8 +163,9 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest extends KafkaContain
                 new TrackingTokenConsumerRebalanceListener<>(testConsumer, () -> testToken)
         );
 
-        List<ConsumerRecord<byte[], byte[]>> resultRecords =
-                pollUntilAtLeastNumRecords((KafkaConsumer<byte[], byte[]>) testConsumer, numberOfRecordsToConsume, 500);
+        List<ConsumerRecord<byte[], byte[]>> resultRecords = pollUntilAtLeastNumRecords(
+                (KafkaConsumer<byte[], byte[]>) testConsumer, numberOfRecordsToConsume, 2500
+        );
         resultRecords.forEach(resultRecord -> {
             TopicPartition resultTopicPartition = new TopicPartition(resultRecord.topic(), resultRecord.partition());
             assertTrue(resultRecord.offset() > positions.get(resultTopicPartition));
@@ -201,8 +202,9 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest extends KafkaContain
         );
 
         //noinspection unchecked
-        List<ConsumerRecord<byte[], byte[]>> resultRecords =
-                pollUntilAtLeastNumRecords((KafkaConsumer<byte[], byte[]>) testConsumer, numberOfRecordsToConsume, 500);
+        List<ConsumerRecord<byte[], byte[]>> resultRecords = pollUntilAtLeastNumRecords(
+                (KafkaConsumer<byte[], byte[]>) testConsumer, numberOfRecordsToConsume, 2500
+        );
         resultRecords.forEach(resultRecord -> {
             TopicPartition resultTopicPartition = new TopicPartition(resultRecord.topic(), resultRecord.partition());
             assertTrue(resultRecord.offset() > positions.get(resultTopicPartition));
