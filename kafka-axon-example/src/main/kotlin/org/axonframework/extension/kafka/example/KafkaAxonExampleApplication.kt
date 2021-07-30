@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,14 +20,15 @@ import org.axonframework.config.EventProcessingConfigurer
 import org.axonframework.eventhandling.EventMessage
 import org.axonframework.eventhandling.tokenstore.inmemory.InMemoryTokenStore
 import org.axonframework.eventsourcing.eventstore.EmbeddedEventStore
+import org.axonframework.eventsourcing.eventstore.EventStore
 import org.axonframework.eventsourcing.eventstore.inmemory.InMemoryEventStorageEngine
 import org.axonframework.extensions.kafka.KafkaProperties
 import org.axonframework.extensions.kafka.configuration.KafkaMessageSourceConfigurer
 import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher
-import org.axonframework.extensions.kafka.eventhandling.consumer.subscribable.SubscribableKafkaMessageSource
 import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.StreamableKafkaMessageSource
+import org.axonframework.extensions.kafka.eventhandling.consumer.subscribable.SubscribableKafkaMessageSource
 import org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode
 import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducerFactory
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory
@@ -57,7 +58,7 @@ class KafkaAxonExampleApplication {
      * Configures to use in-memory embedded event store.
      */
     @Bean
-    fun eventStore() = EmbeddedEventStore.builder().storageEngine(InMemoryEventStorageEngine()).build()
+    fun eventStore(): EventStore = EmbeddedEventStore.builder().storageEngine(InMemoryEventStorageEngine()).build()
 
     /**
      * Configures to us in-memory token store.
@@ -80,11 +81,11 @@ class KafkaAxonExampleApplication {
 
 /**
  * If the Consumer Processor Mode is set to Tracking, that's when we register a
- * [org.axonframework.eventhandling.TrackingEventProcessor] using the [StreamableKafkaMessageSource] which the auto
- * configuration creates.
+ * [org.axonframework.eventhandling.TrackingEventProcessor] using the [StreamableKafkaMessageSource] which the
+ * autoconfiguration creates.
  */
 @Configuration
-@ConditionalOnProperty(value = ["axon.kafka.consumer.event-processor-mode"], havingValue = "TRACKING")
+@ConditionalOnProperty(value = ["axon.kafka.consumer.event-processor-mode"], havingValue = "tracking")
 class TrackingConfiguration {
 
     @Autowired
@@ -100,7 +101,7 @@ class TrackingConfiguration {
  * Configuration class builds.
  */
 @Configuration
-@ConditionalOnProperty(value = ["axon.kafka.consumer.event-processor-mode"], havingValue = "SUBSCRIBING")
+@ConditionalOnProperty(value = ["axon.kafka.consumer.event-processor-mode"], havingValue = "subscribing")
 class SubscribingConfiguration {
 
     /**
@@ -111,8 +112,10 @@ class SubscribingConfiguration {
     fun kafkaMessageSourceConfigurer() = KafkaMessageSourceConfigurer()
 
     /**
-     * The [KafkaMessageSourceConfigurer] should be added to Axon's [Configurer] to ensure it will be called upon start up.
+     * The [KafkaMessageSourceConfigurer] should be added to Axon's [Configurer] to ensure it will be called upon start
+     * up.
      */
+    @Suppress("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
     fun registerKafkaMessageSourceConfigurer(configurer: Configurer,
                                              kafkaMessageSourceConfigurer: KafkaMessageSourceConfigurer) {
@@ -120,7 +123,7 @@ class SubscribingConfiguration {
     }
 
     /**
-     * The auto configuration currently does not create a [SubscribableKafkaMessageSource] bean because the user is
+     * The autoconfiguration currently does not create a [SubscribableKafkaMessageSource] bean because the user is
      * inclined to provide the group-id in all scenarios. Doing so provides users the option to create several
      * [org.axonframework.eventhandling.SubscribingEventProcessor] beans belonging to the same group, thus giving
      * Kafka the opportunity to balance the load.
@@ -143,7 +146,7 @@ class SubscribingConfiguration {
                 .fetcher(fetcher)
                 .messageConverter(messageConverter)
                 .build()
-        kafkaMessageSourceConfigurer.registerSubscribableSource { subscribableKafkaMessageSource }
+        kafkaMessageSourceConfigurer.configureSubscribableSource { subscribableKafkaMessageSource }
         return subscribableKafkaMessageSource
     }
 
@@ -151,5 +154,21 @@ class SubscribingConfiguration {
     fun configureSubscribableKafkaSource(eventProcessingConfigurer: EventProcessingConfigurer,
                                          subscribableKafkaMessageSource: SubscribableKafkaMessageSource<String, ByteArray>) {
         eventProcessingConfigurer.registerSubscribingEventProcessor("kafka-group") { subscribableKafkaMessageSource }
+    }
+}
+
+/**
+ * If the Consumer Processor Mode is set to Pooled Streaming, that's when we register a
+ * [org.axonframework.eventhandling.pooled.PooledStreamingEventProcessor] using the [StreamableKafkaMessageSource] which
+ * the autoconfiguration creates.
+ */
+@Configuration
+@ConditionalOnProperty(value = ["axon.kafka.consumer.event-processor-mode"], havingValue = "pooled_streaming")
+class PooledStreamingConfiguration {
+
+    @Autowired
+    fun configureStreamableKafkaSource(configurer: EventProcessingConfigurer,
+                                       streamableKafkaMessageSource: StreamableKafkaMessageSource<String, ByteArray>) {
+        configurer.registerPooledStreamingEventProcessor("kafka-group") { streamableKafkaMessageSource }
     }
 }

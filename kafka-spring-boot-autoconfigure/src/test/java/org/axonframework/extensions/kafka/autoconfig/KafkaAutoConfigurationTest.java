@@ -140,7 +140,6 @@ class KafkaAutoConfigurationTest {
     void testAutoConfigurationWithMinimalRequiredProperties() {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
                           .withPropertyValues(
-                                  "axon.kafka.default-topic=my-topic",
                                   "axon.kafka.producer.transaction-id-prefix=foo"
                           ).run(context -> {
             // Required bean assertions
@@ -154,7 +153,7 @@ class KafkaAutoConfigurationTest {
 
             KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
 
-            assertEquals("my-topic", kafkaProperties.getDefaultTopic());
+            assertEquals(KafkaProperties.DEFAULT_TOPIC, kafkaProperties.getDefaultTopic());
 
             // Producer assertions
             DefaultProducerFactory<?, ?> producerFactory =
@@ -202,11 +201,9 @@ class KafkaAutoConfigurationTest {
     void testConsumerPropertiesAreAdjustedAsExpected() {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
                           .withPropertyValues(
-                                  "axon.kafka.default-topic=testTopic",
                                   // Overrides 'axon.kafka.bootstrap-servers'
                                   "axon.kafka.bootstrap-servers=foo:1234",
                                   "axon.kafka.properties.foo=bar",
-                                  "axon.kafka.default-topic=testTopic",
                                   "axon.kafka.properties.baz=qux",
                                   "axon.kafka.properties.foo.bar.baz=qux.fiz.buz",
                                   "axon.kafka.ssl.key-password=p1",
@@ -272,7 +269,6 @@ class KafkaAutoConfigurationTest {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
                           .withPropertyValues(
                                   "axon.kafka.clientId=cid",
-                                  "axon.kafka.default-topic=testTopic",
                                   "axon.kafka.producer.transaction-id-prefix=foo",
                                   "axon.kafka.properties.foo.bar.baz=qux.fiz.buz",
                                   "axon.kafka.producer.acks=all",
@@ -327,7 +323,6 @@ class KafkaAutoConfigurationTest {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
                           .withPropertyValues(
                                   // Minimal Required Properties
-                                  "axon.kafka.default-topic=testTopic",
                                   "axon.kafka.producer.transaction-id-prefix=foo",
                                   // Event Producing Mode
                                   "axon.kafka.producer.event-processor-mode=TRACKING"
@@ -353,7 +348,6 @@ class KafkaAutoConfigurationTest {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
                           .withPropertyValues(
                                   // Minimal Required Properties
-                                  "axon.kafka.default-topic=testTopic",
                                   "axon.kafka.producer.transaction-id-prefix=foo",
                                   // Event Producing Mode
                                   "axon.kafka.producer.event-processor-mode=SUBSCRIBING"
@@ -375,11 +369,35 @@ class KafkaAutoConfigurationTest {
     }
 
     @Test
+    void testKafkaPropertiesPooledStreamingProducerMode() {
+        this.contextRunner.withUserConfiguration(TestConfiguration.class)
+                          .withPropertyValues(
+                                  // Minimal Required Properties
+                                  "axon.kafka.producer.transaction-id-prefix=foo",
+                                  // Event Producing Mode
+                                  "axon.kafka.producer.event-processor-mode=POOLED_STREAMING"
+                          ).run(context -> {
+            KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
+            assertEquals(
+                    KafkaProperties.EventProcessorMode.POOLED_STREAMING,
+                    kafkaProperties.getProducer().getEventProcessorMode()
+            );
+            assertNotNull(context.getBean(KafkaEventPublisher.class));
+
+            EventProcessingConfigurer eventProcessingConfigurer = context.getBean(EventProcessingConfigurer.class);
+            verify(eventProcessingConfigurer).registerEventHandler(any());
+            verify(eventProcessingConfigurer)
+                    .registerListenerInvocationErrorHandler(eq(DEFAULT_PROCESSING_GROUP), any());
+            verify(eventProcessingConfigurer).assignHandlerTypesMatching(eq(DEFAULT_PROCESSING_GROUP), any());
+            verify(eventProcessingConfigurer).registerPooledStreamingEventProcessor(DEFAULT_PROCESSING_GROUP);
+        });
+    }
+
+    @Test
     void testKafkaPropertiesTrackingConsumerMode() {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
                           .withPropertyValues(
                                   // Minimal Required Properties
-                                  "axon.kafka.default-topic=testTopic",
                                   "axon.kafka.producer.transaction-id-prefix=foo",
                                   // Event Consumption Mode
                                   "axon.kafka.consumer.event-processor-mode=TRACKING"
@@ -398,7 +416,6 @@ class KafkaAutoConfigurationTest {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
                           .withPropertyValues(
                                   // Minimal Required Properties
-                                  "axon.kafka.default-topic=testTopic",
                                   "axon.kafka.producer.transaction-id-prefix=foo",
                                   // Event Consumption Mode
                                   "axon.kafka.consumer.event-processor-mode=SUBSCRIBING"
@@ -411,6 +428,24 @@ class KafkaAutoConfigurationTest {
             assertThrows(
                     NoSuchBeanDefinitionException.class, () -> context.getBean(StreamableKafkaMessageSource.class)
             );
+        });
+    }
+
+    @Test
+    void testKafkaPropertiesPooledStreamingConsumerMode() {
+        this.contextRunner.withUserConfiguration(TestConfiguration.class)
+                          .withPropertyValues(
+                                  // Minimal Required Properties
+                                  "axon.kafka.producer.transaction-id-prefix=foo",
+                                  // Event Consumption Mode
+                                  "axon.kafka.consumer.event-processor-mode=POOLED_STREAMING"
+                          ).run(context -> {
+            KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
+            assertEquals(
+                    KafkaProperties.EventProcessorMode.POOLED_STREAMING,
+                    kafkaProperties.getConsumer().getEventProcessorMode()
+            );
+            assertNotNull(context.getBean(StreamableKafkaMessageSource.class));
         });
     }
 

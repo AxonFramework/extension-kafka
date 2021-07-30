@@ -6,17 +6,18 @@
 _Note:_ This project is still in a beta stage with a 'release candidate' (three) being available.
 
 Axon Framework is a framework for building evolutionary, event-driven microservice systems,
- based on the principles of Domain Driven Design, Command-Query Responsibility Segregation (CQRS) and Event Sourcing.
+based on the principles of Domain-Driven Design, Command-Query Responsibility Separation (CQRS), and Event Sourcing.
 
-As such it provides you the necessary building blocks to follow these principles. 
-Building blocks like Aggregate factories and Repositories, Command, Event and Query Buses and an Event Store.
+As such, it provides the necessary building blocks to follow these principles.
+Examples of these building blocks are Aggregate factories and Repositories, Command, Event and Query Buses, and an Event Store.
 The framework provides sensible defaults for all of these components out of the box.
 
-This set up helps you create a well structured application without having to bother with the infrastructure.
-The main focus can thus become your business functionality.
+This setup helps to create a well-structured application without having to bother with the infrastructure.
+The main focus can thus become the business functionality.
 
-This repository provides an extension to the Axon Framework: Kafka.
-It provides functionality to leverage Kafka to be used as a means to send Events from one (micro)service to another.
+This repository provides an extension to the Axon Framework: [Kafka](https://kafka.apache.org/).
+It provides functionality to leverage Kafka to send and receive Events from one (micro)service to another.
+Thus, it does not include command or query distribution, nor event store specifics required for event sourcing.
   
 For more information on anything Axon, please visit our website, [http://axoniq.io](http://axoniq.io).
 

@@ -20,6 +20,7 @@ import org.axonframework.config.Component;
 import org.axonframework.config.Configuration;
 import org.axonframework.config.ModuleConfiguration;
 import org.axonframework.extensions.kafka.eventhandling.consumer.subscribable.SubscribableKafkaMessageSource;
+import org.axonframework.lifecycle.Phase;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,11 +42,19 @@ public class KafkaMessageSourceConfigurer implements ModuleConfiguration {
     @Override
     public void initialize(Configuration config) {
         this.configuration = config;
-    }
 
-    @Override
-    public int phase() {
-        return Integer.MAX_VALUE;
+        if (!subscribableKafkaMessageSources.isEmpty()) {
+            this.configuration.onStart(
+                    Phase.INBOUND_EVENT_CONNECTORS,
+                    () -> subscribableKafkaMessageSources.stream().map(Component::get)
+                                                         .forEach(SubscribableKafkaMessageSource::start)
+            );
+            this.configuration.onShutdown(
+                    Phase.INBOUND_EVENT_CONNECTORS,
+                    () -> subscribableKafkaMessageSources.stream().map(Component::get)
+                                                         .forEach(SubscribableKafkaMessageSource::close)
+            );
+        }
     }
 
     /**
@@ -54,21 +63,11 @@ public class KafkaMessageSourceConfigurer implements ModuleConfiguration {
      *
      * @param subscribableKafkaMessageSource the {@link Function} which will build a {@link SubscribableKafkaMessageSource}
      */
-    public void registerSubscribableSource(
+    public void configureSubscribableSource(
             Function<Configuration, SubscribableKafkaMessageSource<?, ?>> subscribableKafkaMessageSource
     ) {
         subscribableKafkaMessageSources.add(new Component<>(
                 () -> configuration, "subscribableKafkaMessageSource", subscribableKafkaMessageSource
         ));
-    }
-
-    @Override
-    public void start() {
-        subscribableKafkaMessageSources.stream().map(Component::get).forEach(SubscribableKafkaMessageSource::start);
-    }
-
-    @Override
-    public void shutdown() {
-        subscribableKafkaMessageSources.stream().map(Component::get).forEach(SubscribableKafkaMessageSource::close);
     }
 }

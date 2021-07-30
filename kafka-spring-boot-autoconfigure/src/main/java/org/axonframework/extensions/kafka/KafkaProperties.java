@@ -57,7 +57,7 @@ public class KafkaProperties {
     /**
      * The default topic constructed in absence of any configuration.
      */
-    public static final String DEFAULT_TOPIC = "local.event";
+    public static final String DEFAULT_TOPIC = "Axon.Events";
     /**
      * Comma-delimited list of host:port pairs to use for establishing the initial connection to the Kafka cluster.
      */
@@ -69,7 +69,7 @@ public class KafkaProperties {
     private String clientId;
 
     /**
-     * Default topic to which messages will be sent. Defaults to a topic called {@code "local.event"}.
+     * Default topic to which messages will be sent. Defaults to a topic called {@code "Axon.Events"}.
      */
     private String defaultTopic = DEFAULT_TOPIC;
 
@@ -292,7 +292,7 @@ public class KafkaProperties {
         /**
          * Additional producer-specific properties used to configure the client.
          */
-        private Map<String, String> properties = new HashMap<>();
+        private final Map<String, String> properties = new HashMap<>();
 
         /**
          * Controls the mode of event processor responsible for sending messages to Kafka. Depending on this, different
@@ -564,7 +564,7 @@ public class KafkaProperties {
         /**
          * Additional consumer-specific properties used to configure the client.
          */
-        private Map<String, String> properties = new HashMap<>();
+        private final Map<String, String> properties = new HashMap<>();
 
         /**
          * Controls the default message source type which will be responsible for consuming records from Kafka and
@@ -754,7 +754,13 @@ public class KafkaProperties {
          * org.axonframework.extensions.kafka.eventhandling.consumer.streamable.StreamableKafkaMessageSource} will be
          * created for consuming messages.
          */
-        TRACKING
+        TRACKING,
+        /**
+         * Use a {@link org.axonframework.eventhandling.pooled.PooledStreamingEventProcessor} to publish messages. A
+         * {@link org.axonframework.extensions.kafka.eventhandling.consumer.streamable.StreamableKafkaMessageSource}
+         * will be created for consuming messages.
+         */
+        POOLED_STREAMING
     }
 
     /**

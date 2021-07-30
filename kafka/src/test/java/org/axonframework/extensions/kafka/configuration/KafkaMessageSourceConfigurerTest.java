@@ -17,6 +17,7 @@
 package org.axonframework.extensions.kafka.configuration;
 
 import org.axonframework.config.Configuration;
+import org.axonframework.config.DefaultConfigurer;
 import org.axonframework.extensions.kafka.eventhandling.consumer.subscribable.SubscribableKafkaMessageSource;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.*;
@@ -34,19 +35,26 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class KafkaMessageSourceConfigurerTest {
 
+    private Configuration configuration;
+
     private final KafkaMessageSourceConfigurer testSubject = new KafkaMessageSourceConfigurer();
+
+    @BeforeEach
+    void setUp() {
+        configuration = DefaultConfigurer.defaultConfiguration()
+                                         .buildConfiguration();
+    }
 
     @Test
     void testStartInitiatesRegisteredSubscribableSources(
-            @Mock Configuration configuration,
             @Mock SubscribableKafkaMessageSource<?, ?> sourceOne,
             @Mock SubscribableKafkaMessageSource<?, ?> sourceTwo
     ) {
-        testSubject.registerSubscribableSource(conf -> sourceOne);
-        testSubject.registerSubscribableSource(conf -> sourceTwo);
+        testSubject.configureSubscribableSource(conf -> sourceOne);
+        testSubject.configureSubscribableSource(conf -> sourceTwo);
 
         testSubject.initialize(configuration);
-        testSubject.start();
+        configuration.start();
 
         verify(sourceOne).start();
         verify(sourceTwo).start();
@@ -54,15 +62,14 @@ class KafkaMessageSourceConfigurerTest {
 
     @Test
     void testShutdownClosesRegisteredSubscribableSources(
-            @Mock Configuration configuration,
             @Mock SubscribableKafkaMessageSource<?, ?> sourceOne,
             @Mock SubscribableKafkaMessageSource<?, ?> sourceTwo
     ) {
-        testSubject.registerSubscribableSource(conf -> sourceOne);
-        testSubject.registerSubscribableSource(conf -> sourceTwo);
+        testSubject.configureSubscribableSource(conf -> sourceOne);
+        testSubject.configureSubscribableSource(conf -> sourceTwo);
 
         testSubject.initialize(configuration);
-        testSubject.shutdown();
+        configuration.shutdown();
 
         verify(sourceOne).close();
         verify(sourceTwo).close();

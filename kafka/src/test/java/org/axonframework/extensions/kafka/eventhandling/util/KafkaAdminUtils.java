@@ -65,6 +65,9 @@ public abstract class KafkaAdminUtils {
             topicsCreationResult.values().values()
                                 .forEach(KafkaAdminUtils::waitForCompletion);
             Arrays.stream(topics).forEach(topic -> logger.info("Completed topic creation: {}", topic));
+        } catch (Exception e) {
+            logger.warn("Encountered an exception while creating topics [{}] for [{}].", topics, bootstrapServer, e);
+            throw e;
         }
     }
 
@@ -103,7 +106,7 @@ public abstract class KafkaAdminUtils {
 
     private static void waitForCompletion(KafkaFuture<Void> kafkaFuture) {
         try {
-            kafkaFuture.get(5, TimeUnit.SECONDS);
+            kafkaFuture.get(25, TimeUnit.SECONDS);
         } catch (InterruptedException | TimeoutException | ExecutionException e) {
             throw new IllegalStateException(e);
         }
