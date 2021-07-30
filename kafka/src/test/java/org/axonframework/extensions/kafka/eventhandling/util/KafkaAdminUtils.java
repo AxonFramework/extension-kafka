@@ -106,7 +106,7 @@ public abstract class KafkaAdminUtils {
 
     private static void waitForCompletion(KafkaFuture<Void> kafkaFuture) {
         try {
-            kafkaFuture.get(5, TimeUnit.SECONDS);
+            kafkaFuture.get(25, TimeUnit.SECONDS);
         } catch (InterruptedException | TimeoutException | ExecutionException e) {
             throw new IllegalStateException(e);
         }
