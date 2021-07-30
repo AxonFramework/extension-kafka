@@ -65,6 +65,9 @@ public abstract class KafkaAdminUtils {
             topicsCreationResult.values().values()
                                 .forEach(KafkaAdminUtils::waitForCompletion);
             Arrays.stream(topics).forEach(topic -> logger.info("Completed topic creation: {}", topic));
+        } catch (Exception e) {
+            logger.warn("Encountered an exception while creating topics [{}] for [{}].", topics, bootstrapServer, e);
+            throw e;
         }
     }
 
