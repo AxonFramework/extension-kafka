@@ -214,13 +214,13 @@ public class KafkaAutoConfiguration {
         }
 
         @SuppressWarnings("unused")
-        @ConditionalOnProperty(name = "axon.kafka.consumer.event-processor-mode", havingValue = "TRACKING")
+        @ConditionalOnProperty(name = "axon.kafka.consumer.event-processor-mode", havingValue = "tracking")
         static class TrackingCondition {
 
         }
 
         @SuppressWarnings("unused")
-        @ConditionalOnProperty(name = "axon.kafka.consumer.event-processor-mode", havingValue = "POOLED_STREAMING")
+        @ConditionalOnProperty(name = "axon.kafka.consumer.event-processor-mode", havingValue = "pooled_streaming")
         static class PooledStreamingCondition {
 
         }
