@@ -15,8 +15,7 @@ Please run:
 docker-compose -f ./kafka-axon-example/docker-compose.yaml up -d
 ```
 
-This will start Kafka, Zookeeper,
- Kafka Rest and Kafka Rest UI (available then on [http://localhost:8000/](http://localhost:8000/))
+This will start Kafka and Zookeeper. This is sufficient to test this Kafka Extension.
 
 Now build the application by running:
 

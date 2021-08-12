@@ -9,55 +9,29 @@ services:
 
   kafka:
     image: wurstmeister/kafka
+    ports:
+      - 9092:9092
+      - 29092:29092
+    links:
+      - zookeeper
     depends_on:
       - zookeeper
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_PORT: 9092
+      KAFKA_LISTENERS:
+        PLAINTEXT://:9092,
+        PLAINTEXT_HOST://:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP:
+        PLAINTEXT:PLAINTEXT,
+        PLAINTEXT_HOST:PLAINTEXT
       KAFKA_ADVERTISED_HOST_NAME: kafka
-      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
-      KAFKA_LISTENERS: "PLAINTEXT://:9092"
+      KAFKA_ADVERTISED_LISTENERS:
+        PLAINTEXT://localhost:9092,
+        PLAINTEXT_HOST://localhost:29092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
-    ports:
-      - 9092:9092
-    networks:
-      - network1
-
-  kafka-rest:
-    image: nodefluent/kafka-rest
-    ports:
-      - 8083:8083
-    links:
-      - kafka
-      - zookeeper
-    depends_on:
-      - kafka
-      - zookeeper
-    environment:
-      DEBUG: "*"
-      KAFKA_REST_DEBUG: "all"
-      KAFKA_REST_HTTP_PORT: 8083
-      KAFKA_REST_CONSUMER_METADATA_BROKER_LIST: "kafka:9092"
-      KAFKA_REST_PRODUCER_METADATA_BROKER_LIST: "kafka:9092"
-    networks:
-      - network1
-
-  kafka-rest-ui:
-    image: nodefluent/kafka-rest-ui
-    ports:
-      - 8000:8000
-    links:
-      - kafka-rest
-    depends_on:
-      - kafka-rest
-    environment:
-      DEBUG: "*"
-      REACT_APP_KAFKA_REST_URL: "http://kafka-rest:8083/"
-      REACT_APP_TIMEOUT: "3000"
-      PROXY: "yes"
-      BASIC_AUTH_USER: "admin"
-      BASIC_AUTH_PASSWORD: "admin"
     networks:
       - network1
 
