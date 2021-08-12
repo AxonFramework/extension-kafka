@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.axonframework.extension.kafka.example
+package org.axonframework.extensions.kafka.example
 
 import org.axonframework.config.Configurer
 import org.axonframework.config.EventProcessingConfigurer

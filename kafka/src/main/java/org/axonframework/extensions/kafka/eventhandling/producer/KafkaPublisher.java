@@ -124,6 +124,7 @@ public class KafkaPublisher<K, V> {
      * @param <T>   the implementation of {@link EventMessage} send through this method
      */
     public <T extends EventMessage<?>> void send(T event) {
+        logger.debug("Starting event producing process for [{}].", event.getPayloadType());
         UnitOfWork<?> uow = CurrentUnitOfWork.get();
 
         MonitorCallback monitorCallback = messageMonitor.onMessageIngested(event);
@@ -160,7 +161,7 @@ public class KafkaPublisher<K, V> {
         } catch (ProducerFencedException e) {
             logger.warn("Unable to begin transaction", e);
             throw new EventPublicationFailedException(
-                    "Event publication failed, exception occurred while starting Kafka transaction", e
+                    "Event publication failed, exception occurred while starting Kafka transaction.", e
             );
         }
     }
@@ -173,7 +174,7 @@ public class KafkaPublisher<K, V> {
             logger.warn("Unable to commit transaction", e);
             monitorCallback.reportFailure(e);
             throw new EventPublicationFailedException(
-                    "Event publication failed, exception occurred while committing Kafka transaction", e
+                    "Event publication failed, exception occurred while committing Kafka transaction.", e
             );
         }
     }
@@ -185,9 +186,9 @@ public class KafkaPublisher<K, V> {
             monitorCallback.reportSuccess();
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             monitorCallback.reportFailure(e);
-            logger.warn("Encountered error while waiting for event publication", e);
+            logger.warn("Encountered error while waiting for event publication.", e);
             throw new EventPublicationFailedException(
-                    "Event publication failed, exception occurred while waiting for event publication", e
+                    "Event publication failed, exception occurred while waiting for event publication.", e
             );
         }
     }
@@ -196,8 +197,8 @@ public class KafkaPublisher<K, V> {
         try {
             producer.abortTransaction();
         } catch (Exception e) {
-            logger.warn("Unable to abort transaction", e);
-            // Not re-throwing exception, its too late.
+            logger.warn("Unable to abort transaction.", e);
+            // Not re-throwing exception, it's too late.
         }
     }
 
@@ -205,7 +206,7 @@ public class KafkaPublisher<K, V> {
         try {
             producer.close();
         } catch (Exception e) {
-            logger.debug("Unable to close producer", e);
+            logger.debug("Unable to close producer.", e);
             // Not re-throwing exception, can't do anything.
         }
     }

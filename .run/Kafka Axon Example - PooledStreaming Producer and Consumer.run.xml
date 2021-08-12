@@ -16,7 +16,7 @@
 
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Kafka Axon Example - PooledStreaming Producer and Consumer" type="JetRunConfigurationType" folderName="Kafka Axon Example">
-    <option name="MAIN_CLASS_NAME" value="org.axonframework.extension.kafka.example.KafkaAxonExampleApplicationKt" />
+    <option name="MAIN_CLASS_NAME" value="org.axonframework.extensions.kafka.example.KafkaAxonExampleApplicationKt" />
     <module name="axon-kafka-example" />
     <option name="PROGRAM_PARAMETERS" value="--spring.profiles.active=pooled-streaming-producer,pooled-streaming-consumer" />
     <shortenClasspath name="NONE" />

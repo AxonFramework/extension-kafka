@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2021. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -117,6 +117,7 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
         if (this.nonTransactionalProducer == null) {
             synchronized (this) {
                 if (this.nonTransactionalProducer == null) {
+                    logger.debug("Creating a non-transactional Producer.");
                     this.nonTransactionalProducer = new ShareableProducer<>(createKafkaProducer(configuration));
                 }
             }
@@ -151,6 +152,8 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
 
     @Override
     public void shutDown() {
+        logger.debug("Shutting down this Producer factory.");
+
         ProducerDecorator<K, V> producer = this.nonTransactionalProducer;
         this.nonTransactionalProducer = null;
         if (producer != null) {
@@ -172,6 +175,8 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
         if (producer != null) {
             return producer;
         }
+        logger.debug("Creating a transactional Producer.");
+
         Map<String, Object> configs = new HashMap<>(this.configuration);
         configs.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG,
                     this.transactionIdPrefix + this.transactionIdSuffix.getAndIncrement());
@@ -452,7 +457,7 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
          * @throws AxonConfigurationException if one field is asserted to be incorrect according to the Builder's
          *                                    specifications
          */
-        @SuppressWarnings("WeakerAccess")
+        @SuppressWarnings({"WeakerAccess", "ProtectedMemberInFinalClass"})
         protected void validate() throws AxonConfigurationException {
             assertNonNull(configuration, "The configuration is a hard requirement and should be provided");
         }

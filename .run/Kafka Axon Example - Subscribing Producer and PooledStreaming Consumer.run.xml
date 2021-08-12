@@ -15,10 +15,10 @@
   -->
 
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Kafka Axon Example - PooledStreaming Producer and Subscribing Consumer" type="JetRunConfigurationType" folderName="Kafka Axon Example">
+  <configuration default="false" name="Kafka Axon Example - Subscribing Producer and PooledStreaming Consumer" type="JetRunConfigurationType" folderName="Kafka Axon Example">
     <option name="MAIN_CLASS_NAME" value="org.axonframework.extensions.kafka.example.KafkaAxonExampleApplicationKt" />
     <module name="axon-kafka-example" />
-    <option name="PROGRAM_PARAMETERS" value="--spring.profiles.active=pooled-streaming-producer,subscribing-consumer" />
+    <option name="PROGRAM_PARAMETERS" value="--spring.profiles.active=subscribing-producer,pooled-streaming-consumer" />
     <shortenClasspath name="NONE" />
     <method v="2">
       <option name="Make" enabled="true" />
