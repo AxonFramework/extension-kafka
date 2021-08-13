@@ -15,13 +15,11 @@
   ~ limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <groupId>org.axonframework.extensions.kafka</groupId>
     <artifactId>axon-kafka-parent</artifactId>
-    <version>4.5-SNAPSHOT</version>
+    <version>4.5</version>
     <modules>
         <module>kafka</module>
         <module>kafka-spring-boot-autoconfigure</module>
@@ -401,7 +399,7 @@
         <connection>scm:git:git://github.com/AxonFramework/extension-kafka.git</connection>
         <developerConnection>scm:git:git@github.com:AxonFramework/extension-kafka.git</developerConnection>
         <url>https://github.com/AxonFramework/extension-kafka</url>
-        <tag>HEAD</tag>
+        <tag>axon-kafka-4.5</tag>
     </scm>
 
     <developers>
