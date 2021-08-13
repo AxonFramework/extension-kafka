@@ -15,7 +15,9 @@ Please run:
 docker-compose -f ./kafka-axon-example/docker-compose.yaml up -d
 ```
 
-This will start Kafka and Zookeeper. This is sufficient to test this Kafka Extension.
+This will start [Zookeeper](https://zookeeper.apache.org/), [Kafka](https://github.com/wurstmeister/kafka-docker), 
+ [KafkaCat](https://github.com/edenhill/kafkacat), [Kafka Rest](https://github.com/nodefluent/kafka-rest) and [Kafka Rest UI](https://github.com/nodefluent/kafka-rest-ui).
+KafkaCat can be used to investigate the setup, whereas the UI (accessed through localhost:8000, user `admin` and password `admin`) provides visualization of the internals.
 
 Now build the application by running:
 

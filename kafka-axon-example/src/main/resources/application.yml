@@ -9,7 +9,9 @@ axon:
     clientid: kafka-axon-example
     producer:
       retries: 0
-      bootstrapservers: localhost:9092
+      bootstrap-servers: localhost:29092
+    consumer:
+      bootstrap-servers: localhost:29092
 
     properties:
       security.protocol: PLAINTEXT
