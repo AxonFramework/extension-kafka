@@ -58,7 +58,7 @@
         <log4j.version>2.14.1</log4j.version>
         <!-- Testing -->
         <junit.jupiter.version>5.7.2</junit.jupiter.version>
-        <mockito.version>3.12.1</mockito.version>
+        <mockito.version>3.12.2</mockito.version>
         <jackson.version>2.12.4</jackson.version>
 
         <jacoco-maven-plugin.version>0.8.7</jacoco-maven-plugin.version>
