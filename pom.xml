@@ -59,7 +59,7 @@
         <!-- Testing -->
         <junit.jupiter.version>5.8.1</junit.jupiter.version>
         <mockito.version>3.12.4</mockito.version>
-        <jackson.version>2.12.5</jackson.version>
+        <jackson.version>2.13.0</jackson.version>
 
         <jacoco-maven-plugin.version>0.8.7</jacoco-maven-plugin.version>
     </properties>
