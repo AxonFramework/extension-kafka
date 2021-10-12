@@ -27,8 +27,15 @@ import org.axonframework.messaging.MetaData;
 import org.axonframework.serialization.FixedValueRevisionResolver;
 import org.axonframework.serialization.SerializedObject;
 import org.axonframework.serialization.SimpleSerializedType;
+import org.axonframework.serialization.upcasting.Upcaster;
+import org.axonframework.serialization.upcasting.event.EventUpcaster;
+import org.axonframework.serialization.upcasting.event.EventUpcasterChain;
+import org.axonframework.serialization.upcasting.event.IntermediateEventRepresentation;
 import org.axonframework.serialization.xml.XStreamSerializer;
 import org.junit.jupiter.api.*;
+
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import static org.apache.kafka.clients.consumer.ConsumerRecord.NULL_SIZE;
 import static org.apache.kafka.common.record.RecordBatch.NO_TIMESTAMP;
@@ -177,11 +184,26 @@ class DefaultKafkaMessageConverterTest {
 
     @Test
     void testWritingEventMessageShouldBeReadAsEventMessage() {
+        AtomicInteger upcasterCalled = new AtomicInteger(0);
+
+        EventUpcasterChain chain = new EventUpcasterChain(new EventUpcaster() {
+            @Override
+            public Stream<IntermediateEventRepresentation> upcast(
+                Stream<IntermediateEventRepresentation> intermediateRepresentations) {
+                upcasterCalled.addAndGet(1);
+                return intermediateRepresentations;
+            }
+        });
+
+        testSubject = DefaultKafkaMessageConverter.builder().serializer(serializer).upcasterChain(chain).build();
+
         EventMessage<?> expected = eventMessage();
         ProducerRecord<String, byte[]> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
         EventMessage<?> actual = receiverMessage(senderMessage);
 
         assertEventMessage(actual, expected);
+        // upcasting should not happen on event messages, but on domain event messages only.
+        assertEquals(0, upcasterCalled.get());
     }
 
     @Test
@@ -204,6 +226,31 @@ class DefaultKafkaMessageConverterTest {
         assertEventMessage(actual, expected);
         assertDomainMessage((DomainEventMessage<?>) actual, expected);
     }
+
+    @Test
+    void testWritingDomainEventMessageShouldBeReadAsDomainMessageAndPassUpcaster() {
+
+        AtomicInteger upcasterCalled = new AtomicInteger(0);
+
+        EventUpcasterChain chain = new EventUpcasterChain(new EventUpcaster() {
+            @Override
+            public Stream<IntermediateEventRepresentation> upcast(
+                Stream<IntermediateEventRepresentation> intermediateRepresentations) {
+                upcasterCalled.addAndGet(1);
+                return intermediateRepresentations;
+            }
+        });
+        testSubject = DefaultKafkaMessageConverter.builder().serializer(serializer).upcasterChain(chain).build();
+
+        DomainEventMessage<?> expected = domainMessage();
+        ProducerRecord<String, byte[]> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
+        EventMessage<?> actual = receiverMessage(senderMessage);
+
+        assertEventMessage(actual, expected);
+        assertDomainMessage((DomainEventMessage<?>) actual, expected);
+        assertEquals(1, upcasterCalled.get());
+    }
+
 
     @Test
     void testBuildWithoutSerializerThrowsAxonConfigurationException() {
@@ -232,6 +279,14 @@ class DefaultKafkaMessageConverterTest {
 
         assertThrows(AxonConfigurationException.class, () -> testSubject.headerValueMapper(null));
     }
+
+    @Test
+    void testBuildWithNullUpcasterChainThrowsAxonConfigurationException() {
+        DefaultKafkaMessageConverter.Builder testSubject = DefaultKafkaMessageConverter.builder();
+
+        assertThrows(AxonConfigurationException.class, () -> testSubject.upcasterChain(null));
+    }
+
 
     private void assertDomainMessage(DomainEventMessage<?> actual, DomainEventMessage<?> expected) {
         assertEquals(expected.getAggregateIdentifier(), actual.getAggregateIdentifier());

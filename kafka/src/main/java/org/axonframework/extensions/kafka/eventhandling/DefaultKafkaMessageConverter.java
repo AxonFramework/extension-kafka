@@ -22,6 +22,7 @@ import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.eventhandling.EventMessage;
+import org.axonframework.eventhandling.GenericDomainEventEntry;
 import org.axonframework.eventhandling.GenericDomainEventMessage;
 import org.axonframework.eventhandling.GenericEventMessage;
 import org.axonframework.eventhandling.async.SequencingPolicy;
@@ -32,6 +33,8 @@ import org.axonframework.serialization.SerializedMessage;
 import org.axonframework.serialization.SerializedObject;
 import org.axonframework.serialization.Serializer;
 import org.axonframework.serialization.SimpleSerializedObject;
+import org.axonframework.serialization.upcasting.event.EventUpcasterChain;
+import org.axonframework.serialization.upcasting.event.InitialEventRepresentation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,18 +42,19 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import static org.axonframework.common.BuilderUtils.assertNonNull;
 import static org.axonframework.extensions.kafka.eventhandling.HeaderUtils.*;
 import static org.axonframework.messaging.Headers.*;
 
 /**
- * Converts and {@link EventMessage} to a {@link ProducerRecord} Kafka message and {from a @link ConsumerRecord} Kafka
+ * Converts and {@link EventMessage} to a {@link ProducerRecord} Kafka message and from a {@link ConsumerRecord} Kafka
  * message back to an EventMessage (if possible).
  * <p>
  * During conversion meta data entries with the {@code 'axon-metadata-'} prefix are passed to the {@link Headers}. Other
  * message-specific attributes are added as metadata. The {@link EventMessage#getPayload()} is serialized using the
- * configured {@link Serializer} and passed as the Kafka recordd's body.
+ * configured {@link Serializer} and passed as the Kafka record's body.
  * <p>
  * This implementation will suffice in most cases.
  *
@@ -65,6 +69,7 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
     private final Serializer serializer;
     private final SequencingPolicy<? super EventMessage<?>> sequencingPolicy;
     private final BiFunction<String, Object, RecordHeader> headerValueMapper;
+    private final EventUpcasterChain upcasterChain;
 
     /**
      * Instantiate a {@link DefaultKafkaMessageConverter} based on the fields contained in the {@link Builder}.
@@ -80,6 +85,7 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
         this.serializer = builder.serializer;
         this.sequencingPolicy = builder.sequencingPolicy;
         this.headerValueMapper = builder.headerValueMapper;
+        this.upcasterChain = builder.upcasterChain;
     }
 
     /**
@@ -114,9 +120,9 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
     public ProducerRecord<String, byte[]> createKafkaMessage(EventMessage<?> eventMessage, String topic) {
         SerializedObject<byte[]> serializedObject = eventMessage.serializePayload(serializer, byte[].class);
         return new ProducerRecord<>(
-                topic, null, null, recordKey(eventMessage),
-                serializedObject.getData(),
-                toHeaders(eventMessage, serializedObject, headerValueMapper)
+            topic, null, null, recordKey(eventMessage),
+            serializedObject.getData(),
+            toHeaders(eventMessage, serializedObject, headerValueMapper)
         );
     }
 
@@ -130,9 +136,16 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
         try {
             Headers headers = consumerRecord.headers();
             if (isAxonMessage(headers)) {
+
                 byte[] messageBody = consumerRecord.value();
-                SerializedMessage<?> message = extractSerializedMessage(headers, messageBody);
-                return buildMessage(headers, message);
+                final Optional<SerializedMessage<?>> message;
+                // domain events may be upcasted
+                if (isDomainEvent(headers)) {
+                    message = createDomainEventAndUpcast(headers, messageBody);
+                } else {
+                    message = createEvent(headers, messageBody);
+                }
+                return message.flatMap(serializedMessage -> buildMessage(headers, serializedMessage));
             }
         } catch (Exception e) {
             logger.trace("Error converting ConsumerRecord [{}] to an EventMessage", consumerRecord, e);
@@ -145,35 +158,61 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
         return keys(headers).containsAll(Arrays.asList(MESSAGE_ID, MESSAGE_TYPE));
     }
 
-    private SerializedMessage<?> extractSerializedMessage(Headers headers, byte[] messageBody) {
+    private Optional<SerializedMessage<?>> createEvent(Headers headers, byte[] messageBody) {
         SimpleSerializedObject<byte[]> serializedObject = new SimpleSerializedObject<>(
-                messageBody,
-                byte[].class,
-                valueAsString(headers, MESSAGE_TYPE),
-                valueAsString(headers, MESSAGE_REVISION, null)
+            messageBody,
+            byte[].class,
+            valueAsString(headers, MESSAGE_TYPE),
+            valueAsString(headers, MESSAGE_REVISION, null)
         );
 
-        return new SerializedMessage<>(
-                valueAsString(headers, MESSAGE_ID),
-                new LazyDeserializingObject<>(serializedObject, serializer),
-                new LazyDeserializingObject<>(MetaData.from(extractAxonMetadata(headers)))
+        return Optional.of(new SerializedMessage<>(
+            valueAsString(headers, MESSAGE_ID),
+            new LazyDeserializingObject<>(serializedObject, serializer),
+            new LazyDeserializingObject<>(MetaData.from(extractAxonMetadata(headers)))
+        ));
+    }
+
+    private Optional<SerializedMessage<?>> createDomainEventAndUpcast(Headers headers, byte[] messageBody) {
+        GenericDomainEventEntry<Object> domainEventEntry = new GenericDomainEventEntry<>(
+            valueAsString(headers, AGGREGATE_TYPE),
+            valueAsString(headers, AGGREGATE_ID),
+            valueAsLong(headers, AGGREGATE_SEQ),
+            valueAsString(headers, MESSAGE_ID),
+            valueAsLong(headers, MESSAGE_TIMESTAMP),
+            valueAsString(headers, MESSAGE_TYPE),
+            valueAsString(headers, MESSAGE_REVISION, null),
+            messageBody,
+            serializer.serialize(MetaData.from(extractAxonMetadata(headers)), byte[].class).getData()
         );
+
+        return upcasterChain.upcast(
+            Stream.of(new InitialEventRepresentation(domainEventEntry, serializer))
+        ).findFirst().map(upcastedEventData -> new SerializedMessage<>(
+            valueAsString(headers, MESSAGE_ID),
+            new LazyDeserializingObject<>(upcastedEventData.getData(), serializer),
+            upcastedEventData.getMetaData()
+        ));
+    }
+
+    private boolean isDomainEvent(Headers headers) {
+        return headers.lastHeader(AGGREGATE_ID) != null;
     }
 
     private Optional<EventMessage<?>> buildMessage(Headers headers, SerializedMessage<?> message) {
         long timestamp = valueAsLong(headers, MESSAGE_TIMESTAMP);
-        return headers.lastHeader(AGGREGATE_ID) != null
-                ? buildDomainEvent(headers, message, timestamp)
-                : buildEvent(message, timestamp);
+        return isDomainEvent(headers)
+               ? buildDomainEvent(headers, message, timestamp)
+               : buildEvent(message, timestamp);
     }
 
     private Optional<EventMessage<?>> buildDomainEvent(Headers headers, SerializedMessage<?> message, long timestamp) {
         return Optional.of(new GenericDomainEventMessage<>(
-                valueAsString(headers, AGGREGATE_TYPE),
-                valueAsString(headers, AGGREGATE_ID),
-                valueAsLong(headers, AGGREGATE_SEQ),
-                message,
-                () -> Instant.ofEpochMilli(timestamp)
+            valueAsString(headers, AGGREGATE_TYPE),
+            valueAsString(headers, AGGREGATE_ID),
+            valueAsLong(headers, AGGREGATE_SEQ),
+            message,
+            () -> Instant.ofEpochMilli(timestamp)
         ));
     }
 
@@ -193,11 +232,13 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
         private Serializer serializer;
         private SequencingPolicy<? super EventMessage<?>> sequencingPolicy = SequentialPerAggregatePolicy.instance();
         private BiFunction<String, Object, RecordHeader> headerValueMapper = byteMapper();
+        private EventUpcasterChain upcasterChain = new EventUpcasterChain();
 
         /**
          * Sets the serializer to serialize the Event Message's payload with.
          *
          * @param serializer The serializer to serialize the Event Message's payload with
+         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder serializer(Serializer serializer) {
@@ -211,6 +252,7 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
          * the key for the {@link ProducerRecord}. Defaults to a {@link SequentialPerAggregatePolicy} instance.
          *
          * @param sequencingPolicy a {@link SequencingPolicy} used to generate the key for the {@link ProducerRecord}
+         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder sequencingPolicy(SequencingPolicy<? super EventMessage<?>> sequencingPolicy) {
@@ -226,11 +268,25 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
          *
          * @param headerValueMapper a {@link BiFunction} of {@link String}, {@link Object} and {@link RecordHeader},
          *                          used for mapping values to Kafka headers
+         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder headerValueMapper(BiFunction<String, Object, RecordHeader> headerValueMapper) {
             assertNonNull(headerValueMapper, "{} may not be null");
             this.headerValueMapper = headerValueMapper;
+            return this;
+        }
+
+        /**
+         * Sets the {@code upcasterChain} to be used during the consumption of events.
+         *
+         * @param upcasterChain upcaster chain to be used on event reading.
+         *
+         * @return the current Builder instance, for fluent interfacing
+         */
+        public Builder upcasterChain(EventUpcasterChain upcasterChain) {
+            assertNonNull(upcasterChain, "UpcasterChain must not be null");
+            this.upcasterChain = upcasterChain;
             return this;
         }
 
