@@ -16,6 +16,8 @@
 
 package org.axonframework.extensions.kafka.eventhandling;
 
+import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.security.AnyTypePermission;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Headers;
@@ -27,15 +29,12 @@ import org.axonframework.messaging.MetaData;
 import org.axonframework.serialization.FixedValueRevisionResolver;
 import org.axonframework.serialization.SerializedObject;
 import org.axonframework.serialization.SimpleSerializedType;
-import org.axonframework.serialization.upcasting.Upcaster;
-import org.axonframework.serialization.upcasting.event.EventUpcaster;
 import org.axonframework.serialization.upcasting.event.EventUpcasterChain;
-import org.axonframework.serialization.upcasting.event.IntermediateEventRepresentation;
 import org.axonframework.serialization.xml.XStreamSerializer;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
 
 import static org.apache.kafka.clients.consumer.ConsumerRecord.NULL_SIZE;
 import static org.apache.kafka.common.record.RecordBatch.NO_TIMESTAMP;
@@ -46,7 +45,8 @@ import static org.axonframework.extensions.kafka.eventhandling.util.HeaderAssert
 import static org.axonframework.extensions.kafka.eventhandling.util.HeaderAssertUtil.assertEventHeaders;
 import static org.axonframework.messaging.Headers.*;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests for {@link DefaultKafkaMessageConverter}.
@@ -79,13 +79,13 @@ class DefaultKafkaMessageConverterTest {
 
     private static GenericDomainEventMessage<String> domainMessage() {
         return new GenericDomainEventMessage<>(
-                "Stub", SOME_AGGREGATE_IDENTIFIER, 1L, "Payload", MetaData.with("key", "value")
+            "Stub", SOME_AGGREGATE_IDENTIFIER, 1L, "Payload", MetaData.with("key", "value")
         );
     }
 
     private static ConsumerRecord<String, byte[]> toReceiverRecord(ProducerRecord<String, byte[]> message) {
         ConsumerRecord<String, byte[]> receiverRecord = new ConsumerRecord<>(
-                SOME_TOPIC, SOME_PARTITION, SOME_OFFSET, message.key(), message.value()
+            SOME_TOPIC, SOME_PARTITION, SOME_OFFSET, message.key(), message.value()
         );
         message.headers().forEach(header -> receiverRecord.headers().add(header));
         return receiverRecord;
@@ -93,8 +93,11 @@ class DefaultKafkaMessageConverterTest {
 
     @BeforeEach
     void setUp() {
+        final XStream xStream = new XStream();
+        xStream.addPermission(AnyTypePermission.ANY);
         serializer = XStreamSerializer.builder()
                                       .revisionResolver(new FixedValueRevisionResolver("stub-revision"))
+                                      .xStream(xStream)
                                       .build();
         testSubject = DefaultKafkaMessageConverter.builder().serializer(serializer).build();
     }
@@ -174,8 +177,8 @@ class DefaultKafkaMessageConverterTest {
 
         //noinspection rawtypes
         ConsumerRecord payloadDifferentThanByte = new ConsumerRecord<>(
-                "foo", 0, 0, NO_TIMESTAMP, NO_TIMESTAMP_TYPE,
-                -1L, NULL_SIZE, NULL_SIZE, "123", "some-wrong-input", headers
+            "foo", 0, 0, NO_TIMESTAMP, NO_TIMESTAMP_TYPE,
+            -1L, NULL_SIZE, NULL_SIZE, "123", "some-wrong-input", headers
         );
 
         //noinspection unchecked
@@ -183,16 +186,12 @@ class DefaultKafkaMessageConverterTest {
     }
 
     @Test
-    void testWritingEventMessageShouldBeReadAsEventMessage() {
+    void testWritingEventMessageShouldBeReadAsEventMessageAndPassUpcaster() {
         AtomicInteger upcasterCalled = new AtomicInteger(0);
 
-        EventUpcasterChain chain = new EventUpcasterChain(new EventUpcaster() {
-            @Override
-            public Stream<IntermediateEventRepresentation> upcast(
-                Stream<IntermediateEventRepresentation> intermediateRepresentations) {
-                upcasterCalled.addAndGet(1);
-                return intermediateRepresentations;
-            }
+        EventUpcasterChain chain = new EventUpcasterChain(intermediateRepresentations -> {
+            upcasterCalled.addAndGet(1);
+            return intermediateRepresentations;
         });
 
         testSubject = DefaultKafkaMessageConverter.builder().serializer(serializer).upcasterChain(chain).build();
@@ -202,8 +201,7 @@ class DefaultKafkaMessageConverterTest {
         EventMessage<?> actual = receiverMessage(senderMessage);
 
         assertEventMessage(actual, expected);
-        // upcasting should not happen on event messages, but on domain event messages only.
-        assertEquals(0, upcasterCalled.get());
+        assertEquals(1, upcasterCalled.get());
     }
 
     @Test
@@ -232,13 +230,9 @@ class DefaultKafkaMessageConverterTest {
 
         AtomicInteger upcasterCalled = new AtomicInteger(0);
 
-        EventUpcasterChain chain = new EventUpcasterChain(new EventUpcaster() {
-            @Override
-            public Stream<IntermediateEventRepresentation> upcast(
-                Stream<IntermediateEventRepresentation> intermediateRepresentations) {
-                upcasterCalled.addAndGet(1);
-                return intermediateRepresentations;
-            }
+        EventUpcasterChain chain = new EventUpcasterChain(intermediateRepresentations -> {
+            upcasterCalled.addAndGet(1);
+            return intermediateRepresentations;
         });
         testSubject = DefaultKafkaMessageConverter.builder().serializer(serializer).upcasterChain(chain).build();
 
@@ -296,7 +290,7 @@ class DefaultKafkaMessageConverterTest {
 
     private EventMessage<?> receiverMessage(ProducerRecord<String, byte[]> senderMessage) {
         return testSubject.readKafkaMessage(
-                toReceiverRecord(senderMessage)).orElseThrow(() -> new AssertionError("Expected valid message")
+            toReceiverRecord(senderMessage)).orElseThrow(() -> new AssertionError("Expected valid message")
         );
     }
 }
