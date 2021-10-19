@@ -85,10 +85,11 @@ public class KafkaAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public KafkaMessageConverter<String, byte[]> kafkaMessageConverter(
-        @Qualifier("eventSerializer") Serializer eventSerializer,
-        AxonConfiguration config
+            @Qualifier("eventSerializer") Serializer eventSerializer,
+            AxonConfiguration config
     ) {
-        return DefaultKafkaMessageConverter.builder().serializer(eventSerializer).upcasterChain(config.upcasterChain() != null ? config.upcasterChain() : new EventUpcasterChain()).build();
+        return DefaultKafkaMessageConverter.builder().serializer(eventSerializer).upcasterChain(
+                config.upcasterChain() != null ? config.upcasterChain() : new EventUpcasterChain()).build();
     }
 
     @Bean("axonKafkaProducerFactory")
@@ -98,18 +99,18 @@ public class KafkaAutoConfiguration {
         String transactionIdPrefix = properties.getProducer().getTransactionIdPrefix();
 
         DefaultProducerFactory.Builder<String, byte[]> builder =
-            DefaultProducerFactory.<String, byte[]>builder()
-                                  .configuration(properties.buildProducerProperties())
-                                  .confirmationMode(confirmationMode);
+                DefaultProducerFactory.<String, byte[]>builder()
+                                      .configuration(properties.buildProducerProperties())
+                                      .confirmationMode(confirmationMode);
 
         if (isNonEmptyString(transactionIdPrefix)) {
             builder.transactionalIdPrefix(transactionIdPrefix)
                    .confirmationMode(ConfirmationMode.TRANSACTIONAL);
             if (!confirmationMode.isTransactional()) {
                 logger.warn(
-                    "The confirmation mode is set to [{}], whilst a transactional id prefix is present. "
-                        + "The transactional id prefix overwrites the confirmation mode choice to TRANSACTIONAL",
-                    confirmationMode
+                        "The confirmation mode is set to [{}], whilst a transactional id prefix is present. "
+                                + "The transactional id prefix overwrites the confirmation mode choice to TRANSACTIONAL",
+                        confirmationMode
                 );
             }
         }
@@ -124,11 +125,11 @@ public class KafkaAutoConfiguration {
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @ConditionalOnMissingBean
     @Bean(destroyMethod = "shutDown")
-    @ConditionalOnBean({ ProducerFactory.class, KafkaMessageConverter.class })
+    @ConditionalOnBean({ProducerFactory.class, KafkaMessageConverter.class})
     public KafkaPublisher<String, byte[]> kafkaPublisher(
-        ProducerFactory<String, byte[]> axonKafkaProducerFactory,
-        KafkaMessageConverter<String, byte[]> kafkaMessageConverter,
-        AxonConfiguration configuration) {
+            ProducerFactory<String, byte[]> axonKafkaProducerFactory,
+            KafkaMessageConverter<String, byte[]> kafkaMessageConverter,
+            AxonConfiguration configuration) {
         return KafkaPublisher.<String, byte[]>builder()
                              .producerFactory(axonKafkaProducerFactory)
                              .messageConverter(kafkaMessageConverter)
@@ -140,13 +141,13 @@ public class KafkaAutoConfiguration {
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnBean({ KafkaPublisher.class })
+    @ConditionalOnBean({KafkaPublisher.class})
     public KafkaEventPublisher<String, byte[]> kafkaEventPublisher(
-        KafkaPublisher<String, byte[]> kafkaPublisher,
-        KafkaProperties kafkaProperties,
-        EventProcessingConfigurer eventProcessingConfigurer) {
+            KafkaPublisher<String, byte[]> kafkaPublisher,
+            KafkaProperties kafkaProperties,
+            EventProcessingConfigurer eventProcessingConfigurer) {
         KafkaEventPublisher<String, byte[]> kafkaEventPublisher =
-            KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(kafkaPublisher).build();
+                KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(kafkaPublisher).build();
 
         /*
          * Register an invocation error handler which re-throws any exception.
@@ -156,11 +157,11 @@ public class KafkaAutoConfiguration {
          */
         eventProcessingConfigurer.registerEventHandler(configuration -> kafkaEventPublisher)
                                  .registerListenerInvocationErrorHandler(
-                                     DEFAULT_PROCESSING_GROUP, configuration -> PropagatingErrorHandler.instance()
+                                         DEFAULT_PROCESSING_GROUP, configuration -> PropagatingErrorHandler.instance()
                                  )
                                  .assignHandlerTypesMatching(
-                                     DEFAULT_PROCESSING_GROUP,
-                                     clazz -> clazz.isAssignableFrom(KafkaEventPublisher.class)
+                                         DEFAULT_PROCESSING_GROUP,
+                                         clazz -> clazz.isAssignableFrom(KafkaEventPublisher.class)
                                  );
 
         KafkaProperties.EventProcessorMode processorMode = kafkaProperties.getProducer().getEventProcessorMode();
@@ -193,12 +194,12 @@ public class KafkaAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnBean({ ConsumerFactory.class, KafkaMessageConverter.class, Fetcher.class })
+    @ConditionalOnBean({ConsumerFactory.class, KafkaMessageConverter.class, Fetcher.class})
     @Conditional(StreamingProcessorModeCondition.class)
     public StreamableKafkaMessageSource<String, byte[]> streamableKafkaMessageSource(
-        ConsumerFactory<String, byte[]> kafkaConsumerFactory,
-        Fetcher<String, byte[], KafkaEventMessage> kafkaFetcher,
-        KafkaMessageConverter<String, byte[]> kafkaMessageConverter
+            ConsumerFactory<String, byte[]> kafkaConsumerFactory,
+            Fetcher<String, byte[], KafkaEventMessage> kafkaFetcher,
+            KafkaMessageConverter<String, byte[]> kafkaMessageConverter
     ) {
         return StreamableKafkaMessageSource.<String, byte[]>builder()
                                            .topics(Collections.singletonList(properties.getDefaultTopic()))
@@ -206,7 +207,7 @@ public class KafkaAutoConfiguration {
                                            .fetcher(kafkaFetcher)
                                            .messageConverter(kafkaMessageConverter)
                                            .bufferFactory(() -> new SortedKafkaMessageBuffer<>(
-                                               properties.getFetcher().getBufferSize()
+                                                   properties.getFetcher().getBufferSize()
                                            ))
                                            .build();
     }
