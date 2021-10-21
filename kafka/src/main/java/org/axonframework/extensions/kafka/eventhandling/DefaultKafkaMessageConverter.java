@@ -57,7 +57,7 @@ import static org.axonframework.messaging.Headers.*;
  * configured {@link Serializer} and passed as the Kafka record's body.
  * <p>
  * <p>
- * If an up-caster / up-caster chain is configured, this converter will pass the converted messages through the it.
+ * If an up-caster / up-caster chain is configured, this converter will pass the converted messages through it.
  * Please note, that the since the message converter consumes records one-by-one, the up-casting functionality is
  * limited to one-to-one and one-to-many up-casters only.
  * </p>
