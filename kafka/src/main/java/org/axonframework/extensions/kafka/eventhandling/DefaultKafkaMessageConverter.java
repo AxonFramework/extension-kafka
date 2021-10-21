@@ -58,7 +58,7 @@ import static org.axonframework.messaging.Headers.*;
  * <p>
  * <p>
  * If an up-caster / up-caster chain is configured, this converter will pass the converted messages through it.
- * Please note, that the since the message converter consumes records one-by-one, the up-casting functionality is
+ * Please note, that since the message converter consumes records one-by-one, the up-casting functionality is
  * limited to one-to-one and one-to-many up-casters only.
  * </p>
  * This implementation will suffice in most cases.
