@@ -88,8 +88,11 @@ public class KafkaAutoConfiguration {
             @Qualifier("eventSerializer") Serializer eventSerializer,
             AxonConfiguration config
     ) {
-        return DefaultKafkaMessageConverter.builder().serializer(eventSerializer).upcasterChain(
-                config.upcasterChain() != null ? config.upcasterChain() : new EventUpcasterChain()).build();
+        return DefaultKafkaMessageConverter
+                .builder()
+                .serializer(eventSerializer)
+                .upcasterChain(config.upcasterChain() != null ? config.upcasterChain() : new EventUpcasterChain())
+                .build();
     }
 
     @Bean("axonKafkaProducerFactory")
