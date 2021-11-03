@@ -41,4 +41,4 @@ jobs:
 
       - name: Run integration tests
         run: | # no clean
-          mavn -B -Pitest
+          mvn -B -Pitest
