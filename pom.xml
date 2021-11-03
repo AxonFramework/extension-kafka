@@ -16,19 +16,19 @@
   -->
 
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-
+    <modelVersion>4.0.0</modelVersion>
     <groupId>org.axonframework.extensions.kafka</groupId>
     <artifactId>axon-kafka-parent</artifactId>
     <version>4.6.0-SNAPSHOT</version>
+
+    <packaging>pom</packaging>
+
     <modules>
         <module>kafka</module>
         <module>kafka-spring-boot-autoconfigure</module>
         <module>kafka-spring-boot-starter</module>
-        <module>kafka-axon-example</module>
+        <!-- Example module is inside the profile and can be switched off -->
     </modules>
-    <packaging>pom</packaging>
-
-    <modelVersion>4.0.0</modelVersion>
 
     <name>Axon Framework - Kafka Extension</name>
     <description>An Axon Framework extension allowing Kafka integration</description>
@@ -60,8 +60,8 @@
         <junit.jupiter.version>5.8.1</junit.jupiter.version>
         <mockito.version>4.0.0</mockito.version>
         <jackson.version>2.13.0</jackson.version>
-
-        <jacoco-maven-plugin.version>0.8.7</jacoco-maven-plugin.version>
+        <pattern.class.test>**/*Test.*</pattern.class.test>
+        <pattern.class.itest>**/*IntegrationTest.*</pattern.class.itest>
     </properties>
 
     <dependencies>
@@ -108,7 +108,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -124,7 +123,6 @@
             <artifactId>mockito-junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>javax.inject</groupId>
             <artifactId>javax.inject</artifactId>
@@ -180,6 +178,7 @@
     </dependencyManagement>
 
     <build>
+        <defaultGoal>clean package</defaultGoal>
         <pluginManagement>
             <plugins>
                 <plugin>
@@ -189,6 +188,21 @@
                 <plugin>
                     <artifactId>maven-install-plugin</artifactId>
                     <version>2.5.2</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>0.8.7</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>2.22.2</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>2.22.2</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -235,14 +249,14 @@
             </plugin>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.22.2</version>
                 <configuration>
+                    <excludes>
+                        <exclude>${pattern.class.itest}</exclude>
+                    </excludes>
                     <includes>
-                        <include>**/*Test.java</include>
-                        <include>**/*Tests.java</include>
-                        <include>**/*Test_*.java</include>
-                        <include>**/*Tests_*.java</include>
+                        <include>${pattern.class.test}</include>
                     </includes>
+                    <argLine>-Djava.awt.headless=true ${surefireArgLine}</argLine>
                     <systemPropertyVariables>
                         <slf4j.version>${slf4j.version}</slf4j.version>
                         <log4j.version>${log4j.version}</log4j.version>
@@ -313,10 +327,51 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>prepare-unit-test</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                        <configuration>
+                            <propertyName>surefireArgLine</propertyName>
+                            <destFile>${project.build.directory}/jacoco-ut.exec</destFile>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>report-unit-test</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                        <configuration>
+                            <dataFile>${project.build.directory}/jacoco-ut.exec</dataFile>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-ut</outputDirectory>
+                            <excludes>
+                                <exclude>${pattern.class.itest}</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
     <profiles>
+        <profile>
+            <id>examples</id>
+            <activation>
+                <property>
+                    <name>!skipExamples</name>
+                </property>
+            </activation>
+            <modules>
+                <module>kafka-axon-example</module>
+            </modules>
+        </profile>
         <profile>
             <id>release-sign-artifacts</id>
             <activation>
@@ -345,33 +400,81 @@
                 </plugins>
             </build>
         </profile>
-
         <profile>
-            <id>coverage</id>
+            <id>itest</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
             <build>
+                <defaultGoal>verify</defaultGoal>
                 <plugins>
                     <plugin>
                         <groupId>org.jacoco</groupId>
                         <artifactId>jacoco-maven-plugin</artifactId>
-                        <version>${jacoco-maven-plugin.version}</version>
-
                         <executions>
                             <execution>
+                                <id>prepare-integration-test</id>
+                                <phase>pre-integration-test</phase>
                                 <goals>
                                     <goal>prepare-agent</goal>
                                 </goals>
+                                <configuration>
+                                    <propertyName>failsafeArgLine</propertyName>
+                                    <destFile>${project.build.directory}/jacoco-it.exec</destFile>
+                                </configuration>
                             </execution>
                             <execution>
-                                <id>report</id>
-                                <phase>prepare-package</phase>
+                                <id>report-integration-test</id>
+                                <phase>post-integration-test</phase>
                                 <goals>
                                     <goal>report</goal>
                                 </goals>
+                                <configuration>
+                                    <dataFile>${project.build.directory}/jacoco-it.exec</dataFile>
+                                    <outputDirectory>${project.reporting.outputDirectory}/jacoco-it</outputDirectory>
+                                    <excludes>
+                                        <exclude>${pattern.class.test}</exclude>
+                                    </excludes>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <skipTests>true</skipTests>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>run-integration-tests</id>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                </goals>
+                                <configuration>
+                                    <argLine>-Djava.awt.headless=true ${failsafeArgLine}</argLine>
+                                    <includes>
+                                        <include>${pattern.class.itest}</include>
+                                    </includes>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+        <profile>
+            <id>coverage-aggregate</id>
+            <build>
+                <defaultGoal>verify</defaultGoal>
+            </build>
+            <modules>
+                <module>coverage-report-generator</module>
+            </modules>
         </profile>
     </profiles>
 
@@ -419,6 +522,15 @@
             <organizationUrl>https://axoniq.io</organizationUrl>
             <roles>
                 <role>Lead Developer</role>
+            </roles>
+        </developer>
+        <developer>
+            <name>Simon Zambrovski</name>
+            <email>simon.zambrovskin@holisticon.de</email>
+            <organization>Holisticon AG</organization>
+            <organizationUrl>https://holisticon.de</organizationUrl>
+            <roles>
+                <role>Developer</role>
             </roles>
         </developer>
     </developers>
