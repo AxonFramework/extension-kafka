@@ -21,7 +21,9 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.axonframework.common.AxonConfigurationException;
+import org.axonframework.eventhandling.EventData;
 import org.axonframework.eventhandling.EventMessage;
+import org.axonframework.eventhandling.GenericDomainEventEntry;
 import org.axonframework.eventhandling.GenericDomainEventMessage;
 import org.axonframework.eventhandling.GenericEventMessage;
 import org.axonframework.eventhandling.async.SequencingPolicy;
@@ -31,7 +33,8 @@ import org.axonframework.serialization.LazyDeserializingObject;
 import org.axonframework.serialization.SerializedMessage;
 import org.axonframework.serialization.SerializedObject;
 import org.axonframework.serialization.Serializer;
-import org.axonframework.serialization.SimpleSerializedObject;
+import org.axonframework.serialization.upcasting.event.EventUpcasterChain;
+import org.axonframework.serialization.upcasting.event.InitialEventRepresentation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,19 +42,25 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import static org.axonframework.common.BuilderUtils.assertNonNull;
 import static org.axonframework.extensions.kafka.eventhandling.HeaderUtils.*;
 import static org.axonframework.messaging.Headers.*;
 
 /**
- * Converts and {@link EventMessage} to a {@link ProducerRecord} Kafka message and {from a @link ConsumerRecord} Kafka
+ * Converts and {@link EventMessage} to a {@link ProducerRecord} Kafka message and from a {@link ConsumerRecord} Kafka
  * message back to an EventMessage (if possible).
  * <p>
  * During conversion meta data entries with the {@code 'axon-metadata-'} prefix are passed to the {@link Headers}. Other
  * message-specific attributes are added as metadata. The {@link EventMessage#getPayload()} is serialized using the
- * configured {@link Serializer} and passed as the Kafka recordd's body.
+ * configured {@link Serializer} and passed as the Kafka record's body.
  * <p>
+ * <p>
+ * If an up-caster / up-caster chain is configured, this converter will pass the converted messages through it.
+ * Please note, that since the message converter consumes records one-by-one, the up-casting functionality is
+ * limited to one-to-one and one-to-many up-casters only.
+ * </p>
  * This implementation will suffice in most cases.
  *
  * @author Nakul Mishra
@@ -65,6 +74,7 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
     private final Serializer serializer;
     private final SequencingPolicy<? super EventMessage<?>> sequencingPolicy;
     private final BiFunction<String, Object, RecordHeader> headerValueMapper;
+    private final EventUpcasterChain upcasterChain;
 
     /**
      * Instantiate a {@link DefaultKafkaMessageConverter} based on the fields contained in the {@link Builder}.
@@ -80,6 +90,7 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
         this.serializer = builder.serializer;
         this.sequencingPolicy = builder.sequencingPolicy;
         this.headerValueMapper = builder.headerValueMapper;
+        this.upcasterChain = builder.upcasterChain;
     }
 
     /**
@@ -131,43 +142,93 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
             Headers headers = consumerRecord.headers();
             if (isAxonMessage(headers)) {
                 byte[] messageBody = consumerRecord.value();
-                SerializedMessage<?> message = extractSerializedMessage(headers, messageBody);
-                return buildMessage(headers, message);
+                final EventData<?> eventData = createEventData(headers, messageBody);
+                return upcasterChain
+                        .upcast(Stream.of(new InitialEventRepresentation(eventData, serializer)))
+                        .findFirst()
+                        .map(upcastedEventData -> new SerializedMessage<>(
+                                     upcastedEventData.getMessageIdentifier(),
+                                     new LazyDeserializingObject<>(upcastedEventData.getData(), serializer),
+                                     upcastedEventData.getMetaData()
+                             )
+                        ).flatMap(serializedMessage -> buildMessage(headers, serializedMessage));
             }
         } catch (Exception e) {
             logger.trace("Error converting ConsumerRecord [{}] to an EventMessage", consumerRecord, e);
         }
-
         return Optional.empty();
     }
 
-    private boolean isAxonMessage(Headers headers) {
+    /**
+     * Constructs event data representation from given Kafka headers and byte array body.
+     * <p>
+     * This method <i>reuses</i> the {@link GenericDomainEventEntry} class for both types of events which can be
+     * transmitted via Kafka. For domain events, the fields <code>aggregateType</code>, <code>aggregateId</code> and
+     * <code>aggregateSeq</code> will contain the corresponding values, but for the simple event they will be
+     * <code>null</code>. This is ok to pass <code>null</code> to those values and <code>0L</code> to
+     * <code>aggregateSeq</code>, since the {@link InitialEventRepresentation} does the same in its constructor and
+     * is implemented in a null-tolerant way. Check {@link DefaultKafkaMessageConverter#isDomainEvent(Headers)} for more
+     * details.
+     * </p>
+     *
+     * @param headers     Kafka headers.
+     * @param messageBody Kafka payload as a byte array.
+     * @return event data.
+     */
+    private EventData<?> createEventData(Headers headers, byte[] messageBody) {
+        return new GenericDomainEventEntry<>(
+                valueAsString(headers, AGGREGATE_TYPE),
+                valueAsString(headers, AGGREGATE_ID),
+                valueAsLong(headers, AGGREGATE_SEQ, 0L),
+                valueAsString(headers, MESSAGE_ID),
+                valueAsLong(headers, MESSAGE_TIMESTAMP),
+                valueAsString(headers, MESSAGE_TYPE),
+                valueAsString(headers, MESSAGE_REVISION, null),
+                messageBody,
+                extractMetadataAsBytes(headers)
+        );
+    }
+
+    private byte[] extractMetadataAsBytes(Headers headers) {
+        return serializer.serialize(MetaData.from(extractAxonMetadata(headers)), byte[].class).getData();
+    }
+
+    private static boolean isAxonMessage(Headers headers) {
         return keys(headers).containsAll(Arrays.asList(MESSAGE_ID, MESSAGE_TYPE));
     }
 
-    private SerializedMessage<?> extractSerializedMessage(Headers headers, byte[] messageBody) {
-        SimpleSerializedObject<byte[]> serializedObject = new SimpleSerializedObject<>(
-                messageBody,
-                byte[].class,
-                valueAsString(headers, MESSAGE_TYPE),
-                valueAsString(headers, MESSAGE_REVISION, null)
-        );
-
-        return new SerializedMessage<>(
-                valueAsString(headers, MESSAGE_ID),
-                new LazyDeserializingObject<>(serializedObject, serializer),
-                new LazyDeserializingObject<>(MetaData.from(extractAxonMetadata(headers)))
-        );
+    /**
+     * Checks if the event is originated from an aggregate (domain event) or is a simple event sent over the bus.
+     * <p>
+     * The difference between a DomainEventMessage and an EventMessage, is the following three fields:
+     * <ul>
+     *     <li>The type - represents the Aggregate the event originates from. It would be empty for an EventMessage and
+     *     filled for a DomainEventMessage.</li>
+     *     <li>The aggregateIdentifier - represents the Aggregate instance the event originates from. It would be equal
+     *     to the eventIdentifier for an EventMessage and not equal to that identifier a DomainEventMessage.</li>
+     *     <li>The sequenceNumber - represents the order of the events within an Aggregate instance's event stream.
+     *     It would be 0 at all times for an EventMessage, whereas a DomainEventMessage would be 0 or greater.</li>
+     * </ul>
+     * </p>
+     *
+     * @param headers Kafka headers.
+     * @return <code>true</code> if the event is originated from an aggregate.
+     */
+    private static boolean isDomainEvent(Headers headers) {
+        return headers.lastHeader(AGGREGATE_TYPE) != null
+                && headers.lastHeader(AGGREGATE_ID) != null
+                && headers.lastHeader(AGGREGATE_SEQ) != null;
     }
 
-    private Optional<EventMessage<?>> buildMessage(Headers headers, SerializedMessage<?> message) {
+    private static Optional<EventMessage<?>> buildMessage(Headers headers, SerializedMessage<?> message) {
         long timestamp = valueAsLong(headers, MESSAGE_TIMESTAMP);
-        return headers.lastHeader(AGGREGATE_ID) != null
-                ? buildDomainEvent(headers, message, timestamp)
-                : buildEvent(message, timestamp);
+        return isDomainEvent(headers)
+                ? buildDomainEventMessage(headers, message, timestamp)
+                : buildEventMessage(message, timestamp);
     }
 
-    private Optional<EventMessage<?>> buildDomainEvent(Headers headers, SerializedMessage<?> message, long timestamp) {
+    private static Optional<EventMessage<?>> buildDomainEventMessage(Headers headers, SerializedMessage<?> message,
+                                                              long timestamp) {
         return Optional.of(new GenericDomainEventMessage<>(
                 valueAsString(headers, AGGREGATE_TYPE),
                 valueAsString(headers, AGGREGATE_ID),
@@ -177,7 +238,7 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
         ));
     }
 
-    private Optional<EventMessage<?>> buildEvent(SerializedMessage<?> message, long timestamp) {
+    private static Optional<EventMessage<?>> buildEventMessage(SerializedMessage<?> message, long timestamp) {
         return Optional.of(new GenericEventMessage<>(message, () -> Instant.ofEpochMilli(timestamp)));
     }
 
@@ -193,6 +254,7 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
         private Serializer serializer;
         private SequencingPolicy<? super EventMessage<?>> sequencingPolicy = SequentialPerAggregatePolicy.instance();
         private BiFunction<String, Object, RecordHeader> headerValueMapper = byteMapper();
+        private EventUpcasterChain upcasterChain = new EventUpcasterChain();
 
         /**
          * Sets the serializer to serialize the Event Message's payload with.
@@ -231,6 +293,18 @@ public class DefaultKafkaMessageConverter implements KafkaMessageConverter<Strin
         public Builder headerValueMapper(BiFunction<String, Object, RecordHeader> headerValueMapper) {
             assertNonNull(headerValueMapper, "{} may not be null");
             this.headerValueMapper = headerValueMapper;
+            return this;
+        }
+
+        /**
+         * Sets the {@code upcasterChain} to be used during the consumption of events.
+         *
+         * @param upcasterChain upcaster chain to be used on event reading.
+         * @return the current Builder instance, for fluent interfacing
+         */
+        public Builder upcasterChain(EventUpcasterChain upcasterChain) {
+            assertNonNull(upcasterChain, "UpcasterChain must not be null");
+            this.upcasterChain = upcasterChain;
             return this;
         }
 
