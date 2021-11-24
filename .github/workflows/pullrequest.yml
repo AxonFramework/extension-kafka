@@ -37,8 +37,8 @@ jobs:
 
       - name: Run regular build
         run: |
-          mvn -B -U clean verify
+          ./mvnw -B -U clean verify
 
       - name: Run integration tests
         run: | # no clean
-          mvn -B -Pitest
+          ./mvnw -B -Pitest
