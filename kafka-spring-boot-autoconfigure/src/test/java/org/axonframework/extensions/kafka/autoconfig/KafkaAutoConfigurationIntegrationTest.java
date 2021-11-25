@@ -69,7 +69,7 @@ import static org.mockito.Mockito.*;
  * @author Nakul Mishra
  * @author Steven van Beelen
  */
-class KafkaAutoConfigurationTest {
+class KafkaAutoConfigurationIntegrationTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(KafkaAutoConfiguration.class));

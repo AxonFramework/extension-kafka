@@ -41,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Lucas Campos
  * @author Nakul Mishra
  */
-class DefaultProducerFactoryClusteringTest extends KafkaContainerClusterTest {
+class DefaultProducerFactoryClusteringIntegrationTest extends KafkaContainerClusterTest {
 
     private static final String TOPIC = "testSendingMessagesUsingMultipleTransactionalProducers";
 

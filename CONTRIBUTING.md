@@ -36,3 +36,25 @@ If you're using IntelliJ IDEA, you can download the code style
 definition [here](https://github.com/AxonFramework/AxonFramework/blob/master/axon_code_style.xml). Simply import the XML
 file in under "Settings -> Code Style -> Scheme -> Import Scheme". Doing so should make the code style selectable
 immediately.
+
+### Project Build
+
+The project is built with Apache Maven, supplied by the Maven Wrapper `mvnw`. For separate aspects of the build Maven 
+profiles are used.
+
+For a **regular** build, execute from your command line: `./mvnw`. This operation will run the build and execute JUnit tests
+of all modules and package the resulting artifacts. 
+
+This repository contains an example project. 
+You can skip its build by adding `-DskipExamples` to your build command. 
+
+There are long-running integration tests present (starting Spring Boot Application and/or running Kafka in a TestContainer), which **ARE NOT** executed by default. 
+A unique `itest` build is needed to run those long-running tests. 
+If you want to run them, please call `./mvnw -Pitest` from your command line. 
+When introducing additional integration tests, make sure the class name ends with `IntegrationTest`.
+
+The project uses JaCoCo to measure test coverage of the code and automatically generate coverage reports on regular
+and `itest` builds. If you are interested in the overall test coverage, please run `./mvnw -Pcoverage-aggregate` 
+(without calling `clean`) after you run the **regular** and `itest` builds and check the resulting aggregated report 
+in `./coverage-report-generator/target/site/jacoco-aggregate/index.html`
+

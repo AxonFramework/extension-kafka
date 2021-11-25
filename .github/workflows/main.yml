@@ -40,30 +40,27 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven
 
-      - name: Maven operation with Sonar
-        if: matrix.sonar-enabled
+      - name: Regular build
         run: |
-          mvn -B -U -Pcoverage \
-          clean verify \
-          sonar:sonar \
+          ./mvnw -B -U clean verify
+
+      - name: Sonar analysis
+        if: matrix.sonar-enabled
+        run: | # no clean
+          ./mvnw -B sonar:sonar \
           -Dsonar.projectKey=AxonFramework_extension-kafka \
           -Dsonar.organization=axonframework \
           -Dsonar.host.url=https://sonarcloud.io \
           -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Maven operation without Sonar
-        if: matrix.sonar-enabled != true
-        run: |
-          mvn -B -U clean verify
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run integration tests
+        run: | # no clean
+          ./mvnw -B -Pitest
 
       - name: Deploy to Sonatype
         if: success()
-        run: |
-          ./mvnw -B -U deploy -DskipTests=true
+        run: | # no clean, no tests, no examples
+          ./mvnw -B -U deploy -DskipTests=true -DskipExamples=true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MAVEN_USERNAME: ${{ secrets.SONATYPE_TOKEN_ID }}
