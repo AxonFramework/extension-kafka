@@ -23,6 +23,7 @@ import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.eventhandling.DomainEventMessage;
 import org.axonframework.eventhandling.EventMessage;
 import org.axonframework.eventhandling.GenericDomainEventMessage;
+import org.axonframework.extensions.kafka.utils.TestSerializer;
 import org.axonframework.messaging.MetaData;
 import org.axonframework.serialization.FixedValueRevisionResolver;
 import org.axonframework.serialization.SerializedObject;
@@ -187,7 +188,7 @@ class DefaultKafkaMessageConverterTest {
     @Test
     void testWritingEventMessageWithNullRevisionShouldWriteRevisionAsNull() {
         testSubject = DefaultKafkaMessageConverter.builder()
-                                                  .serializer(XStreamSerializer.builder().build())
+                                                  .serializer(TestSerializer.XSTREAM.getSerializer())
                                                   .build();
         EventMessage<?> eventMessage = eventMessage();
         ProducerRecord<String, byte[]> senderMessage = testSubject.createKafkaMessage(eventMessage, SOME_TOPIC);
