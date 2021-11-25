@@ -155,9 +155,9 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
         private Fetcher<K, V, KafkaEventMessage> fetcher;
         @SuppressWarnings("unchecked")
         private KafkaMessageConverter<K, V> messageConverter =
-                (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder().serializer(
-                        XStreamSerializer.builder().build()
-                ).build();
+                (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder()
+                                                                          .serializer(XStreamSerializer.defaultSerializer())
+                                                                          .build();
         private Supplier<Buffer<KafkaEventMessage>> bufferFactory = SortedKafkaMessageBuffer::new;
 
         /**

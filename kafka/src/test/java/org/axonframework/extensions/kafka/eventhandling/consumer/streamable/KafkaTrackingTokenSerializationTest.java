@@ -19,6 +19,7 @@ package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 import org.apache.kafka.common.TopicPartition;
 import org.axonframework.eventhandling.ReplayToken;
 import org.axonframework.eventhandling.TrackingToken;
+import org.axonframework.extensions.kafka.utils.TestSerializer;
 import org.junit.*;
 import org.junit.runner.*;
 import org.junit.runners.*;

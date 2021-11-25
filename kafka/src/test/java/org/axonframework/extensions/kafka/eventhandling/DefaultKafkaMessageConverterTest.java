@@ -25,14 +25,14 @@ import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.eventhandling.DomainEventMessage;
 import org.axonframework.eventhandling.EventMessage;
 import org.axonframework.eventhandling.GenericDomainEventMessage;
+import org.axonframework.extensions.kafka.utils.TestSerializer;
 import org.axonframework.messaging.MetaData;
 import org.axonframework.serialization.FixedValueRevisionResolver;
 import org.axonframework.serialization.SerializedObject;
 import org.axonframework.serialization.SimpleSerializedType;
 import org.axonframework.serialization.upcasting.event.EventUpcasterChain;
 import org.axonframework.serialization.xml.XStreamSerializer;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -45,8 +45,7 @@ import static org.axonframework.extensions.kafka.eventhandling.util.HeaderAssert
 import static org.axonframework.extensions.kafka.eventhandling.util.HeaderAssertUtil.assertEventHeaders;
 import static org.axonframework.messaging.Headers.*;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 /**
  * Tests for {@link DefaultKafkaMessageConverter}.
@@ -207,7 +206,7 @@ class DefaultKafkaMessageConverterTest {
     @Test
     void testWritingEventMessageWithNullRevisionShouldWriteRevisionAsNull() {
         testSubject = DefaultKafkaMessageConverter.builder()
-                                                  .serializer(XStreamSerializer.builder().build())
+                                                  .serializer(TestSerializer.XSTREAM.getSerializer())
                                                   .build();
         EventMessage<?> eventMessage = eventMessage();
         ProducerRecord<String, byte[]> senderMessage = testSubject.createKafkaMessage(eventMessage, SOME_TOPIC);

@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
+package org.axonframework.extensions.kafka.utils;
 
+import com.thoughtworks.xstream.XStream;
 import org.axonframework.serialization.JavaSerializer;
 import org.axonframework.serialization.SerializedObject;
 import org.axonframework.serialization.Serializer;
 import org.axonframework.serialization.SimpleSerializedObject;
 import org.axonframework.serialization.SimpleSerializedType;
 import org.axonframework.serialization.json.JacksonSerializer;
+import org.axonframework.serialization.xml.CompactDriver;
 import org.axonframework.serialization.xml.XStreamSerializer;
 import org.junit.*;
 
@@ -47,12 +49,12 @@ public enum TestSerializer {
         }
 
         @Override
-        protected String serialize(Object object) {
+        public String serialize(Object object) {
             return Base64.getEncoder().encodeToString(getSerializer().serialize(object, byte[].class).getData());
         }
 
         @Override
-        protected <T> T deserialize(String serialized, Class<T> type) {
+        public <T> T deserialize(String serialized, Class<T> type) {
             return getSerializer().deserialize(asSerializedData(Base64.getDecoder().decode(serialized), type));
         }
     },
@@ -60,9 +62,12 @@ public enum TestSerializer {
         private final Serializer serializer = createSerializer();
 
         private XStreamSerializer createSerializer() {
-            XStreamSerializer xStreamSerializer = XStreamSerializer.builder().build();
-            xStreamSerializer.getXStream().setClassLoader(this.getClass().getClassLoader());
-            return xStreamSerializer;
+            XStream xStream = new XStream(new CompactDriver());
+            xStream.allowTypesByWildcard(new String[]{"org.apache.kafka.**"});
+            return XStreamSerializer.builder()
+                                    .xStream(xStream)
+                                    .classLoader(this.getClass().getClassLoader())
+                                    .build();
         }
 
         @Override
@@ -79,11 +84,11 @@ public enum TestSerializer {
         }
     };
 
-    protected String serialize(Object object) {
+    public String serialize(Object object) {
         return new String(getSerializer().serialize(object, byte[].class).getData());
     }
 
-    protected <T> T deserialize(String serialized, Class<T> type) {
+    public <T> T deserialize(String serialized, Class<T> type) {
         return getSerializer().deserialize(asSerializedData(serialized.getBytes(), type));
     }
 

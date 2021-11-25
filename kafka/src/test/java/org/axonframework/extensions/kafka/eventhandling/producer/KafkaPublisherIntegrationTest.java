@@ -33,6 +33,7 @@ import org.axonframework.extensions.kafka.eventhandling.DefaultKafkaMessageConve
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaContainerTest;
+import org.axonframework.extensions.kafka.utils.TestSerializer;
 import org.axonframework.messaging.EventPublicationFailedException;
 import org.axonframework.messaging.Message;
 import org.axonframework.messaging.MetaData;
@@ -40,7 +41,6 @@ import org.axonframework.messaging.unitofwork.CurrentUnitOfWork;
 import org.axonframework.messaging.unitofwork.DefaultUnitOfWork;
 import org.axonframework.messaging.unitofwork.UnitOfWork;
 import org.axonframework.monitoring.MessageMonitor;
-import org.axonframework.serialization.xml.XStreamSerializer;
 import org.junit.jupiter.api.*;
 
 import java.util.Collections;
@@ -383,7 +383,7 @@ class KafkaPublisherIntegrationTest extends KafkaContainerTest {
     private KafkaPublisher<String, byte[]> buildPublisher(String topic) {
         DefaultKafkaMessageConverter messageConverter =
                 DefaultKafkaMessageConverter.builder()
-                                            .serializer(XStreamSerializer.builder().build())
+                                            .serializer(TestSerializer.XSTREAM.getSerializer())
                                             .build();
         KafkaPublisher<String, byte[]> kafkaPublisher = KafkaPublisher.<String, byte[]>builder()
                                                                       .producerFactory(testProducerFactory)

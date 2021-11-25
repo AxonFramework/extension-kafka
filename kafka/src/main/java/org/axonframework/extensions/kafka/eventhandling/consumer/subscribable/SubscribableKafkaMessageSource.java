@@ -212,9 +212,9 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
         private Fetcher<K, V, EventMessage<?>> fetcher;
         @SuppressWarnings("unchecked")
         private KafkaMessageConverter<K, V> messageConverter =
-                (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder().serializer(
-                        XStreamSerializer.builder().build()
-                ).build();
+                (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder()
+                                                                          .serializer(XStreamSerializer.defaultSerializer())
+                                                                          .build();
         private boolean autoStart = false;
         private int consumerCount = 1;
 
