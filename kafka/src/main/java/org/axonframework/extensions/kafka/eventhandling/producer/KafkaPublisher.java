@@ -240,8 +240,7 @@ public class KafkaPublisher<K, V> {
         @SuppressWarnings("unchecked")
         private KafkaMessageConverter<K, V> messageConverter =
                 (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder()
-                                                                          .serializer(XStreamSerializer.builder()
-                                                                                                       .build())
+                                                                          .serializer(XStreamSerializer.defaultSerializer())
                                                                           .build();
         private MessageMonitor<? super EventMessage<?>> messageMonitor = NoOpMessageMonitor.instance();
         private String topic = DEFAULT_TOPIC;
