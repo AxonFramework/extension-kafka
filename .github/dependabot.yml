@@ -14,7 +14,7 @@ updates:
   reviewers:
     - "sandjelkovic"
     - "smcvb"
-  milestone: 5
+  milestone: 6
 - package-ecosystem: maven
   directory: "/"
   schedule:
