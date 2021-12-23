@@ -16,6 +16,7 @@
 
 package org.axonframework.extensions.kafka.eventhandling.producer;
 
+import com.thoughtworks.xstream.XStream;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.errors.ProducerFencedException;
@@ -31,6 +32,7 @@ import org.axonframework.messaging.unitofwork.UnitOfWork;
 import org.axonframework.monitoring.MessageMonitor;
 import org.axonframework.monitoring.MessageMonitor.MonitorCallback;
 import org.axonframework.monitoring.NoOpMessageMonitor;
+import org.axonframework.serialization.xml.CompactDriver;
 import org.axonframework.serialization.xml.XStreamSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -241,6 +243,8 @@ public class KafkaPublisher<K, V> {
         private KafkaMessageConverter<K, V> messageConverter =
                 (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder()
                                                                           .serializer(XStreamSerializer.builder()
+                                                                                                       .xStream(new XStream(
+                                                                                                               new CompactDriver()))
                                                                                                        .build())
                                                                           .build();
         private MessageMonitor<? super EventMessage<?>> messageMonitor = NoOpMessageMonitor.instance();
