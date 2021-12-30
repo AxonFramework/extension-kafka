@@ -16,6 +16,7 @@
 
 package org.axonframework.extensions.kafka.eventhandling;
 
+import com.thoughtworks.xstream.XStream;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Headers;
@@ -28,6 +29,7 @@ import org.axonframework.messaging.MetaData;
 import org.axonframework.serialization.FixedValueRevisionResolver;
 import org.axonframework.serialization.SerializedObject;
 import org.axonframework.serialization.SimpleSerializedType;
+import org.axonframework.serialization.xml.CompactDriver;
 import org.axonframework.serialization.xml.XStreamSerializer;
 import org.junit.jupiter.api.*;
 
@@ -87,7 +89,10 @@ class DefaultKafkaMessageConverterTest {
 
     @BeforeEach
     void setUp() {
+        XStream xStream = new XStream(new CompactDriver());
+        xStream.allowTypesByWildcard(new String[]{"org.apache.kafka.**"});
         serializer = XStreamSerializer.builder()
+                                      .xStream(xStream)
                                       .revisionResolver(new FixedValueRevisionResolver("stub-revision"))
                                       .build();
         testSubject = DefaultKafkaMessageConverter.builder().serializer(serializer).build();
