@@ -31,6 +31,7 @@ import org.axonframework.serialization.FixedValueRevisionResolver;
 import org.axonframework.serialization.SerializedObject;
 import org.axonframework.serialization.SimpleSerializedType;
 import org.axonframework.serialization.upcasting.event.EventUpcasterChain;
+import org.axonframework.serialization.xml.CompactDriver;
 import org.axonframework.serialization.xml.XStreamSerializer;
 import org.junit.jupiter.api.*;
 
@@ -92,11 +93,11 @@ class DefaultKafkaMessageConverterTest {
 
     @BeforeEach
     void setUp() {
-        final XStream xStream = new XStream();
-        xStream.addPermission(AnyTypePermission.ANY);
+        XStream xStream = new XStream(new CompactDriver());
+        xStream.allowTypesByWildcard(new String[]{"org.apache.kafka.**"});
         serializer = XStreamSerializer.builder()
-                                      .revisionResolver(new FixedValueRevisionResolver("stub-revision"))
                                       .xStream(xStream)
+                                      .revisionResolver(new FixedValueRevisionResolver("stub-revision"))
                                       .build();
         testSubject = DefaultKafkaMessageConverter.builder().serializer(serializer).build();
     }

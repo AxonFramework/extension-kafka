@@ -454,7 +454,7 @@ class KafkaAutoConfigurationIntegrationTest {
 
         @Bean
         public Serializer eventSerializer() {
-            return XStreamSerializer.builder().build();
+            return XStreamSerializer.defaultSerializer();
         }
 
         @Bean
