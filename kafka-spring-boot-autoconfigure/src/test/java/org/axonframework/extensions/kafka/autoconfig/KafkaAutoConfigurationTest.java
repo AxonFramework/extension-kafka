@@ -198,6 +198,89 @@ class KafkaAutoConfigurationTest {
     }
 
     @Test
+    void testAutoConfigurationWithPublishingDisabled() {
+        this.contextRunner.withUserConfiguration(TestConfiguration.class)
+                .withPropertyValues(
+                        "axon.kafka.publisher.enabled=false"
+                ).run(context -> {
+                    // Required bean assertions
+                    assertNotNull(context.getBeanNamesForType(KafkaMessageConverter.class));
+                    assertEquals(0, context.getBeanNamesForType(ProducerFactory.class).length);
+                    assertEquals(0, context.getBeanNamesForType(KafkaPublisher.class).length);
+                    assertEquals(0, context.getBeanNamesForType(KafkaEventPublisher.class).length);
+                    assertNotNull(context.getBeanNamesForType(ConsumerFactory.class));
+                    assertNotNull(context.getBeanNamesForType(Fetcher.class));
+                    assertNotNull(context.getBeanNamesForType(StreamableKafkaMessageSource.class));
+
+                    KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
+
+                    assertEquals(KafkaProperties.DEFAULT_TOPIC, kafkaProperties.getDefaultTopic());
+
+                    // Consumer assertions
+                    Map<String, Object> consumerConfigs =
+                            ((DefaultConsumerFactory<?, ?>) context.getBean(DefaultConsumerFactory.class))
+                                    .configurationProperties();
+
+                    assertEquals(
+                            Collections.singletonList("localhost:9092"),
+                            consumerConfigs.get(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG)
+                    );
+                    assertNull(consumerConfigs.get(ConsumerConfig.CLIENT_ID_CONFIG));
+                    assertNull(consumerConfigs.get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG));
+                    assertNull(consumerConfigs.get(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG));
+                    assertNull(consumerConfigs.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
+                    assertNull(consumerConfigs.get(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG));
+                    assertNull(consumerConfigs.get(ConsumerConfig.FETCH_MIN_BYTES_CONFIG));
+                    assertNull(consumerConfigs.get(ConsumerConfig.MAX_POLL_RECORDS_CONFIG));
+                    assertNull(consumerConfigs.get(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG));
+                    assertEquals(
+                            StringDeserializer.class, consumerConfigs.get(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG)
+                    );
+                    assertEquals(
+                            ByteArrayDeserializer.class, consumerConfigs.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG)
+                    );
+                });
+    }
+
+    @Test
+    void testAutoConfigurationWithFetchingDisabled() {
+        this.contextRunner.withUserConfiguration(TestConfiguration.class)
+                .withPropertyValues(
+                        "axon.kafka.fetcher.enabled=false"
+                ).run(context -> {
+                    // Required bean assertions
+                    assertNotNull(context.getBeanNamesForType(KafkaMessageConverter.class));
+                    assertNotNull(context.getBeanNamesForType(ProducerFactory.class));
+                    assertNotNull(context.getBeanNamesForType(KafkaPublisher.class));
+                    assertNotNull(context.getBeanNamesForType(KafkaEventPublisher.class));
+                    assertEquals(0, context.getBeanNamesForType(ConsumerFactory.class).length);
+                    assertEquals(0, context.getBeanNamesForType(Fetcher.class).length);
+                    assertEquals(0, context.getBeanNamesForType(StreamableKafkaMessageSource.class).length);
+
+                    KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
+
+                    assertEquals(KafkaProperties.DEFAULT_TOPIC, kafkaProperties.getDefaultTopic());
+
+                    // Producer assertions
+                    DefaultProducerFactory<?, ?> producerFactory =
+                            ((DefaultProducerFactory<?, ?>) context.getBean(DefaultProducerFactory.class));
+                    Map<String, Object> producerConfigs =
+                            ((DefaultProducerFactory<?, ?>) context.getBean(DefaultProducerFactory.class))
+                                    .configurationProperties();
+
+                    assertEquals(ConfirmationMode.NONE, producerFactory.confirmationMode());
+                    assertEquals(StringSerializer.class,
+                            producerConfigs.get(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG));
+                    assertEquals(ByteArraySerializer.class,
+                            producerConfigs.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG));
+                    assertEquals(
+                            KafkaProperties.EventProcessorMode.SUBSCRIBING,
+                            kafkaProperties.getProducer().getEventProcessorMode()
+                    );
+                });
+    }
+
+    @Test
     void testConsumerPropertiesAreAdjustedAsExpected() {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
                           .withPropertyValues(
