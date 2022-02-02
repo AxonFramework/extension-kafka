@@ -215,9 +215,22 @@ public class KafkaProperties {
     public static class Publisher {
 
         /**
+         * Enables autoconfiguration for publishing events to Kafka
+         */
+        private boolean enabled = true;
+
+        /**
          * The confirmation mode used when publishing messages. Defaults to {@link ConfirmationMode#NONE}.
          */
         private ConfirmationMode confirmationMode = ConfirmationMode.NONE;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
 
         public ConfirmationMode getConfirmationMode() {
             return confirmationMode;
@@ -461,6 +474,11 @@ public class KafkaProperties {
     public static class Fetcher {
 
         /**
+         * Enables autoconfiguration for consuming events from Kafka
+         */
+        private boolean enabled = true;
+
+        /**
          * The time, in milliseconds, spent waiting in poll if data is not available in the buffer. If 0, returns
          * immediately with any records that are available currently in the buffer, else returns empty. Must not be
          * negative and defaults to {@code 5000} milliseconds.
@@ -475,6 +493,14 @@ public class KafkaProperties {
          * instance. Defaults to {@code 10.000} records.
          */
         private int bufferSize = 10_000;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
 
         public long getPollTimeout() {
             return pollTimeout;
