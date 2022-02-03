@@ -47,6 +47,7 @@ import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.AnyNestedCondition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -67,6 +68,9 @@ import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEve
  * @since 4.0
  */
 @Configuration
+@ConditionalOnExpression(
+        "${axon.kafka.publisher.enabled:true} or ${axon.kafka.fetcher.enabled:true}"
+)
 @ConditionalOnClass(KafkaPublisher.class)
 @AutoConfigureAfter(AxonAutoConfiguration.class)
 @AutoConfigureBefore(InfraConfiguration.class)
@@ -97,6 +101,7 @@ public class KafkaAutoConfiguration {
 
     @Bean("axonKafkaProducerFactory")
     @ConditionalOnMissingBean
+    @ConditionalOnProperty(name = "axon.kafka.publisher.enabled", havingValue = "true", matchIfMissing = true)
     public ProducerFactory<String, byte[]> kafkaProducerFactory() {
         ConfirmationMode confirmationMode = properties.getPublisher().getConfirmationMode();
         String transactionIdPrefix = properties.getProducer().getTransactionIdPrefix();
@@ -129,6 +134,7 @@ public class KafkaAutoConfiguration {
     @ConditionalOnMissingBean
     @Bean(destroyMethod = "shutDown")
     @ConditionalOnBean({ProducerFactory.class, KafkaMessageConverter.class})
+    @ConditionalOnProperty(name = "axon.kafka.publisher.enabled", havingValue = "true", matchIfMissing = true)
     public KafkaPublisher<String, byte[]> kafkaPublisher(
             ProducerFactory<String, byte[]> axonKafkaProducerFactory,
             KafkaMessageConverter<String, byte[]> kafkaMessageConverter,
@@ -145,6 +151,7 @@ public class KafkaAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnBean({KafkaPublisher.class})
+    @ConditionalOnProperty(name = "axon.kafka.publisher.enabled", havingValue = "true", matchIfMissing = true)
     public KafkaEventPublisher<String, byte[]> kafkaEventPublisher(
             KafkaPublisher<String, byte[]> kafkaPublisher,
             KafkaProperties kafkaProperties,
@@ -183,12 +190,14 @@ public class KafkaAutoConfiguration {
 
     @Bean("axonKafkaConsumerFactory")
     @ConditionalOnMissingBean
+    @ConditionalOnProperty(name = "axon.kafka.fetcher.enabled", havingValue = "true", matchIfMissing = true)
     public ConsumerFactory<String, byte[]> kafkaConsumerFactory() {
         return new DefaultConsumerFactory<>(properties.buildConsumerProperties());
     }
 
     @ConditionalOnMissingBean
     @Bean(destroyMethod = "shutdown")
+    @ConditionalOnProperty(name = "axon.kafka.fetcher.enabled", havingValue = "true", matchIfMissing = true)
     public Fetcher<?, ?, ?> kafkaFetcher() {
         return AsyncFetcher.builder()
                            .pollTimeout(properties.getFetcher().getPollTimeout())
@@ -199,6 +208,7 @@ public class KafkaAutoConfiguration {
     @ConditionalOnMissingBean
     @ConditionalOnBean({ConsumerFactory.class, KafkaMessageConverter.class, Fetcher.class})
     @Conditional(StreamingProcessorModeCondition.class)
+    @ConditionalOnProperty(name = "axon.kafka.fetcher.enabled", havingValue = "true", matchIfMissing = true)
     public StreamableKafkaMessageSource<String, byte[]> streamableKafkaMessageSource(
             ConsumerFactory<String, byte[]> kafkaConsumerFactory,
             Fetcher<String, byte[], KafkaEventMessage> kafkaFetcher,
