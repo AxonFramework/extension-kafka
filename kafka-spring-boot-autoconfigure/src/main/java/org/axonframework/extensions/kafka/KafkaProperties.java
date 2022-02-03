@@ -215,7 +215,7 @@ public class KafkaProperties {
     public static class Publisher {
 
         /**
-         * Enables autoconfiguration for publishing events to Kafka
+         * Enables auto-configuration for publishing events to Kafka. Defaults to {@code true}.
          */
         private boolean enabled = true;
 
@@ -474,7 +474,7 @@ public class KafkaProperties {
     public static class Fetcher {
 
         /**
-         * Enables autoconfiguration for consuming events from Kafka
+         * Enables auto-configuration for consuming events from Kafka. Defaults to {@code true}.
          */
         private boolean enabled = true;
 
