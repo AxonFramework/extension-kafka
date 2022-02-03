@@ -49,7 +49,7 @@ import static org.mockito.Mockito.*;
  * @author Steven van Beelen
  * @author Nakul Mishra
  */
-class DefaultProducerFactoryTest extends KafkaContainerTest {
+class DefaultProducerFactoryIntegrationTest extends KafkaContainerTest {
 
     private static final String[] TOPICS = {
             "testProducerCreation",

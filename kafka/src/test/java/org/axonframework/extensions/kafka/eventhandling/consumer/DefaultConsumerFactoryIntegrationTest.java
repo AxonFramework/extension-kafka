@@ -40,7 +40,7 @@ import static org.mockito.Mockito.*;
  * @author Nakul Mishra
  * @author Steven van Beelen
  */
-class DefaultConsumerFactoryTest extends KafkaContainerTest {
+class DefaultConsumerFactoryIntegrationTest extends KafkaContainerTest {
 
     private static final String TEST_TOPIC = "testCreatedConsumer_ValidConfig_CanCommunicateToKafka";
 

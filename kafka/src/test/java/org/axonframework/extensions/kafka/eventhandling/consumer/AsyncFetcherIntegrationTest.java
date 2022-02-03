@@ -59,7 +59,7 @@ import static org.mockito.Mockito.*;
  * @author Steven van Beelen
  */
 
-class AsyncFetcherTest extends KafkaContainerTest {
+class AsyncFetcherIntegrationTest extends KafkaContainerTest {
 
     private static final String TEST_TOPIC = "some-topic";
     private static final int TEST_PARTITION = 0;

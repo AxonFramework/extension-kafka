@@ -78,6 +78,20 @@ public abstract class HeaderUtils {
     }
 
     /**
+     * Return a {@link Long} representation of the {@code value} stored under a given {@code key} inside the {@link
+     * Headers}. In case of a missing entry {@code defaultValue} is returned.
+     *
+     * @param headers      the Kafka {@code headers} to pull the {@link Long} value from
+     * @param key          the key corresponding to the expected {@link Long} value
+     * @param defaultValue the default value to return when {@code key} does not exist in the given {@code headers}
+     * @return the value as a {@link Long} corresponding to the given {@code key} in the {@code headers}
+     */
+    public static Long valueAsLong(Headers headers, String key, Long defaultValue) {
+        Long value = asLong(value(headers, key));
+        return value != null ? value : defaultValue;
+    }
+
+    /**
      * Converts bytes to {@link String}.
      *
      * @param value the bytes to convert in to a {@link String}

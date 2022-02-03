@@ -70,7 +70,7 @@ import static org.mockito.Mockito.*;
  * @author Steven van Beelen
  * @author Nakul Mishra
  */
-class KafkaPublisherTest extends KafkaContainerTest {
+class KafkaPublisherIntegrationTest extends KafkaContainerTest {
 
     private static final String[] TOPICS = {
             "testPublishMessagesWithAckModeNoUnitOfWorkShouldBePublishedAndReadSuccessfully",

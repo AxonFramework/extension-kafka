@@ -127,13 +127,23 @@ class HeaderUtilsTest {
         addHeader(headers, "negative", -4_8912_00_921_388_62621L);
 
         assertEquals(4_891_00_921_388_62621L, valueAsLong(headers, "positive"));
+        assertEquals(4_891_00_921_388_62621L, valueAsLong(headers, "positive", 42L));
         assertEquals(0, valueAsLong(headers, "zero"));
+        assertEquals(0, valueAsLong(headers, "zero", 42L));
         assertEquals(-4_8912_00_921_388_62621L, valueAsLong(headers, "negative"));
+
+        assertEquals(-4_8912_00_921_388_62621L, valueAsLong(headers, "negative", 42L));
+
     }
 
     @Test
     void testReadingValueAsLongNonExistingKeyShouldReturnNull() {
         assertNull(valueAsLong(new RecordHeaders(), "some-invalid-key"));
+    }
+
+    @Test
+    void testReadingValueAsLongNonExistingKeyShouldReturnDefaultValue() {
+        assertEquals(42L, valueAsLong(new RecordHeaders(), "some-invalid-key", 42L));
     }
 
     @Test

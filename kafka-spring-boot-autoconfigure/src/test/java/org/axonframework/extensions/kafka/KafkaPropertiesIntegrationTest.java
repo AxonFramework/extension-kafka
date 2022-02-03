@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @EnableAutoConfiguration
 @ExtendWith(SpringExtension.class)
 @TestPropertySource("classpath:application-map-style.properties")
-class KafkaPropertiesTest {
+class KafkaPropertiesIntegrationTest {
 
     private static final String PROPERTY_KEY_ONE = "keyOne";
     private static final String PROPERTY_VALUE_ONE = "valueOne";

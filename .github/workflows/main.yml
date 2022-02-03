@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Set up JDK ${{ matrix.java-version }}
-        uses: actions/setup-java@v2.2.0
+        uses: actions/setup-java@v2.5.0
         with:
           distribution: 'zulu'
           java-version: ${{ matrix.java-version }}
@@ -33,37 +33,34 @@ jobs:
           server-password: MAVEN_PASSWORD
 
       - name: Cache .m2
-        uses: actions/cache@v2.1.6
+        uses: actions/cache@v2.1.7
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven
 
-      - name: Maven operation with Sonar
-        if: matrix.sonar-enabled
+      - name: Regular build
         run: |
-          mvn -B -U -Pcoverage \
-          clean verify \
-          sonar:sonar \
+          ./mvnw -B -U clean verify
+
+      - name: Sonar analysis
+        if: matrix.sonar-enabled
+        run: | # no clean
+          ./mvnw -B sonar:sonar \
           -Dsonar.projectKey=AxonFramework_extension-kafka \
           -Dsonar.organization=axonframework \
           -Dsonar.host.url=https://sonarcloud.io \
           -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Maven operation without Sonar
-        if: matrix.sonar-enabled != true
-        run: |
-          mvn -B -U clean verify
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run integration tests
+        run: | # no clean
+          ./mvnw -B -Pitest
 
       - name: Deploy to Sonatype
         if: success()
-        run: |
-          ./mvnw -B -U deploy -DskipTests=true
+        run: | # no clean, no tests, no examples
+          ./mvnw -B -U deploy -DskipTests=true -DskipExamples=true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MAVEN_USERNAME: ${{ secrets.SONATYPE_TOKEN_ID }}

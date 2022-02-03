@@ -9,7 +9,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * @author Lucas Campos
  */
 @Testcontainers
-public class KafkaContainerClusterTest {
+public abstract class KafkaContainerClusterTest {
 
     @Container
     protected static final KafkaContainerCluster KAFKA_CLUSTER = new KafkaContainerCluster("5.4.3", 3, 1);
