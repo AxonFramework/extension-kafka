@@ -281,6 +281,24 @@ class KafkaAutoConfigurationTest {
     }
 
     @Test
+    void testAutoConfigurationWithPublishingAndFetchingDisabled() {
+        this.contextRunner.withUserConfiguration(TestConfiguration.class)
+                .withPropertyValues(
+                        "axon.kafka.publisher.enabled=false",
+                        "axon.kafka.fetcher.enabled=false"
+                ).run(context -> {
+                    // Required bean assertions
+                    assertEquals(0, context.getBeanNamesForType(KafkaMessageConverter.class).length);
+                    assertEquals(0, context.getBeanNamesForType(ProducerFactory.class).length);
+                    assertEquals(0, context.getBeanNamesForType(KafkaPublisher.class).length);
+                    assertEquals(0, context.getBeanNamesForType(KafkaEventPublisher.class).length);
+                    assertEquals(0, context.getBeanNamesForType(ConsumerFactory.class).length);
+                    assertEquals(0, context.getBeanNamesForType(Fetcher.class).length);
+                    assertEquals(0, context.getBeanNamesForType(StreamableKafkaMessageSource.class).length);
+                });
+    }
+
+    @Test
     void testConsumerPropertiesAreAdjustedAsExpected() {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
                           .withPropertyValues(
