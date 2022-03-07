@@ -59,7 +59,7 @@
         <!-- Testing -->
         <junit.jupiter.version>5.8.2</junit.jupiter.version>
         <mockito.version>4.3.1</mockito.version>
-        <jackson.version>2.13.1</jackson.version>
+        <jackson.version>2.13.2</jackson.version>
         <pattern.class.test>**/*Test.*</pattern.class.test>
         <pattern.class.itest>**/*IntegrationTest.*</pattern.class.itest>
     </properties>
