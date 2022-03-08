@@ -32,8 +32,7 @@
     <properties>
         <kotlin.version>1.6.10</kotlin.version>
         <kotlin-logging-jvm.version>2.1.21</kotlin-logging-jvm.version>
-        <jackson.version>2.13.1</jackson.version>
-        <apache.kafka.version>2.3.0</apache.kafka.version>
+        <kotlin.jackson.version>2.13.1</kotlin.jackson.version>
     </properties>
 
     <dependencies>
@@ -80,7 +79,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.module</groupId>
             <artifactId>jackson-module-kotlin</artifactId>
-            <version>${jackson.version}</version>
+            <version>${kotlin.jackson.version}</version>
         </dependency>
 
         <dependency>
@@ -113,25 +112,27 @@
             <plugins>
                 <plugin>
                     <artifactId>maven-clean-plugin</artifactId>
-                    <version>3.1.0</version>
+                    <version>${maven-clean-plugin.version}</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-install-plugin</artifactId>
-                    <version>2.5.2</version>
+                    <version>${maven-install-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
-                <version>3.2.0</version>
+                <version>${maven-resources-plugin.version}</version>
                 <configuration>
                     <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-deploy-plugin</artifactId>
-                <version>2.8.2</version>
+                <version>${maven-deploy-plugin.version}</version>
                 <configuration>
                     <skip>true</skip>
                 </configuration>
@@ -209,7 +210,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.10.0</version>
+                <version>${maven-compiler-plugin.version}</version>
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>

@@ -33,6 +33,7 @@
     <properties>
         <jmh-core.version>1.34</jmh-core.version>
         <test-containers.version>1.16.3</test-containers.version>
+        <maven-enforcer-plugin.version>3.0.0</maven-enforcer-plugin.version>
     </properties>
 
     <packaging>jar</packaging>
@@ -50,7 +51,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.13</artifactId>
+            <artifactId>kafka-clients</artifactId>
             <version>${kafka.version}</version>
             <optional>true</optional>
         </dependency>
@@ -107,7 +108,9 @@
         </resources>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
+                <version>${maven-jar-plugin.version}</version>
                 <configuration>
                     <archive>
                         <manifestEntries>
@@ -119,7 +122,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.0.0</version>
+                <version>${maven-enforcer-plugin.version}</version>
                 <executions>
                     <execution>
                         <id>enforce-banned-dependencies</id>
