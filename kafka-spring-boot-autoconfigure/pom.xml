@@ -104,7 +104,7 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Automatic-Module-Name>org.axonframework.springboot</Automatic-Module-Name>
+                            <Automatic-Module-Name>org.axonframework.extensions.kafka.springboot</Automatic-Module-Name>
                         </manifestEntries>
                     </archive>
                 </configuration>
