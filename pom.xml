@@ -306,6 +306,7 @@
                 </executions>
                 <configuration>
                     <doclint>none</doclint>
+                    <detectJavaApiLink>false</detectJavaApiLink>
                 </configuration>
             </plugin>
             <plugin>
