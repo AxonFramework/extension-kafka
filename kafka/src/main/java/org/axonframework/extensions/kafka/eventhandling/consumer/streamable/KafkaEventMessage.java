@@ -116,6 +116,30 @@ public class KafkaEventMessage implements KafkaRecordMetaData<TrackedEventMessag
     }
 
     @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (other instanceof KafkaEventMessage) {
+            KafkaEventMessage otherMessage = (KafkaEventMessage) other;
+            return this.timestamp == otherMessage.timestamp &&
+                    this.partition == otherMessage.partition &&
+                    this.offset == otherMessage.offset;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = (int) (31 * hash + this.timestamp);
+        hash = 31 * hash + partition;
+        hash = (int) (31 * hash + offset);
+        return hash;
+    }
+
+    @Override
     public String toString() {
         return "KafkaEventMessage{" +
                 "eventMessage=" + eventMessage +

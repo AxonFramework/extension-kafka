@@ -125,7 +125,8 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
     }
 
     public void testPutInvalidMessageInABuffer() {
-        assertThrows(IllegalArgumentException.class, () -> new SortedKafkaMessageBuffer<>().put(null));
+        SortedKafkaMessageBuffer<KafkaEventMessage> messageBuffer = new SortedKafkaMessageBuffer<>();
+        assertThrows(IllegalArgumentException.class, () -> messageBuffer.put(null));
     }
 
     /**

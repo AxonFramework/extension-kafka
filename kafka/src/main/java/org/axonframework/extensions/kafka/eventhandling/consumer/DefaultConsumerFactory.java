@@ -62,9 +62,9 @@ public class DefaultConsumerFactory<K, V> implements ConsumerFactory<K, V> {
             logger.warn("Found a global {} whilst it is required to be provided consciously", GROUP_ID_CONFIG);
         }
 
-        Map<String, Object> consumerConfiguration = new HashMap<>(this.consumerConfiguration);
-        consumerConfiguration.put(GROUP_ID_CONFIG, groupId);
-        return new KafkaConsumer<>(consumerConfiguration);
+        Map<String, Object> configuration = new HashMap<>(this.consumerConfiguration);
+        configuration.put(GROUP_ID_CONFIG, groupId);
+        return new KafkaConsumer<>(configuration);
     }
 
     /**

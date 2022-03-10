@@ -43,6 +43,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.axonframework.common.BuilderUtils.assertNonNull;
 import static org.axonframework.common.BuilderUtils.assertThat;
@@ -72,7 +73,7 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
 
     private final AtomicInteger transactionIdSuffix;
 
-    private volatile ShareableProducer<K, V> nonTransactionalProducer;
+    private final AtomicReference<ShareableProducer<K, V>> nonTransactionalProducer = new AtomicReference<>();
 
     /**
      * Instantiate a {@link DefaultProducerFactory} based on the fields contained in the {@link Builder}.
@@ -113,17 +114,13 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
         if (confirmationMode.isTransactional()) {
             return createTransactionalProducer();
         }
-
-        if (this.nonTransactionalProducer == null) {
-            synchronized (this) {
-                if (this.nonTransactionalProducer == null) {
-                    logger.debug("Creating a non-transactional Producer.");
-                    this.nonTransactionalProducer = new ShareableProducer<>(createKafkaProducer(configuration));
-                }
+        return nonTransactionalProducer.updateAndGet(currentValue -> {
+            if (currentValue != null) {
+                return currentValue;
             }
-        }
-
-        return this.nonTransactionalProducer;
+            logger.debug("Creating a non-transactional Producer.");
+            return new ShareableProducer<>(createKafkaProducer(configuration));
+        });
     }
 
     @Override
@@ -154,8 +151,7 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
     public void shutDown() {
         logger.debug("Shutting down this Producer factory.");
 
-        ProducerDecorator<K, V> producer = this.nonTransactionalProducer;
-        this.nonTransactionalProducer = null;
+        ProducerDecorator<K, V> producer = nonTransactionalProducer.getAndSet(null);
         if (producer != null) {
             producer.delegate.close(this.closeTimeout);
         }
@@ -206,13 +202,13 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
         }
 
         @Override
-        public Future<RecordMetadata> send(ProducerRecord<K, V> record) {
-            return this.delegate.send(record);
+        public Future<RecordMetadata> send(ProducerRecord<K, V> producerRecord) {
+            return this.delegate.send(producerRecord);
         }
 
         @Override
-        public Future<RecordMetadata> send(ProducerRecord<K, V> record, Callback callback) {
-            return this.delegate.send(record, callback);
+        public Future<RecordMetadata> send(ProducerRecord<K, V> producerRecord, Callback callback) {
+            return this.delegate.send(producerRecord, callback);
         }
 
         @Override
@@ -240,7 +236,12 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
             this.delegate.beginTransaction();
         }
 
+        /**
+         * @deprecated deprecated from implemented ProducerFactory interface
+         */
         @Override
+        @Deprecated
+        @SuppressWarnings("squid:S1133") // can only be removed once removed from the ProducerFactory interface
         public void sendOffsetsToTransaction(Map<TopicPartition, OffsetAndMetadata> offsets, String consumerGroupId)
                 throws ProducerFencedException {
             this.delegate.sendOffsetsToTransaction(offsets, consumerGroupId);

@@ -99,12 +99,12 @@ public class SortedKafkaMessageBuffer<E extends Comparable<?> & KafkaRecordMetaD
     public void put(E e) throws InterruptedException {
         notNull(e, () -> "Element may not be null");
 
-        final ReentrantLock lock = this.lock;
-        lock.lockInterruptibly();
+        final ReentrantLock reentrantLock = this.lock;
+        reentrantLock.lockInterruptibly();
         try {
             doPut(e);
         } finally {
-            lock.unlock();
+            reentrantLock.unlock();
         }
     }
 
@@ -112,14 +112,14 @@ public class SortedKafkaMessageBuffer<E extends Comparable<?> & KafkaRecordMetaD
     public void putAll(Collection<E> c) throws InterruptedException {
         notNull(c, () -> "Element collection may not be null");
 
-        final ReentrantLock lock = this.lock;
-        lock.lockInterruptibly();
+        final ReentrantLock reentrantLock = this.lock;
+        reentrantLock.lockInterruptibly();
         try {
             for (E e : c) {
                 doPut(e);
             }
         } finally {
-            lock.unlock();
+            reentrantLock.unlock();
         }
     }
 
@@ -153,8 +153,8 @@ public class SortedKafkaMessageBuffer<E extends Comparable<?> & KafkaRecordMetaD
     @Override
     public E poll(long timeout, TimeUnit unit) throws InterruptedException {
         long nanos = unit.toNanos(timeout);
-        final ReentrantLock lock = this.lock;
-        lock.lockInterruptibly();
+        final ReentrantLock reentrantLock = this.lock;
+        reentrantLock.lockInterruptibly();
 
         try {
             while (this.count == 0) {
@@ -176,21 +176,21 @@ public class SortedKafkaMessageBuffer<E extends Comparable<?> & KafkaRecordMetaD
             }
             return removed;
         } finally {
-            lock.unlock();
+            reentrantLock.unlock();
         }
     }
 
     @Override
     public E take() throws InterruptedException {
-        final ReentrantLock lock = this.lock;
-        lock.lockInterruptibly();
+        final ReentrantLock reentrantLock = this.lock;
+        reentrantLock.lockInterruptibly();
         try {
             while (this.count == 0) {
                 this.notEmpty.await();
             }
             return remove();
         } finally {
-            lock.unlock();
+            reentrantLock.unlock();
         }
     }
 
@@ -208,56 +208,56 @@ public class SortedKafkaMessageBuffer<E extends Comparable<?> & KafkaRecordMetaD
 
     @Override
     public E peek() {
-        final ReentrantLock lock = this.lock;
-        lock.lock();
+        final ReentrantLock reentrantLock = this.lock;
+        reentrantLock.lock();
         try {
             return this.count > 0 ? this.delegate.first() : null;
         } finally {
-            lock.unlock();
+            reentrantLock.unlock();
         }
     }
 
     @Override
     public int size() {
-        final ReentrantLock lock = this.lock;
-        lock.lock();
+        final ReentrantLock reentrantLock = this.lock;
+        reentrantLock.lock();
         try {
             return this.count;
         } finally {
-            lock.unlock();
+            reentrantLock.unlock();
         }
     }
 
     @Override
     public boolean isEmpty() {
-        final ReentrantLock lock = this.lock;
-        lock.lock();
+        final ReentrantLock reentrantLock = this.lock;
+        reentrantLock.lock();
         try {
             return this.count == 0;
         } finally {
-            lock.unlock();
+            reentrantLock.unlock();
         }
     }
 
     @Override
     public int remainingCapacity() {
-        final ReentrantLock lock = this.lock;
-        lock.lock();
+        final ReentrantLock reentrantLock = this.lock;
+        reentrantLock.lock();
         try {
             return this.capacity - count;
         } finally {
-            lock.unlock();
+            reentrantLock.unlock();
         }
     }
 
     @Override
     public void clear() {
-        final ReentrantLock lock = this.lock;
-        lock.lock();
+        final ReentrantLock reentrantLock = this.lock;
+        reentrantLock.lock();
         try {
             this.delegate.clear();
         } finally {
-            lock.unlock();
+            reentrantLock.unlock();
         }
     }
 

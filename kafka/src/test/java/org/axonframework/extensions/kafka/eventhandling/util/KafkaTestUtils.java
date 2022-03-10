@@ -146,6 +146,7 @@ public class KafkaTestUtils {
      * @param waitTimeMs maximum time to wait and retest the condition before failing the test
      * @param pause      delay between condition checks
      */
+    @SuppressWarnings("squid:S2925") // need sleep to test
     private static void waitUntilTrue(Supplier<Boolean> condition, String msg, long waitTimeMs, long pause) {
         long startTime = System.currentTimeMillis();
         while (true) {

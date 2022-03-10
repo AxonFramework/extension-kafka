@@ -79,50 +79,54 @@ class SubscribableKafkaMessageSourceTest {
 
     @Test
     void testBuildWithInvalidTopicsThrowsAxonConfigurationException() {
-        assertThrows(AxonConfigurationException.class, () -> SubscribableKafkaMessageSource.builder().topics(null));
+        SubscribableKafkaMessageSource.Builder<Object, Object> builder = SubscribableKafkaMessageSource.builder();
+        assertThrows(AxonConfigurationException.class, () -> builder.topics(null));
     }
 
     @Test
     void testBuildWithInvalidTopicThrowsAxonConfigurationException() {
-        assertThrows(AxonConfigurationException.class, () -> SubscribableKafkaMessageSource.builder().addTopic(null));
+        SubscribableKafkaMessageSource.Builder<Object, Object> builder = SubscribableKafkaMessageSource.builder();
+        assertThrows(AxonConfigurationException.class, () -> builder.addTopic(null));
     }
 
     @Test
     void testBuildWithInvalidGroupIdThrowsAxonConfigurationException() {
-        assertThrows(AxonConfigurationException.class, () -> SubscribableKafkaMessageSource.builder().groupId(null));
+        SubscribableKafkaMessageSource.Builder<Object, Object> builder = SubscribableKafkaMessageSource.builder();
+        assertThrows(AxonConfigurationException.class, () -> builder.groupId(null));
     }
 
     @Test
     void testBuildWithInvalidConsumerFactoryThrowsAxonConfigurationException() {
         //noinspection unchecked,rawtypes
+        SubscribableKafkaMessageSource.Builder<Object, Object> builder = SubscribableKafkaMessageSource.builder();
         assertThrows(
                 AxonConfigurationException.class,
-                () -> SubscribableKafkaMessageSource.builder().consumerFactory((ConsumerFactory) null)
+                () -> builder.consumerFactory((ConsumerFactory) null)
         );
     }
 
     @Test
     void testBuildWithInvalidFetcherThrowsAxonConfigurationException() {
-        assertThrows(AxonConfigurationException.class, () -> SubscribableKafkaMessageSource.builder().fetcher(null));
+        SubscribableKafkaMessageSource.Builder<Object, Object> builder = SubscribableKafkaMessageSource.builder();
+        assertThrows(AxonConfigurationException.class, () -> builder.fetcher(null));
     }
 
     @Test
     void testBuildWithInvalidMessageConverterThrowsAxonConfigurationException() {
-        assertThrows(
-                AxonConfigurationException.class, () -> SubscribableKafkaMessageSource.builder().messageConverter(null)
-        );
+        SubscribableKafkaMessageSource.Builder<Object, Object> builder = SubscribableKafkaMessageSource.builder();
+        assertThrows(AxonConfigurationException.class, () -> builder.messageConverter(null));
     }
 
     @Test
     void testBuildWithInvalidConsumerCountThrowsAxonConfigurationException() {
-        assertThrows(
-                AxonConfigurationException.class, () -> SubscribableKafkaMessageSource.builder().consumerCount(0)
-        );
+        SubscribableKafkaMessageSource.Builder<Object, Object> builder = SubscribableKafkaMessageSource.builder();
+        assertThrows(AxonConfigurationException.class, () -> builder.consumerCount(0));
     }
 
     @Test
     void testBuildingWhilstMissingRequiredFieldsShouldThrowAxonConfigurationException() {
-        assertThrows(AxonConfigurationException.class, () -> SubscribableKafkaMessageSource.builder().build());
+        SubscribableKafkaMessageSource.Builder<Object, Object> builder = SubscribableKafkaMessageSource.builder();
+        assertThrows(AxonConfigurationException.class, builder::build);
     }
 
     @Test

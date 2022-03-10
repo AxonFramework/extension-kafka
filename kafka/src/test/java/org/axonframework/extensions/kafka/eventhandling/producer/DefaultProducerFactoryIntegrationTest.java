@@ -16,11 +16,13 @@
 
 package org.axonframework.extensions.kafka.eventhandling.producer;
 
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.TopicPartition;
 import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaContainerTest;
@@ -31,6 +33,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.IntStream;
@@ -91,57 +94,46 @@ class DefaultProducerFactoryIntegrationTest extends KafkaContainerTest {
 
     @Test
     void testDefaultConfirmationMode() {
-        assertEquals(builder().configuration(empty()).build().confirmationMode(), NONE);
+        assertEquals(NONE, builder().configuration(empty()).build().confirmationMode());
     }
 
     @Test
     void testDefaultConfirmationModeForTransactionalProducer() {
-        assertEquals(transactionalProducerFactory(getBootstrapServers(), "foo").confirmationMode(),
-                     TRANSACTIONAL);
+        assertEquals(TRANSACTIONAL, transactionalProducerFactory(getBootstrapServers(), "foo").confirmationMode());
     }
 
     @Test
     void testConfiguringInvalidCacheSize() {
-        assertThrows(
-                AxonConfigurationException.class,
-                () -> builder().configuration(minimal(getBootstrapServers())).producerCacheSize(-1)
-                               .build()
-        );
+        DefaultProducerFactory.Builder<Object, Object> builder = builder().configuration(minimal(getBootstrapServers()))
+                                                                          .producerCacheSize(-1);
+        assertThrows(AxonConfigurationException.class, builder::build);
     }
 
     @Test
     void testConfiguringInvalidTimeout() {
-        assertThrows(
-                AxonConfigurationException.class,
-                () -> builder().configuration(minimal(getBootstrapServers()))
-                               .closeTimeout(-1, ChronoUnit.SECONDS).build()
-        );
+        DefaultProducerFactory.Builder<Object, Object> builder = builder().configuration(minimal(getBootstrapServers()))
+                                                                          .closeTimeout(-1, ChronoUnit.SECONDS);
+        assertThrows(AxonConfigurationException.class, builder::build);
     }
 
     @Test
     void testConfiguringInvalidTimeoutUnit() {
-        assertThrows(
-                AxonConfigurationException.class,
-                () -> builder().configuration(minimal(getBootstrapServers())).closeTimeout(1, null)
-                               .build()
-        );
+        DefaultProducerFactory.Builder<Object, Object> builder = builder().configuration(minimal(getBootstrapServers()))
+                                                                          .closeTimeout(1, null);
+        assertThrows(AxonConfigurationException.class, builder::build);
     }
 
     @Test
     void testConfiguringInvalidCloseTimeout() {
-        assertThrows(
-                AxonConfigurationException.class,
-                () -> builder().configuration(minimal(getBootstrapServers()))
-                               .closeTimeout(Duration.ofSeconds(-1)).build()
-        );
+        DefaultProducerFactory.Builder<Object, Object> builder = builder().configuration(minimal(getBootstrapServers()))
+                                                                          .closeTimeout(Duration.ofSeconds(-1));
+        assertThrows(AxonConfigurationException.class, builder::build);
     }
 
     @Test
     void testConfiguringInvalidTransactionalIdPrefix() {
-        assertThrows(
-                AxonConfigurationException.class,
-                () -> builder().transactionalIdPrefix(null).build()
-        );
+        DefaultProducerFactory.Builder<Object, Object> builder = builder().transactionalIdPrefix(null);
+        assertThrows(AxonConfigurationException.class, builder::build);
     }
 
     @Test
@@ -243,7 +235,8 @@ class DefaultProducerFactoryIntegrationTest extends KafkaContainerTest {
 
         testProducer.beginTransaction();
         testProducer.commitTransaction();
-        assertThrows(KafkaException.class, () -> testProducer.sendOffsetsToTransaction(Collections.emptyMap(), "foo"));
+        Map<TopicPartition, OffsetAndMetadata> emptyOffsetMap = Collections.emptyMap();
+        assertThrows(KafkaException.class, () -> testProducer.sendOffsetsToTransaction(emptyOffsetMap, "foo"));
 
         cleanup(producerFactory, testProducer);
     }

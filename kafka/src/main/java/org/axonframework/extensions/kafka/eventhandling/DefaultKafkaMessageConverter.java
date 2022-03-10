@@ -69,7 +69,7 @@ import static org.axonframework.messaging.Headers.*;
  */
 public class DefaultKafkaMessageConverter implements KafkaMessageConverter<String, byte[]> {
 
-    private static final Logger logger = LoggerFactory.getLogger(KafkaMessageConverter.class);
+    private static final Logger logger = LoggerFactory.getLogger(DefaultKafkaMessageConverter.class);
 
     private final Serializer serializer;
     private final SequencingPolicy<? super EventMessage<?>> sequencingPolicy;

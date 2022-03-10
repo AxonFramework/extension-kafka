@@ -48,6 +48,11 @@ fun main(args: Array<String>) {
 }
 
 /**
+ * Application constants
+ */
+const val KAFKA_GROUP = "kafka-group"
+
+/**
  * Main application class.
  */
 @SpringBootApplication
@@ -91,7 +96,7 @@ class TrackingConfiguration {
     @Autowired
     fun configureStreamableKafkaSource(configurer: EventProcessingConfigurer,
                                        streamableKafkaMessageSource: StreamableKafkaMessageSource<String, ByteArray>) {
-        configurer.registerTrackingEventProcessor("kafka-group") { streamableKafkaMessageSource }
+        configurer.registerTrackingEventProcessor(KAFKA_GROUP) { streamableKafkaMessageSource }
     }
 }
 
@@ -140,8 +145,8 @@ class SubscribingConfiguration {
             kafkaMessageSourceConfigurer: KafkaMessageSourceConfigurer
     ): SubscribableKafkaMessageSource<String, ByteArray> {
         val subscribableKafkaMessageSource = SubscribableKafkaMessageSource.builder<String, ByteArray>()
-                .topics(listOf(kafkaProperties.defaultTopic))
-                .groupId("kafka-group")
+            .topics(listOf(kafkaProperties.defaultTopic))
+            .groupId(KAFKA_GROUP)
                 .consumerFactory(consumerFactory)
                 .fetcher(fetcher)
                 .messageConverter(messageConverter)
@@ -153,7 +158,7 @@ class SubscribingConfiguration {
     @Autowired
     fun configureSubscribableKafkaSource(eventProcessingConfigurer: EventProcessingConfigurer,
                                          subscribableKafkaMessageSource: SubscribableKafkaMessageSource<String, ByteArray>) {
-        eventProcessingConfigurer.registerSubscribingEventProcessor("kafka-group") { subscribableKafkaMessageSource }
+        eventProcessingConfigurer.registerSubscribingEventProcessor(KAFKA_GROUP) { subscribableKafkaMessageSource }
     }
 }
 
@@ -169,6 +174,6 @@ class PooledStreamingConfiguration {
     @Autowired
     fun configureStreamableKafkaSource(configurer: EventProcessingConfigurer,
                                        streamableKafkaMessageSource: StreamableKafkaMessageSource<String, ByteArray>) {
-        configurer.registerPooledStreamingEventProcessor("kafka-group") { streamableKafkaMessageSource }
+        configurer.registerPooledStreamingEventProcessor(KAFKA_GROUP) { streamableKafkaMessageSource }
     }
 }

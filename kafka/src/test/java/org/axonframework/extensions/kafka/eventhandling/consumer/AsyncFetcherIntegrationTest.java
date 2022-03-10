@@ -123,12 +123,14 @@ class AsyncFetcherIntegrationTest extends KafkaContainerTest {
 
     @Test
     void testBuildingWithInvalidPollTimeoutShouldThrowAxonConfigurationException() {
-        assertThrows(AxonConfigurationException.class, () -> AsyncFetcher.builder().pollTimeout(-5));
+        AsyncFetcher.Builder<Object, Object, Object> builder = AsyncFetcher.builder();
+        assertThrows(AxonConfigurationException.class, () -> builder.pollTimeout(-5));
     }
 
     @Test
     void testBuildingWithInvalidExecutorServiceShouldThrowAxonConfigurationException() {
-        assertThrows(AxonConfigurationException.class, () -> AsyncFetcher.builder().executorService(null));
+        AsyncFetcher.Builder<Object, Object, Object> builder = AsyncFetcher.builder();
+        assertThrows(AxonConfigurationException.class, () -> builder.executorService(null));
     }
 
     @Test
