@@ -60,17 +60,20 @@ class KafkaTrackingTokenTest {
 
     @Test
     void testAdvanceToInvalidTopic() {
-        assertThrows(IllegalArgumentException.class, () -> emptyToken().advancedTo("", 0, 1));
+        KafkaTrackingToken token = emptyToken();
+        assertThrows(IllegalArgumentException.class, () -> token.advancedTo("", 0, 1));
     }
 
     @Test
     void testAdvanceToInvalidPartition() {
-        assertThrows(IllegalArgumentException.class, () -> emptyToken().advancedTo(TEST_TOPIC, -1, 1));
+        KafkaTrackingToken token = emptyToken();
+        assertThrows(IllegalArgumentException.class, () -> token.advancedTo(TEST_TOPIC, -1, 1));
     }
 
     @Test
     void testAdvanceToInvalidOffset() {
-        assertThrows(IllegalArgumentException.class, () -> emptyToken().advancedTo(TEST_TOPIC, 0, -1));
+        KafkaTrackingToken token = emptyToken();
+        assertThrows(IllegalArgumentException.class, () -> token.advancedTo(TEST_TOPIC, 0, -1));
     }
 
     @Test
@@ -79,7 +82,6 @@ class KafkaTrackingTokenTest {
         KafkaTrackingToken copy = newInstance(singletonMap(TEST_TOPIC_PARTITION, 0L));
         KafkaTrackingToken forge = newInstance(singletonMap(TEST_TOPIC_PARTITION, 1L));
 
-        assertEquals(original, original);
         assertEquals(original, copy);
         assertEquals(original.hashCode(), copy.hashCode());
         assertNotEquals(forge, original);

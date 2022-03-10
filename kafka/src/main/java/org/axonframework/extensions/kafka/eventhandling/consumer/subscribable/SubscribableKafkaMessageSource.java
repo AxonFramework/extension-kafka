@@ -210,7 +210,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
         private String groupId;
         private ConsumerFactory<K, V> consumerFactory;
         private Fetcher<K, V, EventMessage<?>> fetcher;
-        @SuppressWarnings("unchecked")
+        @SuppressWarnings({"unchecked", "squid:S1874"})
         private KafkaMessageConverter<K, V> messageConverter =
                 (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder()
                                                                           .serializer(XStreamSerializer.defaultSerializer())

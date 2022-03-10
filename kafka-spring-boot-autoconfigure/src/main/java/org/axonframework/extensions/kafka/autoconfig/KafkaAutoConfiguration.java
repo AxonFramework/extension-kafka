@@ -85,7 +85,6 @@ public class KafkaAutoConfiguration {
         this.properties = properties;
     }
 
-    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Bean
     @ConditionalOnMissingBean
     public KafkaMessageConverter<String, byte[]> kafkaMessageConverter(
@@ -130,7 +129,6 @@ public class KafkaAutoConfiguration {
         return s != null && !s.equals("");
     }
 
-    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @ConditionalOnMissingBean
     @Bean(destroyMethod = "shutDown")
     @ConditionalOnBean({ProducerFactory.class, KafkaMessageConverter.class})
@@ -147,7 +145,6 @@ public class KafkaAutoConfiguration {
                              .build();
     }
 
-    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnBean({KafkaPublisher.class})
@@ -198,6 +195,7 @@ public class KafkaAutoConfiguration {
     @ConditionalOnMissingBean
     @Bean(destroyMethod = "shutdown")
     @ConditionalOnProperty(name = "axon.kafka.fetcher.enabled", havingValue = "true", matchIfMissing = true)
+    @SuppressWarnings("squid:S1452") //needs wildcard to be generic
     public Fetcher<?, ?, ?> kafkaFetcher() {
         return AsyncFetcher.builder()
                            .pollTimeout(properties.getFetcher().getPollTimeout())

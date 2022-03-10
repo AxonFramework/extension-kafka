@@ -50,6 +50,7 @@ public abstract class HeaderUtils {
 
     private static final Charset UTF_8 = StandardCharsets.UTF_8;
     private static final String KEY_DELIMITER = "-";
+    private static final String HEADERS_NULL_MESSAGE = "Headers may not be null";
 
     private HeaderUtils() {
         // Utility class
@@ -134,9 +135,9 @@ public abstract class HeaderUtils {
      * @param key     the key corresponding to the expected value
      * @return the value corresponding to the given {@code key} in the {@code headers}
      */
-    @SuppressWarnings("ConstantConditions") // Null check performed by `Assert.isTrue`
+    @SuppressWarnings("squid:S2259") // Null check performed by `Assert.isTrue`
     public static byte[] value(Headers headers, String key) {
-        isTrue(headers != null, () -> "Headers may not be null");
+        isTrue(headers != null, () -> HEADERS_NULL_MESSAGE);
         Header header = headers.lastHeader(key);
         return header != null ? header.value() : null;
     }
@@ -228,7 +229,7 @@ public abstract class HeaderUtils {
      * @return the keys of the given {@code headers}
      */
     public static Set<String> keys(Headers headers) {
-        notNull(headers, () -> "Headers may not be null");
+        notNull(headers, () -> HEADERS_NULL_MESSAGE);
 
         return StreamSupport.stream(headers.spliterator(), false)
                             .map(Header::key)
@@ -253,7 +254,7 @@ public abstract class HeaderUtils {
      * @param metaDataKey the generated metadata key to extract from
      * @return the extracted key
      */
-    @SuppressWarnings("ConstantConditions") // Null check performed by `Assert.isTrue` call
+    @SuppressWarnings("squid:S2259") // Null check performed by `Assert.isTrue` call
     public static String extractKey(String metaDataKey) {
         isTrue(
                 metaDataKey != null && metaDataKey.startsWith(MESSAGE_METADATA + KEY_DELIMITER),
@@ -273,7 +274,7 @@ public abstract class HeaderUtils {
      * headers}
      */
     public static Map<String, Object> extractAxonMetadata(Headers headers) {
-        notNull(headers, () -> "Headers may not be null");
+        notNull(headers, () -> HEADERS_NULL_MESSAGE);
 
         return StreamSupport.stream(headers.spliterator(), false)
                             .filter(header -> isValidMetadataKey(header.key()))
@@ -320,6 +321,14 @@ public abstract class HeaderUtils {
     public static BiFunction<String, Object, RecordHeader> byteMapper() {
         return (key, value) -> value instanceof byte[]
                 ? new RecordHeader(key, (byte[]) value)
-                : new RecordHeader(key, value == null ? null : value.toString().getBytes(UTF_8));
+                : new RecordHeader(key, safeGetBytes(value));
+    }
+
+    @SuppressWarnings("squid:S1168") // null is a valid value
+    private static byte[] safeGetBytes(Object input) {
+        if (input == null) {
+            return null;
+        }
+        return input.toString().getBytes(UTF_8);
     }
 }

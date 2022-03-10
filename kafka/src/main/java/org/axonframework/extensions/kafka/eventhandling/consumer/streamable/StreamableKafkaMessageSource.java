@@ -153,7 +153,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
         private Supplier<String> groupIdSuffixFactory = () -> UUID.randomUUID().toString();
         private ConsumerFactory<K, V> consumerFactory;
         private Fetcher<K, V, KafkaEventMessage> fetcher;
-        @SuppressWarnings("unchecked")
+        @SuppressWarnings({"unchecked", "squid:S1874"})
         private KafkaMessageConverter<K, V> messageConverter =
                 (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder()
                                                                           .serializer(XStreamSerializer.defaultSerializer())

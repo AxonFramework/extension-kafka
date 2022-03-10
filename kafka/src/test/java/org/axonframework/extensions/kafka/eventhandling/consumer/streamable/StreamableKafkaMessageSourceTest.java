@@ -69,66 +69,76 @@ class StreamableKafkaMessageSourceTest {
 
     @Test
     void testBuildingWithInvalidTopicsShouldThrowAxonConfigurationException() {
-        assertThrows(AxonConfigurationException.class, () -> StreamableKafkaMessageSource.builder().topics(null));
+        StreamableKafkaMessageSource.Builder<Object, Object> builder = StreamableKafkaMessageSource.builder();
+        assertThrows(AxonConfigurationException.class, () -> builder.topics(null));
     }
 
     @Test
     void testBuildWithInvalidTopicThrowsAxonConfigurationException() {
-        assertThrows(AxonConfigurationException.class, () -> StreamableKafkaMessageSource.builder().addTopic(null));
+        StreamableKafkaMessageSource.Builder<Object, Object> builder = StreamableKafkaMessageSource.builder();
+        assertThrows(AxonConfigurationException.class, () -> builder.addTopic(null));
     }
 
     @Test
     void testBuildingWithInvalidGroupIdPrefixShouldThrowAxonConfigurationException() {
+        StreamableKafkaMessageSource.Builder<Object, Object> builder = StreamableKafkaMessageSource.builder();
         assertThrows(
                 AxonConfigurationException.class,
-                () -> StreamableKafkaMessageSource.builder().groupIdPrefix(null)
+                () -> builder.groupIdPrefix(null)
         );
     }
 
     @Test
     void testBuildingWithInvalidGroupIdSuffixFactoryShouldThrowAxonConfigurationException() {
+        StreamableKafkaMessageSource.Builder<Object, Object> builder = StreamableKafkaMessageSource.builder();
         assertThrows(
                 AxonConfigurationException.class,
-                () -> StreamableKafkaMessageSource.builder().groupIdSuffixFactory(null)
+                () -> builder.groupIdSuffixFactory(null)
         );
     }
 
     @Test
     void testBuildingWithInvalidConsumerFactoryShouldThrowAxonConfigurationException() {
+        StreamableKafkaMessageSource.Builder<Object, Object> builder = StreamableKafkaMessageSource.builder();
         //noinspection unchecked,rawtypes
         assertThrows(
                 AxonConfigurationException.class,
-                () -> StreamableKafkaMessageSource.builder().consumerFactory((ConsumerFactory) null)
+                () -> builder.consumerFactory((ConsumerFactory) null)
         );
     }
 
     @Test
     void testBuildingWithInvalidFetcherShouldThrowAxonConfigurationException() {
-        assertThrows(AxonConfigurationException.class, () -> StreamableKafkaMessageSource.builder().fetcher(null));
+        StreamableKafkaMessageSource.Builder<Object, Object> builder = StreamableKafkaMessageSource.builder();
+        assertThrows(AxonConfigurationException.class, () -> builder.fetcher(null));
     }
 
     @Test
     void testBuildingWithInvalidMessageConverterShouldThrowAxonConfigurationException() {
+        StreamableKafkaMessageSource.Builder<Object, Object> builder = StreamableKafkaMessageSource.builder();
         assertThrows(
-                AxonConfigurationException.class, () -> StreamableKafkaMessageSource.builder().messageConverter(null)
+                AxonConfigurationException.class, () -> builder.messageConverter(null)
         );
     }
 
     @Test
     void testBuildingWithInvalidBufferFactoryShouldThrowAxonConfigurationException() {
+        StreamableKafkaMessageSource.Builder<Object, Object> builder = StreamableKafkaMessageSource.builder();
         assertThrows(
-                AxonConfigurationException.class, () -> StreamableKafkaMessageSource.builder().bufferFactory(null)
+                AxonConfigurationException.class, () -> builder.bufferFactory(null)
         );
     }
 
     @Test
     void testBuildingWhilstMissingRequiredFieldsShouldThrowAxonConfigurationException() {
-        assertThrows(AxonConfigurationException.class, () -> StreamableKafkaMessageSource.builder().build());
+        StreamableKafkaMessageSource.Builder<Object, Object> builder = StreamableKafkaMessageSource.builder();
+        assertThrows(AxonConfigurationException.class, builder::build);
     }
 
     @Test
     void testOpeningMessageStreamWithInvalidTypeOfTrackingTokenShouldThrowException() {
-        assertThrows(IllegalArgumentException.class, () -> testSubject.openStream(incompatibleTokenType()));
+        TrackingToken incompatibleTokenType = incompatibleTokenType();
+        assertThrows(IllegalArgumentException.class, () -> testSubject.openStream(incompatibleTokenType));
     }
 
     @Test

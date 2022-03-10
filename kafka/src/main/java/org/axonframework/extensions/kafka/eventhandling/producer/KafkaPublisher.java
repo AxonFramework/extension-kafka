@@ -128,38 +128,39 @@ public class KafkaPublisher<K, V> {
         UnitOfWork<?> uow = CurrentUnitOfWork.get();
 
         MonitorCallback monitorCallback = messageMonitor.onMessageIngested(event);
-        Producer<K, V> producer = producerFactory.createProducer();
-        ConfirmationMode confirmationMode = producerFactory.confirmationMode();
+        try (Producer<K, V> producer = producerFactory.createProducer()) {
+            ConfirmationMode confirmationMode = producerFactory.confirmationMode();
 
-        if (confirmationMode.isTransactional()) {
-            tryBeginTxn(producer);
+            if (confirmationMode.isTransactional()) {
+                tryBeginTxn(producer);
+            }
+
+            // Sends event messages to Kafka and receive a future indicating the status.
+            Future<RecordMetadata> publishStatus = producer.send(messageConverter.createKafkaMessage(event, topic));
+
+            uow.onPrepareCommit(u -> {
+                if (confirmationMode.isTransactional()) {
+                    tryCommit(producer, monitorCallback);
+                } else if (confirmationMode.isWaitForAck()) {
+                    waitForPublishAck(publishStatus, monitorCallback);
+                }
+                tryClose(producer);
+            });
+
+            uow.onRollback(u -> {
+                if (confirmationMode.isTransactional()) {
+                    tryRollback(producer);
+                }
+                tryClose(producer);
+            });
         }
-
-        // Sends event messages to Kafka and receive a future indicating the status.
-        Future<RecordMetadata> publishStatus = producer.send(messageConverter.createKafkaMessage(event, topic));
-
-        uow.onPrepareCommit(u -> {
-            if (confirmationMode.isTransactional()) {
-                tryCommit(producer, monitorCallback);
-            } else if (confirmationMode.isWaitForAck()) {
-                waitForPublishAck(publishStatus, monitorCallback);
-            }
-            tryClose(producer);
-        });
-
-        uow.onRollback(u -> {
-            if (confirmationMode.isTransactional()) {
-                tryRollback(producer);
-            }
-            tryClose(producer);
-        });
     }
 
     private void tryBeginTxn(Producer<?, ?> producer) {
         try {
             producer.beginTransaction();
         } catch (ProducerFencedException e) {
-            logger.warn("Unable to begin transaction", e);
+            logger.warn("Unable to begin transaction");
             throw new EventPublicationFailedException(
                     "Event publication failed, exception occurred while starting Kafka transaction.", e
             );
@@ -171,7 +172,7 @@ public class KafkaPublisher<K, V> {
             producer.commitTransaction();
             monitorCallback.reportSuccess();
         } catch (ProducerFencedException e) {
-            logger.warn("Unable to commit transaction", e);
+            logger.warn("Unable to commit transaction");
             monitorCallback.reportFailure(e);
             throw new EventPublicationFailedException(
                     "Event publication failed, exception occurred while committing Kafka transaction.", e
@@ -184,9 +185,13 @@ public class KafkaPublisher<K, V> {
         try {
             future.get(Math.max(0, deadline - System.currentTimeMillis()), TimeUnit.MILLISECONDS);
             monitorCallback.reportSuccess();
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (InterruptedException e) {
             monitorCallback.reportFailure(e);
             logger.warn("Encountered error while waiting for event publication.", e);
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException | TimeoutException e) {
+            monitorCallback.reportFailure(e);
+            logger.warn("Encountered error while waiting for event publication.");
             throw new EventPublicationFailedException(
                     "Event publication failed, exception occurred while waiting for event publication.", e
             );
@@ -237,7 +242,7 @@ public class KafkaPublisher<K, V> {
     public static class Builder<K, V> {
 
         private ProducerFactory<K, V> producerFactory;
-        @SuppressWarnings("unchecked")
+        @SuppressWarnings({"unchecked", "squid:S1874"})
         private KafkaMessageConverter<K, V> messageConverter =
                 (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder()
                                                                           .serializer(XStreamSerializer.defaultSerializer())

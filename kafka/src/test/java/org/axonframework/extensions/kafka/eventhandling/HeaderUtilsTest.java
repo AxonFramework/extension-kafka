@@ -207,7 +207,8 @@ class HeaderUtilsTest {
 
     @Test
     void testWritingNonPrimitiveJavaValueShouldThrowAnException() {
-        assertThrows(IllegalArgumentException.class, () -> addHeader(new RecordHeaders(), "short", BigInteger.ZERO));
+        RecordHeaders headers = new RecordHeaders();
+        assertThrows(IllegalArgumentException.class, () -> addHeader(headers, "short", BigInteger.ZERO));
     }
 
     @Test

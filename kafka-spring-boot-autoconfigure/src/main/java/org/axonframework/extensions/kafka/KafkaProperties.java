@@ -145,32 +145,18 @@ public class KafkaProperties {
 
     @SuppressWarnings("Duplicates")
     private Map<String, Object> buildCommonProperties() {
-        Map<String, Object> properties = new HashMap<>();
+        Map<String, Object> commonProperties = new HashMap<>();
         if (this.bootstrapServers != null) {
-            properties.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, this.bootstrapServers);
+            commonProperties.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, this.bootstrapServers);
         }
         if (this.clientId != null) {
-            properties.put(CommonClientConfigs.CLIENT_ID_CONFIG, this.clientId);
+            commonProperties.put(CommonClientConfigs.CLIENT_ID_CONFIG, this.clientId);
         }
-        if (this.ssl.getKeyPassword() != null) {
-            properties.put(SslConfigs.SSL_KEY_PASSWORD_CONFIG, this.ssl.getKeyPassword());
-        }
-        if (this.ssl.getKeystoreLocation() != null) {
-            properties.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, resourceToPath(this.ssl.getKeystoreLocation()));
-        }
-        if (this.ssl.getKeystorePassword() != null) {
-            properties.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, this.ssl.getKeystorePassword());
-        }
-        if (this.ssl.getTruststoreLocation() != null) {
-            properties.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, resourceToPath(this.ssl.getTruststoreLocation()));
-        }
-        if (this.ssl.getTruststorePassword() != null) {
-            properties.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, this.ssl.getTruststorePassword());
-        }
+        addSslProperties(commonProperties, this.ssl);
         if (!CollectionUtils.isEmpty(this.properties)) {
-            properties.putAll(this.properties);
+            commonProperties.putAll(this.properties);
         }
-        return properties;
+        return commonProperties;
     }
 
     /**
@@ -181,6 +167,7 @@ public class KafkaProperties {
      *
      * @return the consumer properties initialized with the customizations defined on this instance
      */
+    @SuppressWarnings("squid:S1117") //renaming properties would be confusing and breaking
     public Map<String, Object> buildConsumerProperties() {
         Map<String, Object> properties = buildCommonProperties();
         properties.putAll(this.consumer.buildProperties());
@@ -196,9 +183,9 @@ public class KafkaProperties {
      * @return the producer properties initialized with the customizations defined on this instance
      */
     public Map<String, Object> buildProducerProperties() {
-        Map<String, Object> properties = buildCommonProperties();
-        properties.putAll(this.producer.buildProperties());
-        return properties;
+        Map<String, Object> producerProperties = buildCommonProperties();
+        producerProperties.putAll(this.producer.buildProperties());
+        return producerProperties;
     }
 
     private static String resourceToPath(Resource resource) {
@@ -412,59 +399,43 @@ public class KafkaProperties {
             this.eventProcessorMode = eventProcessorMode;
         }
 
-        @SuppressWarnings({"Duplicates", "WeakerAccess"})
+        @SuppressWarnings({"Duplicates", "WeakerAccess", "squid:S1117"})
         public Map<String, Object> buildProperties() {
-            Map<String, Object> properties = new HashMap<>();
+            Map<String, Object> producerProperties = new HashMap<>();
 
             if (this.acks != null) {
-                properties.put(ProducerConfig.ACKS_CONFIG, this.acks);
+                producerProperties.put(ProducerConfig.ACKS_CONFIG, this.acks);
             }
             if (this.batchSize != null) {
-                properties.put(ProducerConfig.BATCH_SIZE_CONFIG, this.batchSize);
+                producerProperties.put(ProducerConfig.BATCH_SIZE_CONFIG, this.batchSize);
             }
             if (this.bootstrapServers != null) {
-                properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, this.bootstrapServers);
+                producerProperties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, this.bootstrapServers);
             }
             if (this.bufferMemory != null) {
-                properties.put(ProducerConfig.BUFFER_MEMORY_CONFIG, this.bufferMemory);
+                producerProperties.put(ProducerConfig.BUFFER_MEMORY_CONFIG, this.bufferMemory);
             }
             if (this.clientId != null) {
-                properties.put(ProducerConfig.CLIENT_ID_CONFIG, this.clientId);
+                producerProperties.put(ProducerConfig.CLIENT_ID_CONFIG, this.clientId);
             }
             if (this.compressionType != null) {
-                properties.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, this.compressionType);
+                producerProperties.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, this.compressionType);
             }
             if (this.keySerializer != null) {
-                properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, this.keySerializer);
+                producerProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, this.keySerializer);
             }
             if (this.retries != null) {
-                properties.put(ProducerConfig.RETRIES_CONFIG, this.retries);
+                producerProperties.put(ProducerConfig.RETRIES_CONFIG, this.retries);
             }
-            if (this.ssl.getKeyPassword() != null) {
-                properties.put(SslConfigs.SSL_KEY_PASSWORD_CONFIG, this.ssl.getKeyPassword());
-            }
-            if (this.ssl.getKeystoreLocation() != null) {
-                properties.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, resourceToPath(this.ssl.getKeystoreLocation()));
-            }
-            if (this.ssl.getKeystorePassword() != null) {
-                properties.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, this.ssl.getKeystorePassword());
-            }
-            if (this.ssl.getTruststoreLocation() != null) {
-                properties.put(
-                        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, resourceToPath(this.ssl.getTruststoreLocation())
-                );
-            }
-            if (this.ssl.getTruststorePassword() != null) {
-                properties.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, this.ssl.getTruststorePassword());
-            }
+            addSslProperties(producerProperties, this.ssl);
             if (this.valueSerializer != null) {
-                properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, this.valueSerializer);
+                producerProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, this.valueSerializer);
             }
             if (!CollectionUtils.isEmpty(this.properties)) {
-                properties.putAll(this.properties);
+                producerProperties.putAll(this.properties);
             }
 
-            return properties;
+            return producerProperties;
         }
     }
 
@@ -705,63 +676,47 @@ public class KafkaProperties {
 
         @SuppressWarnings({"Duplicates", "WeakerAccess"})
         public Map<String, Object> buildProperties() {
-            Map<String, Object> properties = new HashMap<>();
+            Map<String, Object> consumerProperties = new HashMap<>();
 
             if (this.autoCommitInterval != null) {
-                properties.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, this.autoCommitInterval);
+                consumerProperties.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, this.autoCommitInterval);
             }
             if (this.autoOffsetReset != null) {
-                properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, this.autoOffsetReset);
+                consumerProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, this.autoOffsetReset);
             }
             if (this.bootstrapServers != null) {
-                properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, this.bootstrapServers);
+                consumerProperties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, this.bootstrapServers);
             }
             if (this.clientId != null) {
-                properties.put(ConsumerConfig.CLIENT_ID_CONFIG, this.clientId);
+                consumerProperties.put(ConsumerConfig.CLIENT_ID_CONFIG, this.clientId);
             }
             if (this.enableAutoCommit != null) {
-                properties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, this.enableAutoCommit);
+                consumerProperties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, this.enableAutoCommit);
             }
             if (this.fetchMaxWait != null) {
-                properties.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, this.fetchMaxWait);
+                consumerProperties.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, this.fetchMaxWait);
             }
             if (this.fetchMinSize != null) {
-                properties.put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, this.fetchMinSize);
+                consumerProperties.put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, this.fetchMinSize);
             }
             if (this.heartbeatInterval != null) {
-                properties.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, this.heartbeatInterval);
+                consumerProperties.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, this.heartbeatInterval);
             }
             if (this.keyDeserializer != null) {
-                properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, this.keyDeserializer);
+                consumerProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, this.keyDeserializer);
             }
-            if (this.ssl.getKeyPassword() != null) {
-                properties.put(SslConfigs.SSL_KEY_PASSWORD_CONFIG, this.ssl.getKeyPassword());
-            }
-            if (this.ssl.getKeystoreLocation() != null) {
-                properties.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, resourceToPath(this.ssl.getKeystoreLocation()));
-            }
-            if (this.ssl.getKeystorePassword() != null) {
-                properties.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, this.ssl.getKeystorePassword());
-            }
-            if (this.ssl.getTruststoreLocation() != null) {
-                properties.put(
-                        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, resourceToPath(this.ssl.getTruststoreLocation())
-                );
-            }
-            if (this.ssl.getTruststorePassword() != null) {
-                properties.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, this.ssl.getTruststorePassword());
-            }
+            addSslProperties(consumerProperties, this.ssl);
             if (this.valueDeserializer != null) {
-                properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, this.valueDeserializer);
+                consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, this.valueDeserializer);
             }
             if (this.maxPollRecords != null) {
-                properties.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, this.maxPollRecords);
+                consumerProperties.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, this.maxPollRecords);
             }
             if (!CollectionUtils.isEmpty(this.properties)) {
-                properties.putAll(this.properties);
+                consumerProperties.putAll(this.properties);
             }
 
-            return properties;
+            return consumerProperties;
         }
     }
 
@@ -857,6 +812,24 @@ public class KafkaProperties {
 
         public void setTruststorePassword(String truststorePassword) {
             this.truststorePassword = truststorePassword;
+        }
+    }
+
+    private static void addSslProperties(Map<String, Object> properties, Ssl ssl) {
+        if (ssl.getKeyPassword() != null) {
+            properties.put(SslConfigs.SSL_KEY_PASSWORD_CONFIG, ssl.getKeyPassword());
+        }
+        if (ssl.getKeystoreLocation() != null) {
+            properties.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, resourceToPath(ssl.getKeystoreLocation()));
+        }
+        if (ssl.getKeystorePassword() != null) {
+            properties.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, ssl.getKeystorePassword());
+        }
+        if (ssl.getTruststoreLocation() != null) {
+            properties.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, resourceToPath(ssl.getTruststoreLocation()));
+        }
+        if (ssl.getTruststorePassword() != null) {
+            properties.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, ssl.getTruststorePassword());
         }
     }
 }

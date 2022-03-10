@@ -78,22 +78,14 @@ class FetchEventsTask<K, V, E> implements Runnable {
         this.closeHandler = getOrDefault(closeHandler, task -> { /* no-op */ });
     }
 
+
     @Override
     public void run() {
         try {
             while (running.get()) {
                 ConsumerRecords<K, V> records = consumer.poll(pollTimeout);
                 logger.debug("Fetched [{}] number of ConsumerRecords", records.count());
-                List<E> convertedMessages = recordConverter.convert(records);
-                try {
-                    if (!convertedMessages.isEmpty()) {
-                        eventConsumer.consume(convertedMessages);
-                    }
-                } catch (InterruptedException e) {
-                    logger.debug("Event Consumer thread was interrupted. Shutting down", e);
-                    running.set(false);
-                    Thread.currentThread().interrupt();
-                }
+                processRecords(records);
             }
         } catch (Exception e) {
             logger.error("Cannot proceed with fetching ConsumerRecords since we encountered an exception", e);
@@ -102,6 +94,19 @@ class FetchEventsTask<K, V, E> implements Runnable {
             closeHandler.accept(this);
             consumer.close();
             logger.info("Fetch events task and used Consumer instance [{}] have been closed", consumer);
+        }
+    }
+
+    private void processRecords(ConsumerRecords<K, V> records) {
+        List<E> convertedMessages = recordConverter.convert(records);
+        try {
+            if (!convertedMessages.isEmpty()) {
+                eventConsumer.consume(convertedMessages);
+            }
+        } catch (InterruptedException e) {
+            logger.debug("Event Consumer thread was interrupted. Shutting down", e);
+            running.set(false);
+            Thread.currentThread().interrupt();
         }
     }
 

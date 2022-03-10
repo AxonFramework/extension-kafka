@@ -211,10 +211,10 @@ abstract class JSR166TestCase extends TestCase {
     }
 
     /**
-     * Delays, via Thread.sleep, for the given millisecond delay, but if the sleep is shorter than specified, may
+     * Delays, via Thread.sleep(), for the given millisecond delay, but if the sleep is shorter than specified, may
      * re-sleep or yield until time elapses.
      */
-    @SuppressWarnings("SameParameterValue")
+    @SuppressWarnings({"SameParameterValue", "squid:S2925"})
     static void delay(long millis) throws InterruptedException {
         long startTime = System.nanoTime();
         long ns = millis * 1000 * 1000;

@@ -27,7 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.BiFunction;
+import java.util.function.LongBinaryOperator;
 
 import static org.axonframework.common.Assert.isTrue;
 
@@ -43,6 +43,7 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
 
     @JsonDeserialize(keyUsing = TopicPartitionDeserializer.class)
     private final Map<TopicPartition, Long> positions;
+    private static final String INCOMPATIBLE_TOKEN_MESSAGE = "Incompatible token type provided.";
 
     private KafkaTrackingToken(Map<TopicPartition, Long> positions) {
         this.positions = Collections.unmodifiableMap(new HashMap<>(positions));
@@ -102,7 +103,7 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
     @SuppressWarnings("ConstantConditions")
     public static KafkaTrackingToken from(TrackingToken trackingToken) {
         isTrue(trackingToken == null || trackingToken instanceof KafkaTrackingToken,
-               () -> "Incompatible token type provided.");
+               () -> INCOMPATIBLE_TOKEN_MESSAGE);
         return trackingToken == null ? KafkaTrackingToken.emptyToken() : (KafkaTrackingToken) trackingToken;
     }
 
@@ -142,24 +143,24 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
 
     @Override
     public TrackingToken lowerBound(TrackingToken other) {
-        isTrue(other instanceof KafkaTrackingToken, () -> "Incompatible token type provided.");
+        isTrue(other instanceof KafkaTrackingToken, () -> INCOMPATIBLE_TOKEN_MESSAGE);
         //noinspection ConstantConditions - Verified cast through `Assert.isTrue` operation
         return new KafkaTrackingToken(bounds((KafkaTrackingToken) other, Math::min));
     }
 
     @Override
     public TrackingToken upperBound(TrackingToken other) {
-        isTrue(other instanceof KafkaTrackingToken, () -> "Incompatible token type provided.");
+        isTrue(other instanceof KafkaTrackingToken, () -> INCOMPATIBLE_TOKEN_MESSAGE);
         //noinspection ConstantConditions - Verified cast through `Assert.isTrue` operation
         return new KafkaTrackingToken(bounds((KafkaTrackingToken) other, Math::max));
     }
 
-    private Map<TopicPartition, Long> bounds(KafkaTrackingToken other, BiFunction<Long, Long, Long> boundsFunction) {
+    private Map<TopicPartition, Long> bounds(KafkaTrackingToken other, LongBinaryOperator boundsFunction) {
         Map<TopicPartition, Long> intersection = new HashMap<>(getPositions());
         other.getPositions().forEach(intersection::putIfAbsent);
 
         intersection.keySet()
-                    .forEach(topicPartition -> intersection.put(topicPartition, boundsFunction.apply(
+                    .forEach(topicPartition -> intersection.put(topicPartition, boundsFunction.applyAsLong(
                             this.getPositions().getOrDefault(topicPartition, 0L),
                             other.getPositions().getOrDefault(topicPartition, 0L))
                     ));
@@ -168,7 +169,7 @@ public class KafkaTrackingToken implements TrackingToken, Serializable {
 
     @Override
     public boolean covers(TrackingToken other) {
-        isTrue(other instanceof KafkaTrackingToken, () -> "Incompatible token type provided.");
+        isTrue(other instanceof KafkaTrackingToken, () -> INCOMPATIBLE_TOKEN_MESSAGE);
         //noinspection ConstantConditions - Verified cast through `Assert.isTrue` operation
         KafkaTrackingToken otherToken = (KafkaTrackingToken) other;
 

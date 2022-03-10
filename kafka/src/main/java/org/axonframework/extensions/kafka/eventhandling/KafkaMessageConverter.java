@@ -49,5 +49,7 @@ public interface KafkaMessageConverter<K, V> {
      * @param consumerRecord the Event Message represented inside Kafka
      * @return the converted {@code consumerRecord} as an {@link EventMessage}
      */
+    @SuppressWarnings("squid:S1452")
+    //needs wildcard to be generic
     Optional<EventMessage<?>> readKafkaMessage(ConsumerRecord<K, V> consumerRecord);
 }
