@@ -31,7 +31,7 @@
     </description>
 
     <properties>
-        <jmh-core.version>1.34</jmh-core.version>
+        <jmh-core.version>1.35</jmh-core.version>
         <test-containers.version>1.16.3</test-containers.version>
         <maven-enforcer-plugin.version>3.0.0</maven-enforcer-plugin.version>
     </properties>
