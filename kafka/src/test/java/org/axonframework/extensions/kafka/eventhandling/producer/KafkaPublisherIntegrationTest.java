@@ -374,6 +374,13 @@ class KafkaPublisherIntegrationTest extends KafkaContainerTest {
     }
 
     @Test
+    void testConfiguringInvalidKafkaTopicFunction() {
+        KafkaPublisher.Builder<Object, Object> builderTestSubject = KafkaPublisher.builder();
+
+        assertThrows(AxonConfigurationException.class, () -> builderTestSubject.topicResolver(null));
+    }
+
+    @Test
     void testConfiguringInvalidAckTimeout() {
         KafkaPublisher.Builder<Object, Object> builderTestSubject = KafkaPublisher.builder();
 
