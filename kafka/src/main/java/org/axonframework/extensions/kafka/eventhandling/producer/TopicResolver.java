@@ -27,11 +27,17 @@ import java.util.function.Function;
  * topic.
  *
  * @author Gerard Klijs
- * @since 4.6
+ * @since 4.6.0
  */
 @FunctionalInterface
 public interface TopicResolver extends Function<EventMessage<?>, Optional<String>> {
 
+    /**
+     * resolve an {@code EventMessage} to an optional topic to publish the event to
+     *
+     * @param event an {@code EventMessage}
+     * @return the optional topic, when empty the event message will not be published
+     */
     default Optional<String> resolve(EventMessage<?> event) {
         return this.apply(event);
     }

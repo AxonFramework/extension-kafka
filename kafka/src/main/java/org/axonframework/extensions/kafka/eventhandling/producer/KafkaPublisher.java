@@ -324,7 +324,7 @@ public class KafkaPublisher<K, V> {
          * @param topicResolver the Kafka {@code topic} to publish {@link EventMessage}s on
          * @return the current Builder instance, for fluent interfacing
          * @author Gerard Klijs
-         * @since 4.6
+         * @since 4.6.0
          */
         public Builder<K, V> topicResolver(TopicResolver topicResolver) {
             assertNonNull(topicResolver, "The TopicResolver may not be null");
