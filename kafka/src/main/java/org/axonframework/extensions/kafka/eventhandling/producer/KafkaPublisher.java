@@ -324,7 +324,7 @@ public class KafkaPublisher<K, V> {
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder<K, V> topicResolver(TopicResolver topicResolver) {
-            assertNonNull(topicResolver, "TopicFunction may not be null");
+            assertNonNull(topicResolver, "The TopicResolver may not be null");
             this.topicResolver = topicResolver;
             return this;
         }
