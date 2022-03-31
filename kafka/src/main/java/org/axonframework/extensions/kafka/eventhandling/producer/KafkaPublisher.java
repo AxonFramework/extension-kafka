@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2021. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -127,7 +127,7 @@ public class KafkaPublisher<K, V> {
     @SuppressWarnings("squid:S2095") //producer needs to be closed async, not within this method
     public <T extends EventMessage<?>> void send(T event) {
         logger.debug("Starting event producing process for [{}].", event.getPayloadType());
-        Optional<String> topic = topicResolver.apply(event);
+        Optional<String> topic = topicResolver.resolve(event);
         if (!topic.isPresent()) {
             logger.debug("Skip publishing event for [{}] since topicFunction returned empty.", event.getPayloadType());
             return;
@@ -302,12 +302,14 @@ public class KafkaPublisher<K, V> {
         }
 
         /**
-         * Set the Kafka {@code topic} to publish {@link EventMessage}s on. Defaults to {@code Axon.Events}. Should not
-         * be used together with setting the topicResolver.
+         * Set the Kafka {@code topic} to publish {@link EventMessage}s on. Defaults to {@code Axon.Events}.
          *
          * @param topic the Kafka {@code topic} to publish {@link EventMessage}s on
          * @return the current Builder instance, for fluent interfacing
+         * @deprecated in through use of topic resolver
          */
+        @Deprecated
+        @SuppressWarnings("squid:S1133") //needs a major release to remove, since part of public API
         public Builder<K, V> topic(String topic) {
             assertThat(topic, name -> Objects.nonNull(name) && !"".equals(name), "The topic may not be null or empty");
             this.topicResolver = m -> Optional.of(topic);
@@ -315,13 +317,14 @@ public class KafkaPublisher<K, V> {
         }
 
         /**
-         * Set the resolver to determine the Kafka {@code topic} to publish a certain {@link EventMessage} to.The {@code EventMessage}
-         * is not published if the resolver returns an {@code Optional.empty()}. Defaults to always
-         * return the set topic, or always return {@code Axon.Events}. Should not be used together with setting the
-         * topic.
+         * Set the resolver to determine the Kafka {@code topic} to publish a certain {@link EventMessage} to.The {@code
+         * EventMessage} is not published if the resolver returns an {@code Optional.empty()}. Defaults to always return
+         * the set topic, or always return {@code Axon.Events}.
          *
          * @param topicResolver the Kafka {@code topic} to publish {@link EventMessage}s on
          * @return the current Builder instance, for fluent interfacing
+         * @author Gerard Klijs
+         * @since 4.6
          */
         public Builder<K, V> topicResolver(TopicResolver topicResolver) {
             assertNonNull(topicResolver, "The TopicResolver may not be null");

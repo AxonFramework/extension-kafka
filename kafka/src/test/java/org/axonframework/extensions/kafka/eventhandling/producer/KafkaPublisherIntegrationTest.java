@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2021. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,6 +46,7 @@ import org.junit.jupiter.api.*;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
@@ -396,7 +397,7 @@ class KafkaPublisherIntegrationTest extends KafkaContainerTest {
                                                                       .producerFactory(testProducerFactory)
                                                                       .messageConverter(messageConverter)
                                                                       .messageMonitor(monitor)
-                                                                      .topic(topic)
+                                                                      .topicResolver(m -> Optional.of(topic))
                                                                       .publisherAckTimeout(1000)
                                                                       .build();
         KafkaEventPublisher<String, byte[]> kafkaEventPublisher =

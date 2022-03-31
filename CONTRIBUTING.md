@@ -39,11 +39,11 @@ immediately.
 
 ### Project Build
 
-The project is built with Apache Maven, supplied by the Maven Wrapper `mvnw`. For separate aspects of the build Maven 
+The project is built with Apache Maven, supplied by the Maven Wrapper `mvnw`. For separate aspects of the build Maven
 profiles are used.
 
-For a **regular** build, execute from your command line: `./mvnw`. This operation will run the build and execute JUnit tests
-of all modules and package the resulting artifacts. 
+For a **regular** build, execute from your command line: `./mvnw`. This operation will run the build and execute JUnit
+tests of all modules and package the resulting artifacts.
 
 This repository contains an example project. You can skip its build by adding `-DskipExamples` to your build command.
 
@@ -53,7 +53,7 @@ long-running tests. If you want to run them, please call `./mvnw -Pintegration-t
 introducing additional integration tests, make sure the class name ends with `IntegrationTest`.
 
 The project uses JaCoCo to measure test coverage of the code and automatically generate coverage reports on regular
-and `integration-test` builds. If you are interested in the overall test coverage, please
-run `./mvnw -Pcoverage clean verify`
-and check the resulting aggregated report in `./coverage-report/target/site/jacoco-aggregate/index.html`
+and `integration-test` builds. If you are interested in the overall test coverage, please run `./mvnw -Pcoverage` after
+running both without clean. and check the resulting aggregated report
+in `./coverage-report/target/site/jacoco-aggregate/index.html`
 
