@@ -315,8 +315,8 @@ public class KafkaPublisher<K, V> {
         }
 
         /**
-         * Set the resolver to determine the Kafka {@code topic} to publish a certain {@link EventMessage} to. When the
-         * resolver returns {@code Optional.empty()} will not publish the {@link EventMessage}. Defaults to always
+         * Set the resolver to determine the Kafka {@code topic} to publish a certain {@link EventMessage} to.The {@code EventMessage}
+         * is not published if the resolver returns an {@code Optional.empty()}. Defaults to always
          * return the set topic, or always return {@code Axon.Events}. Should not be used together with setting the
          * topic.
          *
