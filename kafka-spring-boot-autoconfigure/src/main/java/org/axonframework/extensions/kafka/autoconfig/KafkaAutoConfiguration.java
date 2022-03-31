@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2021. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,6 +57,7 @@ import org.springframework.context.annotation.Configuration;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Collections;
+import java.util.Optional;
 
 import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher.DEFAULT_PROCESSING_GROUP;
 
@@ -141,7 +142,7 @@ public class KafkaAutoConfiguration {
                              .producerFactory(axonKafkaProducerFactory)
                              .messageConverter(kafkaMessageConverter)
                              .messageMonitor(configuration.messageMonitor(KafkaPublisher.class, "kafkaPublisher"))
-                             .topic(properties.getDefaultTopic())
+                             .topicResolver(m -> Optional.of(properties.getDefaultTopic()))
                              .build();
     }
 

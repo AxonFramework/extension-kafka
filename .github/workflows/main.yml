@@ -33,9 +33,18 @@ jobs:
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
 
-      - name: Regular build
+      - name: Run regular build
         run: |
           ./mvnw -B -U clean verify
+
+      - name: Run integration tests
+        run: | # no clean
+          ./mvnw -B -U -Pintegration-test -DskipExamples
+
+      - name: Build coverage report
+        if: matrix.sonar-enabled
+        run: | # no clean
+          ./mvnw -B -U -Pcoverage-aggregate -DskipExamples   
 
       - name: Sonar analysis
         if: matrix.sonar-enabled
@@ -47,10 +56,6 @@ jobs:
           -Dsonar.login=${{ secrets.SONAR_TOKEN }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Run integration tests
-        run: | # no clean
-          ./mvnw -B -Pitest
 
       - name: Deploy to Sonatype
         if: success()

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2021. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ import org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil;
 import org.junit.jupiter.api.*;
 
 import java.util.Collections;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage;
@@ -78,7 +79,13 @@ class KafkaIntegrationTest extends KafkaContainerTest {
         producerFactory = ProducerConfigUtil.ackProducerFactory(getBootstrapServers(), ByteArraySerializer.class);
         publisher = KafkaPublisher.<String, byte[]>builder()
                                   .producerFactory(producerFactory)
-                                  .topic(TEST_TOPIC)
+                                  .topicResolver(m -> {
+                                      if (m.getPayloadType().isAssignableFrom(String.class)) {
+                                          return Optional.of(TEST_TOPIC);
+                                      } else {
+                                          return Optional.empty();
+                                      }
+                                  })
                                   .build();
         KafkaEventPublisher<String, byte[]> sender =
                 KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(publisher).build();
@@ -124,6 +131,34 @@ class KafkaIntegrationTest extends KafkaContainerTest {
         assertTrue(stream2.hasNextAvailable(25, TimeUnit.SECONDS));
         TrackedEventMessage<?> actual = stream2.nextAvailable();
         assertNotNull(actual);
+        assertEquals("test", actual.getPayload());
+
+        stream2.close();
+    }
+
+    @Test
+    void testSkipPublishForLongPayload() throws Exception {
+        StreamableKafkaMessageSource<String, byte[]> streamableMessageSource =
+                StreamableKafkaMessageSource.<String, byte[]>builder()
+                                            .topics(Collections.singletonList(TEST_TOPIC))
+                                            .consumerFactory(consumerFactory)
+                                            .fetcher(fetcher)
+                                            .build();
+
+        BlockingStream<TrackedEventMessage<?>> stream1 = streamableMessageSource.openStream(null);
+        stream1.close();
+        BlockingStream<TrackedEventMessage<?>> stream2 = streamableMessageSource.openStream(null);
+
+        //This one will not be received
+        eventBus.publish(asEventMessage(42L));
+        //Added so we don't have to wait longer than necessary, to know the other one did not publish
+        eventBus.publish(asEventMessage("test"));
+
+        // The consumer may need some time to start
+        assertTrue(stream2.hasNextAvailable(25, TimeUnit.SECONDS));
+        TrackedEventMessage<?> actual = stream2.nextAvailable();
+        assertNotNull(actual);
+        assertInstanceOf(String.class, actual.getPayload(), "Long is not skipped");
 
         stream2.close();
     }

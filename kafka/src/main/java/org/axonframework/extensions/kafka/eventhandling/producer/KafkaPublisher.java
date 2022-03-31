@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2021. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -70,7 +71,7 @@ public class KafkaPublisher<K, V> {
     private final ProducerFactory<K, V> producerFactory;
     private final KafkaMessageConverter<K, V> messageConverter;
     private final MessageMonitor<? super EventMessage<?>> messageMonitor;
-    private final String topic;
+    private final TopicResolver topicResolver;
     private final long publisherAckTimeout;
 
     /**
@@ -86,7 +87,7 @@ public class KafkaPublisher<K, V> {
         this.producerFactory = builder.producerFactory;
         this.messageConverter = builder.messageConverter;
         this.messageMonitor = builder.messageMonitor;
-        this.topic = builder.topic;
+        this.topicResolver = builder.topicResolver;
         this.publisherAckTimeout = builder.publisherAckTimeout;
     }
 
@@ -123,37 +124,42 @@ public class KafkaPublisher<K, V> {
      * @param event the events to publish on the Kafka broker.
      * @param <T>   the implementation of {@link EventMessage} send through this method
      */
+    @SuppressWarnings("squid:S2095") //producer needs to be closed async, not within this method
     public <T extends EventMessage<?>> void send(T event) {
         logger.debug("Starting event producing process for [{}].", event.getPayloadType());
+        Optional<String> topic = topicResolver.resolve(event);
+        if (!topic.isPresent()) {
+            logger.debug("Skip publishing event for [{}] since topicFunction returned empty.", event.getPayloadType());
+            return;
+        }
         UnitOfWork<?> uow = CurrentUnitOfWork.get();
 
         MonitorCallback monitorCallback = messageMonitor.onMessageIngested(event);
-        try (Producer<K, V> producer = producerFactory.createProducer()) {
-            ConfirmationMode confirmationMode = producerFactory.confirmationMode();
+        Producer<K, V> producer = producerFactory.createProducer();
+        ConfirmationMode confirmationMode = producerFactory.confirmationMode();
 
-            if (confirmationMode.isTransactional()) {
-                tryBeginTxn(producer);
-            }
-
-            // Sends event messages to Kafka and receive a future indicating the status.
-            Future<RecordMetadata> publishStatus = producer.send(messageConverter.createKafkaMessage(event, topic));
-
-            uow.onPrepareCommit(u -> {
-                if (confirmationMode.isTransactional()) {
-                    tryCommit(producer, monitorCallback);
-                } else if (confirmationMode.isWaitForAck()) {
-                    waitForPublishAck(publishStatus, monitorCallback);
-                }
-                tryClose(producer);
-            });
-
-            uow.onRollback(u -> {
-                if (confirmationMode.isTransactional()) {
-                    tryRollback(producer);
-                }
-                tryClose(producer);
-            });
+        if (confirmationMode.isTransactional()) {
+            tryBeginTxn(producer);
         }
+
+        // Sends event messages to Kafka and receive a future indicating the status.
+        Future<RecordMetadata> publishStatus = producer.send(messageConverter.createKafkaMessage(event, topic.get()));
+
+        uow.onPrepareCommit(u -> {
+            if (confirmationMode.isTransactional()) {
+                tryCommit(producer, monitorCallback);
+            } else if (confirmationMode.isWaitForAck()) {
+                waitForPublishAck(publishStatus, monitorCallback);
+            }
+            tryClose(producer);
+        });
+
+        uow.onRollback(u -> {
+            if (confirmationMode.isTransactional()) {
+                tryRollback(producer);
+            }
+            tryClose(producer);
+        });
     }
 
     private void tryBeginTxn(Producer<?, ?> producer) {
@@ -248,7 +254,7 @@ public class KafkaPublisher<K, V> {
                                                                           .serializer(XStreamSerializer.defaultSerializer())
                                                                           .build();
         private MessageMonitor<? super EventMessage<?>> messageMonitor = NoOpMessageMonitor.instance();
-        private String topic = DEFAULT_TOPIC;
+        private TopicResolver topicResolver = m -> Optional.of(DEFAULT_TOPIC);
         private long publisherAckTimeout = 1_000;
 
         /**
@@ -300,10 +306,29 @@ public class KafkaPublisher<K, V> {
          *
          * @param topic the Kafka {@code topic} to publish {@link EventMessage}s on
          * @return the current Builder instance, for fluent interfacing
+         * @deprecated in through use of topic resolver
          */
+        @Deprecated
+        @SuppressWarnings("squid:S1133") //needs a major release to remove, since part of public API
         public Builder<K, V> topic(String topic) {
             assertThat(topic, name -> Objects.nonNull(name) && !"".equals(name), "The topic may not be null or empty");
-            this.topic = topic;
+            this.topicResolver = m -> Optional.of(topic);
+            return this;
+        }
+
+        /**
+         * Set the resolver to determine the Kafka {@code topic} to publish a certain {@link EventMessage} to.The {@code
+         * EventMessage} is not published if the resolver returns an {@code Optional.empty()}. Defaults to always return
+         * the set topic, or always return {@code Axon.Events}.
+         *
+         * @param topicResolver the Kafka {@code topic} to publish {@link EventMessage}s on
+         * @return the current Builder instance, for fluent interfacing
+         * @author Gerard Klijs
+         * @since 4.6.0
+         */
+        public Builder<K, V> topicResolver(TopicResolver topicResolver) {
+            assertNonNull(topicResolver, "The TopicResolver may not be null");
+            this.topicResolver = topicResolver;
             return this;
         }
 
