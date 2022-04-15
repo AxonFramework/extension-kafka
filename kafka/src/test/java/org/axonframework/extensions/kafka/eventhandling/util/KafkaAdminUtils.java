@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2021. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.CreatePartitionsResult;
 import org.apache.kafka.clients.admin.CreateTopicsResult;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
+import org.apache.kafka.clients.admin.ListTopicsResult;
 import org.apache.kafka.clients.admin.NewPartitions;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.KafkaFuture;
@@ -32,6 +33,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -104,9 +106,21 @@ public abstract class KafkaAdminUtils {
         }
     }
 
-    private static void waitForCompletion(KafkaFuture<Void> kafkaFuture) {
+    /**
+     * Method responsible for deleting the {@code topics} on the provided {@code bootstrapServer}.
+     *
+     * @param bootstrapServer the kafka address
+     */
+    public static Set<String> listTopics(String bootstrapServer) {
+        try (AdminClient adminClient = AdminClient.create(minimalAdminConfig(bootstrapServer))) {
+            ListTopicsResult listTopicsResult = adminClient.listTopics();
+            return waitForCompletion(listTopicsResult.names());
+        }
+    }
+
+    private static <T> T waitForCompletion(KafkaFuture<T> kafkaFuture) {
         try {
-            kafkaFuture.get(25, TimeUnit.SECONDS);
+            return kafkaFuture.get(25, TimeUnit.SECONDS);
         } catch (InterruptedException | TimeoutException | ExecutionException e) {
             throw new IllegalStateException(e);
         }

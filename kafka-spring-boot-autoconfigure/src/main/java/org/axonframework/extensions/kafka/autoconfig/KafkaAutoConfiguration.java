@@ -19,6 +19,7 @@ package org.axonframework.extensions.kafka.autoconfig;
 import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.config.EventProcessingConfigurer;
 import org.axonframework.eventhandling.PropagatingErrorHandler;
+import org.axonframework.eventhandling.tokenstore.TokenStore;
 import org.axonframework.extensions.kafka.KafkaProperties;
 import org.axonframework.extensions.kafka.eventhandling.DefaultKafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
@@ -34,6 +35,7 @@ import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducer
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
+import org.axonframework.extensions.kafka.eventhandling.tokenstore.KafkaTokenStore;
 import org.axonframework.serialization.Serializer;
 import org.axonframework.serialization.upcasting.event.EventUpcasterChain;
 import org.axonframework.spring.config.AxonConfiguration;
@@ -184,6 +186,21 @@ public class KafkaAutoConfiguration {
         }
 
         return kafkaEventPublisher;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @Conditional(StreamingProcessorModeCondition.class)
+    @ConditionalOnProperty(name = "axon.kafka.fetcher.enabled", havingValue = "true", matchIfMissing = true)
+    public TokenStore tokenStore(
+            Serializer serializer
+    ) {
+        return KafkaTokenStore
+                .builder()
+                .serializer(serializer)
+                .consumerConfiguration(properties.buildConsumerProperties())
+                .producerConfiguration(properties.buildProducerProperties())
+                .build();
     }
 
     @Bean("axonKafkaConsumerFactory")
