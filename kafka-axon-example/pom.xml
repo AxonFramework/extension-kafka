@@ -30,7 +30,7 @@
     <description>Example module for the Kafka Extension of Axon Framework</description>
 
     <properties>
-        <kotlin.version>1.6.20</kotlin.version>
+        <kotlin.version>1.6.21</kotlin.version>
         <kotlin-logging-jvm.version>2.1.21</kotlin-logging-jvm.version>
         <kotlin.jackson.version>2.13.2</kotlin.jackson.version>
     </properties>
