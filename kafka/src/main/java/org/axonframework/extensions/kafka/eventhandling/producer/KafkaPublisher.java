@@ -16,6 +16,14 @@
 
 package org.axonframework.extensions.kafka.eventhandling.producer;
 
+import com.thoughtworks.xstream.XStream;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.errors.ProducerFencedException;
@@ -31,16 +39,11 @@ import org.axonframework.messaging.unitofwork.UnitOfWork;
 import org.axonframework.monitoring.MessageMonitor;
 import org.axonframework.monitoring.MessageMonitor.MonitorCallback;
 import org.axonframework.monitoring.NoOpMessageMonitor;
+import org.axonframework.serialization.Serializer;
+import org.axonframework.serialization.xml.CompactDriver;
 import org.axonframework.serialization.xml.XStreamSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import static org.axonframework.common.BuilderUtils.assertNonNull;
 import static org.axonframework.common.BuilderUtils.assertThat;
@@ -248,14 +251,23 @@ public class KafkaPublisher<K, V> {
     public static class Builder<K, V> {
 
         private ProducerFactory<K, V> producerFactory;
-        @SuppressWarnings({"unchecked", "squid:S1874"})
-        private KafkaMessageConverter<K, V> messageConverter =
-                (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder()
-                                                                          .serializer(XStreamSerializer.defaultSerializer())
-                                                                          .build();
+        private KafkaMessageConverter<K, V> messageConverter;
         private MessageMonitor<? super EventMessage<?>> messageMonitor = NoOpMessageMonitor.instance();
         private TopicResolver topicResolver = m -> Optional.of(DEFAULT_TOPIC);
         private long publisherAckTimeout = 1_000;
+        private Supplier<Serializer> serializer;
+
+        /**
+         * Sets the {@link Serializer} used to serialize and deserialize messages.
+         *
+         * @param serializer a {@link Serializer} used to serialize and deserialize messages
+         * @return the current Builder instance, for fluent interfacing
+         */
+        public Builder serializer(Serializer serializer) {
+            assertNonNull(serializer, "The Serializer may not be null");
+            this.serializer = () -> serializer;
+            return this;
+        }
 
         /**
          * Sets the {@link ProducerFactory} which will instantiate {@link Producer} instances to publish {@link
@@ -368,6 +380,23 @@ public class KafkaPublisher<K, V> {
         @SuppressWarnings("WeakerAccess")
         protected void validate() throws AxonConfigurationException {
             assertNonNull(producerFactory, "The ProducerFactory is a hard requirement and should be provided");
+            if (serializer == null) {
+                logger.warn(
+                        "The default XStreamSerializer is used, whereas it is strongly recommended to "
+                                + "configure the security context of the XStream instance.",
+                        new AxonConfigurationException(
+                                "A default XStreamSerializer is used, without specifying the security context"
+                        )
+                );
+                serializer = () -> XStreamSerializer.builder()
+                                                    .xStream(new XStream(new CompactDriver()))
+                                                    .build();
+            }
+            if (messageConverter == null) {
+                messageConverter = (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder()
+                                                                                             .serializer(serializer.get())
+                                                                                             .build();
+            }
         }
     }
 }
