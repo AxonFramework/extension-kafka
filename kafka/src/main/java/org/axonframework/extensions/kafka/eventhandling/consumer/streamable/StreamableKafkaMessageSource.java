@@ -73,23 +73,6 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
     private final Supplier<Buffer<KafkaEventMessage>> bufferFactory;
 
     /**
-     * Instantiate a Builder to be able to create a {@link StreamableKafkaMessageSource}.
-     * <p>
-     * The {@code topics} list is defaulted to single entry of {@code "Axon.Events"}, {@code groupIdPrefix} defaults to
-     * {@code "Axon.Streamable.Consumer-"} and it's {@code groupIdSuffixFactory} to a {@link UUID#randomUUID()}
-     * operation, the {@link KafkaMessageConverter} to a {@link DefaultKafkaMessageConverter} using the {@link
-     * XStreamSerializer} and the {@code bufferFactory} the {@link SortedKafkaMessageBuffer} constructor. The {@link
-     * ConsumerFactory} and {@link Fetcher} are <b>hard requirements</b> and as such should be provided.
-     *
-     * @param <K> the key of the {@link ConsumerRecords} to consume, fetch and convert
-     * @param <V> the value type of {@link ConsumerRecords} to consume, fetch and convert
-     * @return a Builder to be able to create an {@link StreamableKafkaMessageSource}
-     */
-    public static <K, V> Builder<K, V> builder() {
-        return new Builder<>();
-    }
-
-    /**
      * Instantiate a {@link StreamableKafkaMessageSource} based on the fields contained in the {@link Builder}.
      * <p>
      * Will assert that the {@link ConsumerFactory} and {@link Fetcher} are not {@code null}. An {@link
@@ -106,6 +89,23 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
         this.fetcher = builder.fetcher;
         this.messageConverter = builder.messageConverter;
         this.bufferFactory = builder.bufferFactory;
+    }
+
+    /**
+     * Instantiate a Builder to be able to create a {@link StreamableKafkaMessageSource}.
+     * <p>
+     * The {@code topics} list is defaulted to single entry of {@code "Axon.Events"}, {@code groupIdPrefix} defaults to
+     * {@code "Axon.Streamable.Consumer-"} and it's {@code groupIdSuffixFactory} to a {@link UUID#randomUUID()}
+     * operation, the {@link KafkaMessageConverter} to a {@link DefaultKafkaMessageConverter} using the {@link
+     * XStreamSerializer} and the {@code bufferFactory} the {@link SortedKafkaMessageBuffer} constructor. The {@link
+     * ConsumerFactory} and {@link Fetcher} are <b>hard requirements</b> and as such should be provided.
+     *
+     * @param <K> the key of the {@link ConsumerRecords} to consume, fetch and convert
+     * @param <V> the value type of {@link ConsumerRecords} to consume, fetch and convert
+     * @return a Builder to be able to create an {@link StreamableKafkaMessageSource}
+     */
+    public static <K, V> Builder<K, V> builder() {
+        return new Builder<>();
     }
 
     /**
@@ -157,7 +157,9 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
         private Fetcher<K, V, KafkaEventMessage> fetcher;
         private KafkaMessageConverter<K, V> messageConverter;
         private Supplier<Buffer<KafkaEventMessage>> bufferFactory = SortedKafkaMessageBuffer::new;
-        private Supplier<Serializer> serializer;
+        private Supplier<Serializer> serializer = () -> XStreamSerializer.builder()
+                                                                         .xStream(new XStream(new CompactDriver()))
+                                                                         .build();
 
         /**
          * Sets the {@link Serializer} used to serialize and deserialize messages.
@@ -319,18 +321,6 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
         protected void validate() throws AxonConfigurationException {
             assertNonNull(consumerFactory, "The ConsumerFactory is a hard requirement and should be provided");
             assertNonNull(fetcher, "The Fetcher is a hard requirement and should be provided");
-            if (serializer == null) {
-                logger.warn(
-                        "The default XStreamSerializer is used, whereas it is strongly recommended to "
-                                + "configure the security context of the XStream instance.",
-                        new AxonConfigurationException(
-                                "A default XStreamSerializer is used, without specifying the security context"
-                        )
-                );
-                serializer = () -> XStreamSerializer.builder()
-                                                    .xStream(new XStream(new CompactDriver()))
-                                                    .build();
-            }
             if (messageConverter == null) {
                 messageConverter = (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder()
                                                                                              .serializer(serializer.get())

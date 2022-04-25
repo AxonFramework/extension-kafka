@@ -255,7 +255,9 @@ public class KafkaPublisher<K, V> {
         private MessageMonitor<? super EventMessage<?>> messageMonitor = NoOpMessageMonitor.instance();
         private TopicResolver topicResolver = m -> Optional.of(DEFAULT_TOPIC);
         private long publisherAckTimeout = 1_000;
-        private Supplier<Serializer> serializer;
+        private Supplier<Serializer> serializer = () -> XStreamSerializer.builder()
+                                                                         .xStream(new XStream(new CompactDriver()))
+                                                                         .build();
 
         /**
          * Sets the {@link Serializer} used to serialize and deserialize messages.
@@ -380,18 +382,6 @@ public class KafkaPublisher<K, V> {
         @SuppressWarnings("WeakerAccess")
         protected void validate() throws AxonConfigurationException {
             assertNonNull(producerFactory, "The ProducerFactory is a hard requirement and should be provided");
-            if (serializer == null) {
-                logger.warn(
-                        "The default XStreamSerializer is used, whereas it is strongly recommended to "
-                                + "configure the security context of the XStream instance.",
-                        new AxonConfigurationException(
-                                "A default XStreamSerializer is used, without specifying the security context"
-                        )
-                );
-                serializer = () -> XStreamSerializer.builder()
-                                                    .xStream(new XStream(new CompactDriver()))
-                                                    .build();
-            }
             if (messageConverter == null) {
                 messageConverter = (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder()
                                                                                              .serializer(serializer.get())

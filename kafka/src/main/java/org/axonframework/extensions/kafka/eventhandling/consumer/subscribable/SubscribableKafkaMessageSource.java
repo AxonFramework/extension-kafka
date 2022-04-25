@@ -86,22 +86,6 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
     private final AtomicBoolean inProgress = new AtomicBoolean(false);
 
     /**
-     * Instantiate a Builder to be able to create a {@link SubscribableKafkaMessageSource}.
-     * <p>
-     * The {@code topics} list is defaulted to single entry of {@code "Axon.Events"} and the {@link
-     * KafkaMessageConverter} to a {@link DefaultKafkaMessageConverter} using the {@link XStreamSerializer}. The {@code
-     * groupId}, {@link ConsumerFactory} and {@link Fetcher} are <b>hard requirements</b> and as such should be
-     * provided.
-     *
-     * @param <K> the key of the {@link ConsumerRecords} to consume, fetch and convert
-     * @param <V> the value type of {@link ConsumerRecords} to consume, fetch and convert
-     * @return a Builder to be able to create a {@link SubscribableKafkaMessageSource}
-     */
-    public static <K, V> Builder<K, V> builder() {
-        return new Builder<>();
-    }
-
-    /**
      * Instantiate a {@link SubscribableKafkaMessageSource} based on the fields contained in the {@link Builder}.
      * <p>
      * Will assert that the {@code groupId}, {@link ConsumerFactory} and {@link Fetcher} are not {@code null}. An {@link
@@ -119,6 +103,22 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
         this.messageConverter = builder.messageConverter;
         this.autoStart = builder.autoStart;
         this.consumerCount = builder.consumerCount;
+    }
+
+    /**
+     * Instantiate a Builder to be able to create a {@link SubscribableKafkaMessageSource}.
+     * <p>
+     * The {@code topics} list is defaulted to single entry of {@code "Axon.Events"} and the {@link
+     * KafkaMessageConverter} to a {@link DefaultKafkaMessageConverter} using the {@link XStreamSerializer}. The {@code
+     * groupId}, {@link ConsumerFactory} and {@link Fetcher} are <b>hard requirements</b> and as such should be
+     * provided.
+     *
+     * @param <K> the key of the {@link ConsumerRecords} to consume, fetch and convert
+     * @param <V> the value type of {@link ConsumerRecords} to consume, fetch and convert
+     * @return a Builder to be able to create a {@link SubscribableKafkaMessageSource}
+     */
+    public static <K, V> Builder<K, V> builder() {
+        return new Builder<>();
     }
 
     /**
@@ -216,7 +216,9 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
         private KafkaMessageConverter<K, V> messageConverter;
         private boolean autoStart = false;
         private int consumerCount = 1;
-        private Supplier<Serializer> serializer;
+        private Supplier<Serializer> serializer = () -> XStreamSerializer.builder()
+                                                                         .xStream(new XStream(new CompactDriver()))
+                                                                         .build();
 
         /**
          * Sets the {@link Serializer} used to serialize and deserialize messages.
@@ -374,18 +376,6 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
             assertNonNull(groupId, "The Consumer Group Id is a hard requirement and should be provided");
             assertNonNull(consumerFactory, "The ConsumerFactory is a hard requirement and should be provided");
             assertNonNull(fetcher, "The Fetcher is a hard requirement and should be provided");
-            if (serializer == null) {
-                logger.warn(
-                        "The default XStreamSerializer is used, whereas it is strongly recommended to "
-                                + "configure the security context of the XStream instance.",
-                        new AxonConfigurationException(
-                                "A default XStreamSerializer is used, without specifying the security context"
-                        )
-                );
-                serializer = () -> XStreamSerializer.builder()
-                                                    .xStream(new XStream(new CompactDriver()))
-                                                    .build();
-            }
             if (messageConverter == null) {
                 messageConverter = (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder()
                                                                                              .serializer(serializer.get())
