@@ -226,7 +226,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
          * @param serializer a {@link Serializer} used to serialize and deserialize messages
          * @return the current Builder instance, for fluent interfacing
          */
-        public Builder serializer(Serializer serializer) {
+        public Builder<K, V> serializer(Serializer serializer) {
             assertNonNull(serializer, "The Serializer may not be null");
             this.serializer = () -> serializer;
             return this;
