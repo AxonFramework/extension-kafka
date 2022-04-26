@@ -260,7 +260,8 @@ public class KafkaPublisher<K, V> {
                                                                          .build();
 
         /**
-         * Sets the {@link Serializer} used to serialize and deserialize messages.
+         * Sets the {@link Serializer} used to serialize and deserialize messages. Defaults to a {@link
+         * XStreamSerializer}.
          *
          * @param serializer a {@link Serializer} used to serialize and deserialize messages
          * @return the current Builder instance, for fluent interfacing
