@@ -157,9 +157,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
         private Fetcher<K, V, KafkaEventMessage> fetcher;
         private KafkaMessageConverter<K, V> messageConverter;
         private Supplier<Buffer<KafkaEventMessage>> bufferFactory = SortedKafkaMessageBuffer::new;
-        private Supplier<Serializer> serializer = () -> XStreamSerializer.builder()
-                                                                         .xStream(new XStream(new CompactDriver()))
-                                                                         .build();
+        private Supplier<Serializer> serializer;
 
         /**
          * Sets the {@link Serializer} used to serialize and deserialize messages. Defaults to a {@link
@@ -322,6 +320,18 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
         protected void validate() throws AxonConfigurationException {
             assertNonNull(consumerFactory, "The ConsumerFactory is a hard requirement and should be provided");
             assertNonNull(fetcher, "The Fetcher is a hard requirement and should be provided");
+            if (serializer == null) {
+                logger.warn(
+                        "The default XStreamSerializer is used, whereas it is strongly recommended to configure"
+                                + " the security context of the XStream instance.",
+                        new AxonConfigurationException(
+                                "A default XStreamSerializer is used, without specifying the security context"
+                        )
+                );
+                serializer = () -> XStreamSerializer.builder()
+                                                    .xStream(new XStream(new CompactDriver()))
+                                                    .build();
+            }
             if (messageConverter == null) {
                 messageConverter = (KafkaMessageConverter<K, V>) DefaultKafkaMessageConverter.builder()
                                                                                              .serializer(serializer.get())
