@@ -32,11 +32,11 @@ public class TokenUpdateDeserializer implements Deserializer<TokenUpdate> {
      *
      * @param topic the topic the bytes are read from, part of the interface, currently only used for logging.
      * @param bytes the bytes received from the Kafka broker.
-     * @return a {@link NotSupportedException} exception
+     * @return a {@link UnsupportedOperationException} exception
      */
     @Override
     public TokenUpdate deserialize(String topic, byte[] bytes) {
-        throw new NotSupportedException("deserialize should be called also using the headers");
+        throw new UnsupportedOperationException("deserialize should be called also using the headers");
     }
 
     /**

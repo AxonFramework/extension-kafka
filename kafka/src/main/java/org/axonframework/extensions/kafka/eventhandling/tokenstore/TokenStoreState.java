@@ -28,6 +28,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.TopicConfig;
+import org.axonframework.common.AxonException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +67,7 @@ class TokenStoreState {
     private static final String SEQUENCE_ERROR_FORMAT = "%d is not after %d for processor %s with segment %d";
     private static final String KEY_FORMAT = "%s::%d";
     private final Map<String, Map<Integer, TokenUpdate>> state = new ConcurrentHashMap<>();
-    private final Map<UUID, CompletableFuture<Boolean>> feedback = new ConcurrentHashMap<>();
+    private final Map<UUID, CompletableFuture<Boolean>> writeResult = new ConcurrentHashMap<>();
     private final Executor executor = Executors.newSingleThreadExecutor();
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
     private final AtomicReference<CompletableFuture<Boolean>> isReady = new AtomicReference<>(new CompletableFuture<>());
@@ -102,7 +103,7 @@ class TokenStoreState {
     Future<Boolean> send(TokenUpdate update) {
         String key = String.format(KEY_FORMAT, update.getProcessorName(), update.getSegment());
         CompletableFuture<Boolean> future = new CompletableFuture<>();
-        feedback.put(update.getId(), future);
+        writeResult.put(update.getId(), future);
         try {
             producer.updateAndGet(p -> {
                 if (p == null) {
@@ -111,7 +112,7 @@ class TokenStoreState {
                 return p;
             }).send(new ProducerRecord<>(topic, key, update)).get(writeTimeOutMillis, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
-            feedback.remove(update.getId());
+            writeResult.remove(update.getId());
             future.complete(false);
             Thread.currentThread().interrupt();
         } catch (ExecutionException | TimeoutException e) {
@@ -119,7 +120,7 @@ class TokenStoreState {
                         update.getProcessorName(),
                         update.getSegment(),
                         e);
-            feedback.remove(update.getId());
+            writeResult.remove(update.getId());
             future.complete(false);
         }
         return future;
@@ -226,13 +227,15 @@ class TokenStoreState {
         }
     }
 
+    /**
+     * See the {@link KafkaTokenStore.Builder#topic(String) topic} method for the reasoning behind the configuration.
+     */
     private void createTopic() {
         try (AdminClient client = AdminClient.create(consumerConfiguration)) {
             short replicationFactor = (short) Math.min(3, client.describeCluster().nodes().get().size());
             NewTopic newTopic = new NewTopic(topic, 1, replicationFactor);
             Map<String, String> topicConfig = new HashMap<>();
             topicConfig.put(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT);
-            //needed to make sure we have at least one new message in case of concurrent writes
             topicConfig.put(
                     TopicConfig.MIN_COMPACTION_LAG_MS_CONFIG,
                     String.valueOf((2 * Duration.from(claimTimeout).getSeconds()))
@@ -259,7 +262,7 @@ class TokenStoreState {
             update = new TokenUpdate(consumerRecord.headers(), null);
             result = updateDeletion(update);
         }
-        feedback.computeIfPresent(
+        writeResult.computeIfPresent(
                 update.getId(),
                 (k, f) -> {
                     f.complete(result);
@@ -305,6 +308,24 @@ class TokenStoreState {
                                                               oldUpdate.getSequenceNumber(),
                                                               newUpdate.getProcessorName(),
                                                               newUpdate.getSegment()));
+        }
+    }
+
+    /**
+     * Exception thrown when failing to update the token store.
+     *
+     * @author Gerard Klijs
+     * @since 4.6.0
+     */
+    private static class TokenStoreUpdateException extends AxonException {
+
+        /**
+         * Initializes the exception using the given {@code message}.
+         *
+         * @param message The message describing the exception
+         */
+        private TokenStoreUpdateException(String message) {
+            super(message);
         }
     }
 }

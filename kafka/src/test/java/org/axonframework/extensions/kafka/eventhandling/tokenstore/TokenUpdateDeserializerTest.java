@@ -33,6 +33,6 @@ class TokenUpdateDeserializerTest {
     @Test
     void testBuildWithoutSerializer() {
         TokenUpdateSerializer serializer = new TokenUpdateSerializer();
-        assertThrows(NotSupportedException.class, () -> serializer.serialize("topic", null));
+        assertThrows(UnsupportedOperationException.class, () -> serializer.serialize("topic", null));
     }
 }

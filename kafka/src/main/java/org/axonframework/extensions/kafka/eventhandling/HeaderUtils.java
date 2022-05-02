@@ -93,10 +93,10 @@ public abstract class HeaderUtils {
     }
 
     /**
-     * Converts bytes to int.
+     * Converts the given bytes to {@code int}.
      *
-     * @param value the bytes to convert in to a long
-     * @return the long build from the given bytes
+     * @param value the bytes to convert into a {@code int}
+     * @return the {@code int} build from the given bytes
      */
     public static Integer asInt(byte[] value) {
         return value != null ? ByteBuffer.wrap(value).getInt() : null;
@@ -115,13 +115,13 @@ public abstract class HeaderUtils {
     }
 
     /**
-     * Return a {@link Long} representation of the {@code value} stored under a given {@code key} inside the {@link
+     * Return a {@link Integer} representation of the {@code value} stored under a given {@code key} inside the {@link
      * Headers}. In case of a missing entry {@code defaultValue} is returned.
      *
      * @param headers      the Kafka {@code headers} to pull the {@link Integer} value from
      * @param key          the key corresponding to the expected {@link Integer} value
      * @param defaultValue the default value to return when {@code key} does not exist in the given {@code headers}
-     * @return the value as a {@link Long} corresponding to the given {@code key} in the {@code headers}
+     * @return the value as a {@link Integer} corresponding to the given {@code key} in the {@code headers}
      */
     public static Integer valueAsInt(Headers headers, String key, Integer defaultValue) {
         Integer value = asInt(value(headers, key));

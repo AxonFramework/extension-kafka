@@ -32,12 +32,12 @@ public class TokenUpdateSerializer implements Serializer<TokenUpdate> {
      *
      * @param topic       topic the bytes are written to, part of the interface, currently not used
      * @param tokenUpdate the token update object to send to Kafka
-     * @return a {@link NotSupportedException} exception
+     * @return a {@link UnsupportedOperationException} exception
      */
     @Override
     @SuppressWarnings("squid:S1168") //needs to return null to work as tombstone
     public byte[] serialize(String topic, TokenUpdate tokenUpdate) {
-        throw new NotSupportedException("serialize should be called also using the headers");
+        throw new UnsupportedOperationException("serialize should be called also using the headers");
     }
 
     /**

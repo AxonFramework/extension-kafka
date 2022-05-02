@@ -31,6 +31,6 @@ class TokenUpdateSerializerTest {
     void testBuildWithoutSerializer() {
         TokenUpdateDeserializer deserializer = new TokenUpdateDeserializer();
         byte[] bytes = new byte[0];
-        assertThrows(NotSupportedException.class, () -> deserializer.deserialize("topic", bytes));
+        assertThrows(UnsupportedOperationException.class, () -> deserializer.deserialize("topic", bytes));
     }
 }

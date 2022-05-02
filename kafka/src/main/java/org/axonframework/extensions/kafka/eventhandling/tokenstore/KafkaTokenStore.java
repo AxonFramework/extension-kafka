@@ -421,7 +421,14 @@ public class KafkaTokenStore implements TokenStore {
 
         /**
          * Sets the {@code topic} specifying the topic used for the token claim updates. Defaults to
-         * __axon_token_store_updates.
+         * __axon_token_store_updates. Please make sure that either the topic doesn't exist yet, and can be created be
+         * the consumer, or the topic is configured correctly. It should be a compacted topic, and it might have
+         * multiple partition, but one should be more than enough for the expected traffic. The {@code
+         * min.compaction.lag.ms} of the topic should be at least double the {@code claimTimeout}. This is because we
+         * consider the first message with the same sequence number as the 'correct' message, instead of Kafka, that
+         * might delete a message when there is a newer message using the same key. To be sure the topic is cleaned up
+         * in time, independent of the default configured values, the {@code max.compaction.lag.ms} can be set to a
+         * value about 4 times the {@code min.compaction.lag.ms} value.
          *
          * @param topic the topic used for token claim updates
          * @return the current Builder instance, for fluent interfacing
