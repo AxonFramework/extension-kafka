@@ -31,7 +31,6 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.axonframework.config.EventProcessingConfigurer;
 import org.axonframework.config.EventProcessingModule;
 import org.axonframework.eventhandling.EventBus;
-import org.axonframework.eventhandling.tokenstore.TokenStore;
 import org.axonframework.extensions.kafka.KafkaProperties;
 import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
@@ -43,6 +42,7 @@ import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducer
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
+import org.axonframework.extensions.kafka.eventhandling.tokenstore.KafkaTokenStore;
 import org.axonframework.monitoring.MessageMonitor;
 import org.axonframework.monitoring.NoOpMessageMonitor;
 import org.axonframework.serialization.Serializer;
@@ -298,6 +298,7 @@ class KafkaAutoConfigurationIntegrationTest {
                 assertEquals(0, context.getBeanNamesForType(ConsumerFactory.class).length);
                 assertEquals(0, context.getBeanNamesForType(Fetcher.class).length);
                 assertEquals(0, context.getBeanNamesForType(StreamableKafkaMessageSource.class).length);
+                assertEquals(0, context.getBeanNamesForType(KafkaTokenStore.class).length);
             });
     }
 
@@ -512,7 +513,7 @@ class KafkaAutoConfigurationIntegrationTest {
                         kafkaProperties.getConsumer().getEventProcessorMode()
                 );
                 assertNotNull(context.getBean(StreamableKafkaMessageSource.class));
-                assertNotNull(context.getBean(TokenStore.class));
+                assertNotNull(context.getBean(KafkaTokenStore.class));
             });
     }
 
@@ -534,7 +535,7 @@ class KafkaAutoConfigurationIntegrationTest {
                         NoSuchBeanDefinitionException.class, () -> context.getBean(StreamableKafkaMessageSource.class)
                 );
                 assertThrows(
-                        NoSuchBeanDefinitionException.class, () -> context.getBean(TokenStore.class)
+                        NoSuchBeanDefinitionException.class, () -> context.getBean(KafkaTokenStore.class)
                 );
             });
     }
@@ -554,7 +555,7 @@ class KafkaAutoConfigurationIntegrationTest {
                         kafkaProperties.getConsumer().getEventProcessorMode()
                 );
                 assertNotNull(context.getBean(StreamableKafkaMessageSource.class));
-                assertNotNull(context.getBean(TokenStore.class));
+                assertNotNull(context.getBean(KafkaTokenStore.class));
             });
     }
 

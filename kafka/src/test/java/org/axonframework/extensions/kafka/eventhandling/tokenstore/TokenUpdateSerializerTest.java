@@ -16,21 +16,50 @@
 
 package org.axonframework.extensions.kafka.eventhandling.tokenstore;
 
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.axonframework.eventhandling.GlobalSequenceTrackingToken;
+import org.axonframework.eventhandling.TrackingToken;
+import org.axonframework.eventhandling.tokenstore.AbstractTokenEntry;
+import org.axonframework.eventhandling.tokenstore.GenericTokenEntry;
+import org.axonframework.extensions.kafka.eventhandling.HeaderUtils;
+import org.axonframework.serialization.json.JacksonSerializer;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.*;
+import org.mockito.junit.jupiter.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Test class validating the {@link TokenUpdateSerializer}
+ * Test class validating the {@link TokenUpdateDeserializer}.
  *
  * @author Gerard Klijs
  */
+@ExtendWith(MockitoExtension.class)
 class TokenUpdateSerializerTest {
 
     @Test
-    void testBuildWithoutSerializer() {
-        TokenUpdateDeserializer deserializer = new TokenUpdateDeserializer();
-        byte[] bytes = new byte[0];
-        assertThrows(UnsupportedOperationException.class, () -> deserializer.deserialize("topic", bytes));
+    void testSerializeUnsupportedOperation() {
+        TokenUpdateSerializer serializer = new TokenUpdateSerializer();
+        assertThrows(UnsupportedOperationException.class, () -> serializer.serialize("topic", null));
+    }
+
+    @Test
+    void testSerializeHappyFlow() {
+        TokenUpdateSerializer serializer = new TokenUpdateSerializer();
+        TrackingToken someToken = new GlobalSequenceTrackingToken(42);
+        AbstractTokenEntry<byte[]> tokenEntry =
+                new GenericTokenEntry<>(someToken,
+                                        JacksonSerializer.defaultSerializer(),
+                                        byte[].class,
+                                        "processorName",
+                                        0);
+        TokenUpdate update = new TokenUpdate(tokenEntry, 0);
+        Headers headers = new RecordHeaders();
+        byte[] bytes = serializer.serialize("topic", headers, update);
+        assertNotNull(bytes);
+        assertNotEquals(0, bytes.length);
+        assertEquals(GlobalSequenceTrackingToken.class.getCanonicalName(),
+                     HeaderUtils.valueAsString(headers, "tokenType"));
     }
 }

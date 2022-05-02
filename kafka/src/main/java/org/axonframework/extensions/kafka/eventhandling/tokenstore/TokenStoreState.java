@@ -174,7 +174,7 @@ class TokenStoreState {
                 waitTillReady();
             }
         } catch (InterruptedException e) {
-            logger.warn("interrupted while waiting till token store state was ready", e);
+            logger.warn("interrupted while waiting until token store state was ready", e);
             Thread.currentThread().interrupt();
         } catch (ExecutionException e) {
             logger.warn("Error waiting till token store state was ready", e);

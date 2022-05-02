@@ -26,7 +26,17 @@ import java.util.UUID;
 import static org.axonframework.extensions.kafka.eventhandling.HeaderUtils.*;
 
 /**
- * The message used to persist the tokens, and to update them.
+ * The message used to persist the tokens, and to update them. It needs the Token specific information like {@link
+ * #processorName}, {@link #segment}, {@link #owner} and {@link #timestamp} so we know both how to store the information
+ * in memory, and are able to know if a token is claimable and such without needing to deserialize it first.
+ * <p>
+ * It needs the {@link #token} and {@link #tokenType} so we can deserialize the token when needed.
+ * <p>
+ * The {@link #sequenceNumber} is there, so we can handle concurrent writes for the same processor name and segment. In
+ * those cases the on stored on the broker first, so the one with the lowest offset, wins.
+ * <p>
+ * To be able to know which write failed in the case of concurrent writes an {@link #id} is available. This will be used
+ * by the {@link TokenStoreState} to provide feedback when updating the in memory representation of the state.
  *
  * @author Gerard Klijs
  * @since 4.6.0
@@ -50,6 +60,13 @@ class TokenUpdate {
     private static final String TIMESTAMP_HEADER = "timestamp";
     private static final String SEQUENCE_NUMBER_HEADER = "sequenceNumber";
 
+    /**
+     * Used to create an update to a previous one, where the sequence number should be higher, or with zero for a new
+     * update.
+     *
+     * @param tokenEntry     the token entry to store
+     * @param sequenceNumber the sequence number
+     */
     TokenUpdate(AbstractTokenEntry<byte[]> tokenEntry, long sequenceNumber) {
         this.id = UUID.randomUUID();
         this.processorName = tokenEntry.getProcessorName();
@@ -62,6 +79,12 @@ class TokenUpdate {
         this.sequenceNumber = sequenceNumber;
     }
 
+    /**
+     * Used by the {@link TokenUpdateDeserializer} when reading the updates from Kafka.
+     *
+     * @param headers the Kafka headers
+     * @param data    the serialized token data
+     */
     TokenUpdate(Headers headers, byte[] data) {
         this.id = UUID.fromString(valueAsString(headers, ID_HEADER));
         this.processorName = valueAsString(headers, PROCESSOR_NAME_HEADER);
@@ -73,6 +96,12 @@ class TokenUpdate {
         this.sequenceNumber = valueAsLong(headers, SEQUENCE_NUMBER_HEADER, 0L);
     }
 
+    /**
+     * Used to create a copy of a current update, will set the id to a different value
+     *
+     * @param update the update to copy from
+     * @param delete whether this is an update to mark deletion, if so some fields are set to null.
+     */
     TokenUpdate(TokenUpdate update, boolean delete) {
         this.id = UUID.randomUUID();
         this.processorName = update.processorName;

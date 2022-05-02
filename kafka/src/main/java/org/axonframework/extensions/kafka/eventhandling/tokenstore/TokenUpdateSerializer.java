@@ -28,7 +28,8 @@ import org.apache.kafka.common.serialization.Serializer;
 public class TokenUpdateSerializer implements Serializer<TokenUpdate> {
 
     /**
-     * Serializes the {@code tokenUpdate} to bytes.
+     * This method should not be used, instead {@link #serialize(String, Headers, TokenUpdate)}) serialize}, with
+     * headers should be used.
      *
      * @param topic       topic the bytes are written to, part of the interface, currently not used
      * @param tokenUpdate the token update object to send to Kafka

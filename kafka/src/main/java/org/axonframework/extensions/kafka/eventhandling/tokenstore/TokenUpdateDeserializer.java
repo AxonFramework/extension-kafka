@@ -28,7 +28,8 @@ import org.apache.kafka.common.serialization.Deserializer;
 public class TokenUpdateDeserializer implements Deserializer<TokenUpdate> {
 
     /**
-     * Deserializes the bytes to a {@link TokenUpdate} object
+     * This method should not be used, instead {@link #deserialize(String, Headers, byte[]) deserialize}, with headers
+     * should be used.
      *
      * @param topic the topic the bytes are read from, part of the interface, currently only used for logging.
      * @param bytes the bytes received from the Kafka broker.

@@ -22,7 +22,6 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.axonframework.common.AxonConfigurationException;
-import org.axonframework.common.BuilderUtils;
 import org.axonframework.common.jdbc.ConnectionProvider;
 import org.axonframework.eventhandling.Segment;
 import org.axonframework.eventhandling.TrackingToken;
@@ -52,11 +51,15 @@ import java.util.stream.IntStream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import static org.axonframework.common.BuilderUtils.assertNonEmpty;
 import static org.axonframework.common.BuilderUtils.assertNonNull;
 
 /**
- * An implementation of TokenStore that allows you store and retrieve tracking tokens backed by a compacted Kafka
- * topic.
+ * An implementation of the {@link TokenStore} that allows you to store and retrieve tracking tokens backed by a
+ * compacted Kafka. This can be used in combination with a streaming event processor to store the offsets. This way the
+ * tokens are stored in the same place as where the events are put. When restarted it can thus resume where it was left.
+ * Don't use this when for example building a projection, in that case use the token store matching the db of the
+ * projection.
  *
  * @author Gerard Klijs
  * @since 4.6.0
@@ -76,10 +79,13 @@ public class KafkaTokenStore implements TokenStore {
     /**
      * Instantiate a Builder to be able to create a {@link KafkaTokenStore}.
      * <p>
-     * The {@code claimTimeout} is defaulted to a 10 seconds duration, {@code nodeId} is defaulted to the name of the
-     * managed bean for the runtime system of the Java virtual machine and the {@code contentType} to a {@code byte[]}
-     * {@link Class}. The {@link ConnectionProvider} and {@link Serializer} are <b>hard requirements</b> and as such
-     * should be provided.
+     * The {@code topic} defaults 'to __axon_token_store_updates'. The {@code claimTimeout} is defaulted to a 10 seconds
+     * duration (by using {@link Duration#ofSeconds(long)}, {@code nodeId} is defaulted to the {@code
+     * ManagementFactory#getRuntimeMXBean#getName} output, the {@code readTimeOut} to a 5 seconds duration (by using
+     * {@link Duration#ofSeconds(long)}, and the {@code writeTimeout} to a 3 seconds duration (by using {@link
+     * Duration#ofSeconds(long)}. The {@code consumerConfiguration}, {@code producerConfiguration} and {@link
+     * Serializer} are <b>hard requirements</b> and as such should be provided. For the {@code consumerConfiguration}
+     * and {@code producerConfiguration} the most important property is the {@code bootstrap.servers} config.
      *
      * @return a Builder to be able to create a {@link KafkaTokenStore}
      */
@@ -399,8 +405,8 @@ public class KafkaTokenStore implements TokenStore {
     /**
      * Builder class to instantiate a {@link KafkaTokenStore}.
      * <p>
-     * The {@code topic} is defaulted to __axon_token_store_updates. The {@code claimTimeout} is defaulted to a 10
-     * seconds duration (by using {@link Duration#ofSeconds(long)}, {@code nodeId} is defaulted to the {@code
+     * The {@code topic} defaults 'to __axon_token_store_updates'. The {@code claimTimeout} is defaulted to a 10 seconds
+     * duration (by using {@link Duration#ofSeconds(long)}, {@code nodeId} is defaulted to the {@code
      * ManagementFactory#getRuntimeMXBean#getName} output, the {@code readTimeOut} to a 5 seconds duration (by using
      * {@link Duration#ofSeconds(long)}, and the {@code writeTimeout} to a 3 seconds duration (by using {@link
      * Duration#ofSeconds(long)}. The {@code consumerConfiguration}, {@code producerConfiguration} and {@link
@@ -434,7 +440,7 @@ public class KafkaTokenStore implements TokenStore {
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder topic(String topic) {
-            BuilderUtils.assertNonEmpty(topic, "The topic may not be null");
+            assertNonEmpty(topic, "The topic may not be null");
             this.topic = topic;
             return this;
         }
@@ -473,7 +479,7 @@ public class KafkaTokenStore implements TokenStore {
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder nodeId(String nodeId) {
-            BuilderUtils.assertNonEmpty(nodeId, "The nodeId may not be null or empty");
+            assertNonEmpty(nodeId, "The nodeId may not be null or empty");
             this.nodeId = nodeId;
             return this;
         }
@@ -512,7 +518,7 @@ public class KafkaTokenStore implements TokenStore {
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder readTimeOut(Duration readTimeOut) {
-            BuilderUtils.assertNonNull(readTimeOut, "The readTimeOut may not be null");
+            assertNonNull(readTimeOut, "The readTimeOut may not be null");
             this.readTimeOut = readTimeOut;
             return this;
         }
@@ -525,7 +531,7 @@ public class KafkaTokenStore implements TokenStore {
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder writeTimeout(Duration writeTimeout) {
-            BuilderUtils.assertNonNull(writeTimeout, "The readTimeOut may not be null");
+            assertNonNull(writeTimeout, "The readTimeOut may not be null");
             this.writeTimeout = writeTimeout;
             return this;
         }
@@ -546,9 +552,9 @@ public class KafkaTokenStore implements TokenStore {
          *                                    specifications
          */
         protected void validate() throws AxonConfigurationException {
-            BuilderUtils.assertNonEmpty(topic, "The topic is a hard requirement and should be provided");
+            assertNonEmpty(topic, "The topic is a hard requirement and should be provided");
             assertNonNull(serializer, "The Serializer is a hard requirement and should be provided");
-            BuilderUtils.assertNonEmpty(nodeId, "The nodeId is a hard requirement and should be provided");
+            assertNonEmpty(nodeId, "The nodeId is a hard requirement and should be provided");
             assertMinimalValidClientConfiguration(consumerConfiguration,
                                                   "Consumer configuration is a hard requirement and should at least contain a 'bootstrap.servers' value");
             assertMinimalValidClientConfiguration(producerConfiguration,

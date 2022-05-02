@@ -25,6 +25,7 @@ import org.apache.kafka.clients.admin.ListTopicsResult;
 import org.apache.kafka.clients.admin.NewPartitions;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.common.errors.TopicExistsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,6 +68,12 @@ public abstract class KafkaAdminUtils {
             topicsCreationResult.values().values()
                                 .forEach(KafkaAdminUtils::waitForCompletion);
             Arrays.stream(topics).forEach(topic -> logger.info("Completed topic creation: {}", topic));
+        } catch (TopicExistsException e) {
+            logger.warn("Topic already exists while creating topics [{}] for [{}]. retrying",
+                        topics,
+                        bootstrapServer,
+                        e);
+            createTopics(bootstrapServer, topics);
         } catch (Exception e) {
             logger.warn("Encountered an exception while creating topics [{}] for [{}].", topics, bootstrapServer, e);
             throw e;
@@ -100,14 +107,13 @@ public abstract class KafkaAdminUtils {
     public static void deleteTopics(String bootstrapServer, String... topics) {
         try (AdminClient adminClient = AdminClient.create(minimalAdminConfig(bootstrapServer))) {
             DeleteTopicsResult topicsDeletionResult = adminClient.deleteTopics(Arrays.asList(topics));
-            topicsDeletionResult.values().values()
-                                .forEach(KafkaAdminUtils::waitForCompletion);
+            waitForCompletion(topicsDeletionResult.all());
             Arrays.stream(topics).forEach(topic -> logger.info("Completed topic deletion: {}", topic));
         }
     }
 
     /**
-     * Method responsible for deleting the {@code topics} on the provided {@code bootstrapServer}.
+     * Method responsible for listing the {@code topics} on the provided {@code bootstrapServer}.
      *
      * @param bootstrapServer the kafka address
      */

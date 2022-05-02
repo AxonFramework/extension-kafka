@@ -16,23 +16,40 @@
 
 package org.axonframework.extensions.kafka.eventhandling.tokenstore;
 
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.axonframework.extensions.kafka.eventhandling.HeaderUtils;
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.extension.*;
-import org.mockito.junit.jupiter.*;
+
+import java.time.Instant;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Test class validating the {@link TokenUpdateDeserializer}
+ * Test class validating the {@link TokenUpdateSerializer}.
  *
  * @author Gerard Klijs
  */
-@ExtendWith(MockitoExtension.class)
 class TokenUpdateDeserializerTest {
 
     @Test
-    void testBuildWithoutSerializer() {
-        TokenUpdateSerializer serializer = new TokenUpdateSerializer();
-        assertThrows(UnsupportedOperationException.class, () -> serializer.serialize("topic", null));
+    void testDeserializeUnsupportedOperation() {
+        TokenUpdateDeserializer deserializer = new TokenUpdateDeserializer();
+        byte[] bytes = new byte[0];
+        assertThrows(UnsupportedOperationException.class, () -> deserializer.deserialize("topic", bytes));
+    }
+
+    @Test
+    void testDeserializerMostlyEmpty() {
+        TokenUpdateDeserializer deserializer = new TokenUpdateDeserializer();
+        byte[] bytes = new byte[0];
+        Headers headers = new RecordHeaders();
+        HeaderUtils.addHeader(headers, "id", UUID.randomUUID());
+        Instant now = Instant.now();
+        HeaderUtils.addHeader(headers, "timestamp", now.toEpochMilli());
+        TokenUpdate update = deserializer.deserialize("topic", headers, bytes);
+        assertNotNull(update);
+        assertEquals(now.toEpochMilli(), update.getTimestamp().toEpochMilli());
     }
 }

@@ -106,7 +106,7 @@ class KafkaTokenStoreIntegrationTest extends KafkaContainerTest {
     }
 
     @Test
-    void deleteTokenWhenNotTheInitialized() {
+    void deleteTokenWhenNotInitialized() {
         assertThrows(UnableToClaimTokenException.class, () -> tokenStore.deleteToken(PROCESSOR_NAME, SEGMENT));
     }
 
