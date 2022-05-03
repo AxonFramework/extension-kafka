@@ -71,6 +71,7 @@ public class KafkaTokenStore implements TokenStore {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaTokenStore.class);
     private static final String DEFAULT_TOPIC = "__axon_token_store_updates";
+    private static final String TOKEN_STORE_CLIENT_ID = "token_store_client";
     private static final String NOT_FOUND_MSG = "Unable to claim token '%s[%s]', It has not been initialized yet";
 
     private final String nodeId;
@@ -568,8 +569,9 @@ public class KafkaTokenStore implements TokenStore {
         private Map<String, Object> setConsumerConfig(Map<String, Object> configuration) {
             Map<String, Object> result = new HashMap<>(configuration);
             result.remove(ConsumerConfig.GROUP_ID_CONFIG);
+            result.put(CommonClientConfigs.CLIENT_ID_CONFIG, TOKEN_STORE_CLIENT_ID);
             result.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-            result.put(ConsumerConfig.GROUP_ID_CONFIG, "earliest");
+            result.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
             result.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
             result.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, TokenUpdateDeserializer.class);
             return result;
@@ -577,6 +579,7 @@ public class KafkaTokenStore implements TokenStore {
 
         private Map<String, Object> setProducerConfig(Map<String, Object> configuration) {
             Map<String, Object> result = new HashMap<>(configuration);
+            result.put(CommonClientConfigs.CLIENT_ID_CONFIG, TOKEN_STORE_CLIENT_ID);
             result.put(ProducerConfig.LINGER_MS_CONFIG, 0);
             result.put(ProducerConfig.ACKS_CONFIG, "1");
             result.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
