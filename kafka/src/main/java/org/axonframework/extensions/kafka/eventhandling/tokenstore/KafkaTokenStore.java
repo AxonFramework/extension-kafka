@@ -31,6 +31,8 @@ import org.axonframework.eventhandling.tokenstore.TokenStore;
 import org.axonframework.eventhandling.tokenstore.UnableToClaimTokenException;
 import org.axonframework.eventhandling.tokenstore.UnableToInitializeTokenException;
 import org.axonframework.eventhandling.tokenstore.jdbc.TokenSchema;
+import org.axonframework.lifecycle.ShutdownHandler;
+import org.axonframework.lifecycle.StartHandler;
 import org.axonframework.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +55,7 @@ import javax.annotation.Nullable;
 
 import static org.axonframework.common.BuilderUtils.assertNonEmpty;
 import static org.axonframework.common.BuilderUtils.assertNonNull;
+import static org.axonframework.lifecycle.Phase.EXTERNAL_CONNECTIONS;
 
 /**
  * An implementation of the {@link TokenStore} that allows you to store and retrieve tracking tokens backed by a
@@ -115,7 +118,6 @@ public class KafkaTokenStore implements TokenStore {
         );
         this.serializer = builder.serializer;
         this.readTimeOutMillis = builder.readTimeOut.toMillis();
-        start();
     }
 
     /**
@@ -297,6 +299,7 @@ public class KafkaTokenStore implements TokenStore {
     /**
      * Starts the token store state
      */
+    @StartHandler(phase = EXTERNAL_CONNECTIONS)
     public void start() {
         tokenStoreState.start();
     }
@@ -304,6 +307,7 @@ public class KafkaTokenStore implements TokenStore {
     /**
      * Closes the token store state
      */
+    @ShutdownHandler(phase = EXTERNAL_CONNECTIONS)
     public void close() {
         tokenStoreState.close();
     }

@@ -239,7 +239,7 @@ class KafkaTokenStoreConcurrentIntegrationTest extends KafkaContainerTest {
         Serializer serializer = XStreamSerializer.builder()
                                                  .xStream(new XStream(new CompactDriver()))
                                                  .build();
-        return KafkaTokenStore
+        KafkaTokenStore tokenStore = KafkaTokenStore
                 .builder()
                 .topic(TOPICS[0])
                 .nodeId(nodeId)
@@ -250,6 +250,8 @@ class KafkaTokenStoreConcurrentIntegrationTest extends KafkaContainerTest {
                 .readTimeOut(Duration.ofSeconds(10L))
                 .writeTimeout(Duration.ofSeconds(10L))
                 .build();
+        tokenStore.start();
+        return tokenStore;
     }
 
     private <T> T testConcurrency(Supplier<T> s1, Supplier<T> s2) throws InterruptedException {

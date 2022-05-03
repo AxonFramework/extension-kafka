@@ -190,11 +190,13 @@ class KafkaTokenStoreIntegrationTest extends KafkaContainerTest {
         Serializer serializer = XStreamSerializer.builder()
                                                  .xStream(new XStream(new CompactDriver()))
                                                  .build();
-        return KafkaTokenStore
+        KafkaTokenStore tokenStore = KafkaTokenStore
                 .builder()
                 .serializer(serializer)
                 .consumerConfiguration(configuration)
                 .producerConfiguration(configuration)
                 .build();
+        tokenStore.start();
+        return tokenStore;
     }
 }
