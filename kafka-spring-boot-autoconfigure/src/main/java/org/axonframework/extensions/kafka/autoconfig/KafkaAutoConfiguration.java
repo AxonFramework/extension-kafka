@@ -190,7 +190,7 @@ public class KafkaAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    @Conditional(StreamingProcessorModeCondition.class)
+    @Conditional(ProducerStreamingProcessorModeCondition.class)
     @ConditionalOnProperty(name = "axon.kafka.fetcher.enabled", havingValue = "true", matchIfMissing = true)
     public TokenStore tokenStore(
             Serializer serializer
@@ -223,7 +223,7 @@ public class KafkaAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnBean({ConsumerFactory.class, KafkaMessageConverter.class, Fetcher.class})
-    @Conditional(StreamingProcessorModeCondition.class)
+    @Conditional(ConsumerStreamingProcessorModeCondition.class)
     @ConditionalOnProperty(name = "axon.kafka.fetcher.enabled", havingValue = "true", matchIfMissing = true)
     public StreamableKafkaMessageSource<String, byte[]> streamableKafkaMessageSource(
             ConsumerFactory<String, byte[]> kafkaConsumerFactory,
@@ -241,9 +241,9 @@ public class KafkaAutoConfiguration {
                                            .build();
     }
 
-    private static class StreamingProcessorModeCondition extends AnyNestedCondition {
+    private static class ConsumerStreamingProcessorModeCondition extends AnyNestedCondition {
 
-        public StreamingProcessorModeCondition() {
+        public ConsumerStreamingProcessorModeCondition() {
             super(ConfigurationPhase.REGISTER_BEAN);
         }
 
@@ -255,6 +255,25 @@ public class KafkaAutoConfiguration {
 
         @SuppressWarnings("unused")
         @ConditionalOnProperty(name = "axon.kafka.consumer.event-processor-mode", havingValue = "pooled_streaming")
+        static class PooledStreamingCondition {
+
+        }
+    }
+
+    private static class ProducerStreamingProcessorModeCondition extends AnyNestedCondition {
+
+        public ProducerStreamingProcessorModeCondition() {
+            super(ConfigurationPhase.REGISTER_BEAN);
+        }
+
+        @SuppressWarnings("unused")
+        @ConditionalOnProperty(name = "axon.kafka.producer.event-processor-mode", havingValue = "tracking")
+        static class TrackingCondition {
+
+        }
+
+        @SuppressWarnings("unused")
+        @ConditionalOnProperty(name = "axon.kafka.producer.event-processor-mode", havingValue = "pooled_streaming")
         static class PooledStreamingCondition {
 
         }

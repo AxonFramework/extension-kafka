@@ -25,7 +25,6 @@ import org.apache.kafka.clients.admin.ListTopicsResult;
 import org.apache.kafka.clients.admin.NewPartitions;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.KafkaFuture;
-import org.apache.kafka.common.errors.TopicExistsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,20 +62,31 @@ public abstract class KafkaAdminUtils {
      * @param topics          a list of topics to be created
      */
     public static void createTopics(String bootstrapServer, String... topics) {
+        createTopics(bootstrapServer, 3, topics);
+    }
+
+    /**
+     * Method responsible for creating the {@code topics} on the provided {@code bootstrapServer}.
+     *
+     * @param bootstrapServer the kafka address
+     * @param retries         the number of retries if there is an error
+     * @param topics          a list of topics to be created
+     */
+    public static void createTopics(String bootstrapServer, int retries, String... topics) {
         try (AdminClient adminClient = AdminClient.create(minimalAdminConfig(bootstrapServer))) {
             CreateTopicsResult topicsCreationResult = adminClient.createTopics(topics(topics));
             topicsCreationResult.values().values()
                                 .forEach(KafkaAdminUtils::waitForCompletion);
             Arrays.stream(topics).forEach(topic -> logger.info("Completed topic creation: {}", topic));
-        } catch (TopicExistsException e) {
-            logger.warn("Topic already exists while creating topics [{}] for [{}]. retrying",
-                        topics,
-                        bootstrapServer,
-                        e);
-            createTopics(bootstrapServer, topics);
         } catch (Exception e) {
             logger.warn("Encountered an exception while creating topics [{}] for [{}].", topics, bootstrapServer, e);
-            throw e;
+            if (retries > 0) {
+                int retriesLeft = retries - 1;
+                logger.info("Retrying topic creation, retries left: {}", retriesLeft);
+                createTopics(bootstrapServer, retriesLeft, topics);
+            } else {
+                throw e;
+            }
         }
     }
 

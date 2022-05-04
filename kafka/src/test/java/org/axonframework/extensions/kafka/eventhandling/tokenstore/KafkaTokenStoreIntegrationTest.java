@@ -165,6 +165,7 @@ class KafkaTokenStoreIntegrationTest extends KafkaContainerTest {
 
     @Test
     void releaseTokenWhenNotInitialized() {
+        tokenStore.initializeSegment(null, PROCESSOR_NAME, 0);
         assertThrows(UnableToClaimTokenException.class, () -> tokenStore.releaseClaim(PROCESSOR_NAME, SEGMENT));
     }
 
