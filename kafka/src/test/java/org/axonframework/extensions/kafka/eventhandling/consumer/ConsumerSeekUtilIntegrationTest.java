@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2021. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
+package org.axonframework.extensions.kafka.eventhandling.consumer;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -22,7 +22,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
-import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
+import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.KafkaTrackingToken;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaContainerTest;
@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.Collections.emptyMap;
-import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.consumerFactory;
 import static org.axonframework.extensions.kafka.eventhandling.util.KafkaTestUtils.getRecords;
 import static org.axonframework.extensions.kafka.eventhandling.util.KafkaTestUtils.pollUntilAtLeastNumRecords;
@@ -44,14 +43,15 @@ import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConf
 import static org.junit.jupiter.api.Assertions.*;
 
 /***
- * Integration tests spinning up a Kafka Broker to verify whether the {@link TrackingTokenConsumerRebalanceListener}
+ * Integration tests spinning up a Kafka Broker to verify whether the {@link ConsumerSeekUtil}
  * starts a seek operation on the expected offsets from a {@link Consumer#poll(Duration)} perspective.
  *
  * @author Nakul Mishra
  * @author Steven van Beelen
+ * @author Gerard Klijs
  */
 
-class TrackingTokenConsumerRebalanceListenerIntegrationTest extends KafkaContainerTest {
+class ConsumerSeekUtilIntegrationTest extends KafkaContainerTest {
 
     private static final String RECORD_BODY = "foo";
 
@@ -122,11 +122,8 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest extends KafkaContain
         AtomicInteger recordCounter = new AtomicInteger();
         KafkaTrackingToken testToken = KafkaTrackingToken.newInstance(emptyMap());
 
-        Consumer<?, ?> testConsumer = consumerFactory.createConsumer(DEFAULT_GROUP_ID);
-        testConsumer.subscribe(
-                Collections.singletonList(topic),
-                new TrackingTokenConsumerRebalanceListener<>(testConsumer, () -> testToken)
-        );
+        Consumer<?, ?> testConsumer = consumerFactory.createConsumer(null);
+        ConsumerSeekUtil.seekToCurrentPositions(testConsumer, () -> testToken, Collections.singletonList(topic));
 
         getRecords(testConsumer).forEach(record -> {
             assertEquals(0, record.offset());
@@ -157,11 +154,8 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest extends KafkaContain
         //  their offsets will increase given the published number of `recordsPerPartitions`
         int numberOfRecordsToConsume = 26;
 
-        Consumer<?, ?> testConsumer = consumerFactory.createConsumer(DEFAULT_GROUP_ID);
-        testConsumer.subscribe(
-                Collections.singletonList(topic),
-                new TrackingTokenConsumerRebalanceListener<>(testConsumer, () -> testToken)
-        );
+        Consumer<?, ?> testConsumer = consumerFactory.createConsumer(null);
+        ConsumerSeekUtil.seekToCurrentPositions(testConsumer, () -> testToken, Collections.singletonList(topic));
 
         List<ConsumerRecord<byte[], byte[]>> resultRecords = pollUntilAtLeastNumRecords(
                 (KafkaConsumer<byte[], byte[]>) testConsumer, numberOfRecordsToConsume, 2500
@@ -195,11 +189,8 @@ class TrackingTokenConsumerRebalanceListenerIntegrationTest extends KafkaContain
         //  their offsets will increase given the published number of `recordsPerPartitions`
         int numberOfRecordsToConsume = 26;
 
-        Consumer<?, ?> testConsumer = consumerFactory.createConsumer(DEFAULT_GROUP_ID);
-        testConsumer.subscribe(
-                Collections.singletonList(topic),
-                new TrackingTokenConsumerRebalanceListener<>(testConsumer, () -> testToken)
-        );
+        Consumer<?, ?> testConsumer = consumerFactory.createConsumer(null);
+        ConsumerSeekUtil.seekToCurrentPositions(testConsumer, () -> testToken, Collections.singletonList(topic));
 
         //noinspection unchecked
         List<ConsumerRecord<byte[], byte[]>> resultRecords = pollUntilAtLeastNumRecords(
