@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2021. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,6 @@ import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.Kafk
 import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.SortedKafkaMessageBuffer;
 import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.StreamableKafkaMessageSource;
 import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.TrackingRecordConverter;
-import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.TrackingTokenConsumerRebalanceListener;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaContainerTest;
@@ -44,9 +43,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
-import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.consumerFactory;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.producerFactory;
 import static org.junit.jupiter.api.Assertions.*;
@@ -188,12 +187,23 @@ class AsyncFetcherIntegrationTest extends KafkaContainerTest {
         testPositions.put(new TopicPartition(topic, 4), 0L);
         KafkaTrackingToken testStartToken = KafkaTrackingToken.newInstance(testPositions);
 
-        Consumer<String, String> testConsumer = consumerFactory(getBootstrapServers()).createConsumer(
-                DEFAULT_GROUP_ID);
-        testConsumer.subscribe(
-                Collections.singletonList(topic),
-                new TrackingTokenConsumerRebalanceListener<>(testConsumer, () -> testStartToken)
-        );
+        Consumer<String, String> testConsumer = consumerFactory(getBootstrapServers()).createConsumer(null);
+        List<TopicPartition> all = testConsumer.listTopics().entrySet()
+                                               .stream()
+                                               .filter(e -> e.getKey().equals(topic))
+                                               .flatMap(e -> e.getValue().stream())
+                                               .map(partitionInfo -> new TopicPartition(partitionInfo.topic(),
+                                                                                        partitionInfo.partition()))
+                                               .collect(Collectors.toList());
+        testConsumer.assign(all);
+        all.forEach(assignedPartition -> {
+            Map<TopicPartition, Long> tokenPartitionPositions = testStartToken.getPositions();
+            long offset = 0L;
+            if (tokenPartitionPositions.containsKey(assignedPartition)) {
+                offset = tokenPartitionPositions.get(assignedPartition) + 1;
+            }
+            testConsumer.seek(assignedPartition, offset);
+        });
 
         testSubject.poll(
                 testConsumer,

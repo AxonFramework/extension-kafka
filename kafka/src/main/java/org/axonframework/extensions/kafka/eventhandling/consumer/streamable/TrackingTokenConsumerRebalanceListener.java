@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,11 +19,13 @@ package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.common.TopicPartition;
+import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerSeekUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -40,7 +42,11 @@ import java.util.function.Supplier;
  * @param <V> the value type of the records the {@link Consumer} polls
  * @author Steven van Beelen
  * @since 4.0
+ * @deprecated functionality moved to {@link ConsumerSeekUtil#seekToCurrentPositions(Consumer,
+ * Supplier, List)} when group id was removed from the consumer.
  */
+@Deprecated
+@SuppressWarnings("squid:S1133") //removing would be a breaking change and can only be done in a major release
 public class TrackingTokenConsumerRebalanceListener<K, V> implements ConsumerRebalanceListener {
 
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
