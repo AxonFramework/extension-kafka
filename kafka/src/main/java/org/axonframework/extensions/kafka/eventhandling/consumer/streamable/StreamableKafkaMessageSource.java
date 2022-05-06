@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2021. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import org.axonframework.eventhandling.TrackingToken;
 import org.axonframework.extensions.kafka.eventhandling.DefaultKafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
+import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerSeekUtil;
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
 import org.axonframework.messaging.StreamableMessageSource;
@@ -63,8 +64,6 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private final List<String> topics;
-    private final String groupIdPrefix;
-    private final Supplier<String> groupIdSuffixFactory;
     private final ConsumerFactory<K, V> consumerFactory;
     private final Fetcher<K, V, KafkaEventMessage> fetcher;
     private final KafkaMessageConverter<K, V> messageConverter;
@@ -98,8 +97,6 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
     protected StreamableKafkaMessageSource(Builder<K, V> builder) {
         builder.validate();
         this.topics = Collections.unmodifiableList(builder.topics);
-        this.groupIdPrefix = builder.groupIdPrefix;
-        this.groupIdSuffixFactory = builder.groupIdSuffixFactory;
         this.consumerFactory = builder.consumerFactory;
         this.fetcher = builder.fetcher;
         this.messageConverter = builder.messageConverter;
@@ -117,21 +114,13 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
         KafkaTrackingToken token = KafkaTrackingToken.from(trackingToken);
         TrackingRecordConverter<K, V> recordConverter = new TrackingRecordConverter<>(messageConverter, token);
 
-        String groupId = buildConsumerGroupId();
-        logger.debug("Consumer Group Id [{}] will start consuming from topics [{}]", groupId, topics);
-        Consumer<K, V> consumer = consumerFactory.createConsumer(groupId);
-        consumer.subscribe(
-                topics,
-                new TrackingTokenConsumerRebalanceListener<>(consumer, recordConverter::currentToken)
-        );
+        logger.debug("Will start consuming from topics [{}]", topics);
+        Consumer<K, V> consumer = consumerFactory.createConsumer(null);
+        ConsumerSeekUtil.seekToCurrentPositions(consumer, recordConverter::currentToken, topics);
 
         Buffer<KafkaEventMessage> buffer = bufferFactory.get();
         Registration closeHandler = fetcher.poll(consumer, recordConverter, buffer::putAll);
         return new KafkaMessageStream(buffer, closeHandler);
-    }
-
-    private String buildConsumerGroupId() {
-        return groupIdPrefix + groupIdSuffixFactory.get();
     }
 
     /**
@@ -149,8 +138,6 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
     public static class Builder<K, V> {
 
         private List<String> topics = Collections.singletonList("Axon.Events");
-        private String groupIdPrefix = "Axon.Streamable.Consumer-";
-        private Supplier<String> groupIdSuffixFactory = () -> UUID.randomUUID().toString();
         private ConsumerFactory<K, V> consumerFactory;
         private Fetcher<K, V, KafkaEventMessage> fetcher;
         @SuppressWarnings("unchecked")
@@ -193,11 +180,16 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
          * @param groupIdPrefix a {@link String} defining the prefix of  the Consumer Group id to which a {@link
          *                      Consumer} should retrieve records from
          * @return the current Builder instance, for fluent interfacing
+         * @deprecated value is not used anymore, as a {@code groupId} is no longer used. Instead of the group id the
+         * topic partitions are manually assigned, using less resources.
          */
+        @Deprecated
+        @SuppressWarnings("squid:S1133") //Removal will break the API, so can only be done in a new major version.
         public Builder<K, V> groupIdPrefix(String groupIdPrefix) {
+            logger.warn(
+                    "Using groupIdPrefix in the StreamableKafkaMessageSource.Builder has been deprecated and already effectively does nothing.");
             assertThat(groupIdPrefix, name -> Objects.nonNull(name) && !"".equals(name),
                        "The groupIdPrefix may not be null or empty");
-            this.groupIdPrefix = groupIdPrefix;
             return this;
         }
 
@@ -208,11 +200,15 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
          * @param groupIdSuffixFactory a {@link Supplier} of {@link String} providing the suffix of the Consumer {@code
          *                             groupId} from which a {@link Consumer} should retrieve records from
          * @return the current Builder instance, for fluent interfacing
+         * @deprecated value is not used anymore, as a {@code groupId} is no longer used. Instead of the group id the
+         * topic partitions are manually assigned, using less resources
          */
-        @SuppressWarnings("WeakerAccess")
+        @Deprecated
+        @SuppressWarnings("squid:S1133") //Removal will break the API, so can only be done in a new major version.
         public Builder<K, V> groupIdSuffixFactory(Supplier<String> groupIdSuffixFactory) {
+            logger.warn(
+                    "Using groupIdSuffixFactory in the StreamableKafkaMessageSource.Builder has been deprecated and already effectively does nothing.");
             assertNonNull(groupIdSuffixFactory, "GroupIdSuffixFactory may not be null");
-            this.groupIdSuffixFactory = groupIdSuffixFactory;
             return this;
         }
 

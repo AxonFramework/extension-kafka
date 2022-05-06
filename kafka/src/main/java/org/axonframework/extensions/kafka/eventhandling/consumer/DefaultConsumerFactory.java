@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2010-2018. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -58,13 +58,14 @@ public class DefaultConsumerFactory<K, V> implements ConsumerFactory<K, V> {
 
     @Override
     public Consumer<K, V> createConsumer(String groupId) {
-        if (this.consumerConfiguration.remove(GROUP_ID_CONFIG) != null) {
+        Map<String, Object> configuration = new HashMap<>(this.consumerConfiguration);
+        if (configuration.remove(GROUP_ID_CONFIG) != null) {
             logger.warn("Found a global {} whilst it is required to be provided consciously", GROUP_ID_CONFIG);
         }
-
-        Map<String, Object> consumerConfiguration = new HashMap<>(this.consumerConfiguration);
-        consumerConfiguration.put(GROUP_ID_CONFIG, groupId);
-        return new KafkaConsumer<>(consumerConfiguration);
+        if (groupId != null) {
+            configuration.put(GROUP_ID_CONFIG, groupId);
+        }
+        return new KafkaConsumer<>(configuration);
     }
 
     /**
