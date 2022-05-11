@@ -26,7 +26,7 @@ package org.axonframework.extensions.kafka.eventhandling.consumer;
 public interface RuntimeErrorHandler {
 
     /**
-     * Error that is passed to another thread, to be handled there
+     * Error that is passed to another thread, to be handled there.
      *
      * @param exception, the {@link RuntimeException} that's need to be handled.
      */
