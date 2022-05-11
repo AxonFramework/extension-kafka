@@ -17,7 +17,10 @@
 package org.axonframework.extensions.kafka.eventhandling.consumer;
 
 /**
- * Used to implement an error handler such that exception from one thread can be passed to another thread.
+ * Used to implement an error handler such that exceptions from one thread can be passed to another thread.
+ *
+ * @author Gerard Klijs
+ * @since 4.5.4
  */
 @FunctionalInterface
 public interface RuntimeErrorHandler {
