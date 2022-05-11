@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,31 +44,35 @@ import static org.axonframework.common.ObjectUtils.getOrDefault;
 class FetchEventsTask<K, V, E> implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private final AtomicBoolean running = new AtomicBoolean(true);
 
     private final Consumer<K, V> consumer;
     private final Duration pollTimeout;
     private final RecordConverter<K, V, E> recordConverter;
     private final EventConsumer<E> eventConsumer;
     private final java.util.function.Consumer<FetchEventsTask<K, V, E>> closeHandler;
+    private final RuntimeErrorHandler runtimeErrorHandler;
 
-    private final AtomicBoolean running = new AtomicBoolean(true);
 
     /**
      * Create a fetch events {@link Runnable} task. The {@link Consumer} is used to periodically {@link
      * Consumer#poll(Duration)} for new {@link ConsumerRecords}. These are in turn converted with the given {@code
      * recordConverter} and consumed by the {@code recordConsumer}.
      *
-     * @param consumer        the {@link Consumer} used to {@link Consumer#poll(Duration)} {@link ConsumerRecords} from
-     * @param pollTimeout     the {@link Duration} used for the {@link Consumer#poll(Duration)} call
-     * @param recordConverter the {@link RecordConverter} used to convert the retrieved {@link ConsumerRecords}
-     * @param eventConsumer   the {@link EventConsumer} used to consume the converted {@link ConsumerRecords}
-     * @param closeHandler    the handler called after this {@link Runnable} is shutdown
+     * @param consumer            the {@link Consumer} used to {@link Consumer#poll(Duration)} {@link ConsumerRecords}
+     *                            from
+     * @param pollTimeout         the {@link Duration} used for the {@link Consumer#poll(Duration)} call
+     * @param recordConverter     the {@link RecordConverter} used to convert the retrieved {@link ConsumerRecords}
+     * @param eventConsumer       the {@link EventConsumer} used to consume the converted {@link ConsumerRecords}
+     * @param closeHandler        the handler called after this {@link Runnable} is shutdown
+     * @param runtimeErrorHandler the handler to be called when there are errors fetching events
      */
     FetchEventsTask(Consumer<K, V> consumer,
                     Duration pollTimeout,
                     RecordConverter<K, V, E> recordConverter,
                     EventConsumer<E> eventConsumer,
-                    java.util.function.Consumer<FetchEventsTask<K, V, E>> closeHandler) {
+                    java.util.function.Consumer<FetchEventsTask<K, V, E>> closeHandler,
+                    RuntimeErrorHandler runtimeErrorHandler) {
         this.consumer = nonNull(consumer, () -> "Consumer may not be null");
         assertThat(pollTimeout, time -> !time.isNegative(),
                    "The poll timeout may not be negative [" + pollTimeout + "]");
@@ -76,6 +80,7 @@ class FetchEventsTask<K, V, E> implements Runnable {
         this.recordConverter = recordConverter;
         this.eventConsumer = eventConsumer;
         this.closeHandler = getOrDefault(closeHandler, task -> { /* no-op */ });
+        this.runtimeErrorHandler = nonNull(runtimeErrorHandler, () -> "Runtime error handler may not be null");
     }
 
     @Override
@@ -84,24 +89,31 @@ class FetchEventsTask<K, V, E> implements Runnable {
             while (running.get()) {
                 ConsumerRecords<K, V> records = consumer.poll(pollTimeout);
                 logger.debug("Fetched [{}] number of ConsumerRecords", records.count());
-                List<E> convertedMessages = recordConverter.convert(records);
-                try {
-                    if (!convertedMessages.isEmpty()) {
-                        eventConsumer.consume(convertedMessages);
-                    }
-                } catch (InterruptedException e) {
-                    logger.debug("Event Consumer thread was interrupted. Shutting down", e);
-                    running.set(false);
-                    Thread.currentThread().interrupt();
-                }
+                optionallyConsumeRecords(recordConverter.convert(records));
             }
         } catch (Exception e) {
-            logger.error("Cannot proceed with fetching ConsumerRecords since we encountered an exception", e);
+            logger.warn("Encountered an exception fetching ConsumerRecords", e);
+            runtimeErrorHandler.handle(new FetchEventException(
+                    "Cannot proceed with fetching ConsumerRecords since we encountered an exception",
+                    e));
         } finally {
             running.set(false);
             closeHandler.accept(this);
             consumer.close();
             logger.info("Fetch events task and used Consumer instance [{}] have been closed", consumer);
+        }
+    }
+
+    private void optionallyConsumeRecords(List<E> convertedMessages) {
+        if (convertedMessages.isEmpty()) {
+            return;
+        }
+        try {
+            eventConsumer.consume(convertedMessages);
+        } catch (InterruptedException e) {
+            logger.debug("Event Consumer thread was interrupted. Shutting down", e);
+            running.set(false);
+            Thread.currentThread().interrupt();
         }
     }
 

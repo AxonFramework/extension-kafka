@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,10 +46,34 @@ public interface Fetcher<K, V, E> {
      * @param eventConsumer   a {@link EventConsumer} instance which will consume the converted records
      * @return a close handler of type {@link org.axonframework.common.Registration} to stop the {@link Fetcher}
      * operation
+     * @deprecated instead {@link #poll(Consumer, RecordConverter, EventConsumer, RuntimeErrorHandler)} should be used,
+     * so including an error handler.
      */
+    @Deprecated
+    @SuppressWarnings("squid:S1133")
+    //Removal will break the API, so can only be done in a new major version.
     Registration poll(Consumer<K, V> consumer,
                       RecordConverter<K, V, E> recordConverter,
                       EventConsumer<E> eventConsumer);
+
+    /**
+     * Instruct this Fetcher to start polling message through the provided {@link Consumer}. After retrieval, the {@link
+     * org.apache.kafka.clients.consumer.ConsumerRecords} will be converted by the given {@code recordConverter} and
+     * there after consumed by the given {@code recordConsumer}. A {@link Registration} will be returned to cancel
+     * message consumption and conversion.
+     *
+     * @param consumer            the {@link Consumer} used to consume message from a Kafka topic
+     * @param recordConverter     a {@link RecordConverter} instance which will convert the "consumed" {@link
+     *                            org.apache.kafka.clients.consumer.ConsumerRecords} in to a  List of {@code E}
+     * @param eventConsumer       a {@link EventConsumer} instance which will consume the converted records
+     * @param runtimeErrorHandler a {@link RuntimeErrorHandler} function used to handle errors
+     * @return a close handler of type {@link org.axonframework.common.Registration} to stop the {@link Fetcher}
+     * operation
+     */
+    Registration poll(Consumer<K, V> consumer,
+                      RecordConverter<K, V, E> recordConverter,
+                      EventConsumer<E> eventConsumer,
+                      RuntimeErrorHandler runtimeErrorHandler);
 
     /**
      * Shuts the fetcher down, closing any resources used by this fetcher.

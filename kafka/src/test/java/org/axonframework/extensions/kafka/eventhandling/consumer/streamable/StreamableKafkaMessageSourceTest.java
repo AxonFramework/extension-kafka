@@ -132,7 +132,7 @@ class StreamableKafkaMessageSourceTest {
     @Test
     void testOpeningMessageStreamWithNullTokenShouldInvokeFetcher() {
         AtomicBoolean closed = new AtomicBoolean(false);
-        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(() -> {
+        when(fetcher.poll(eq(mockConsumer), any(), any(), any())).thenReturn(() -> {
             closed.set(true);
             return true;
         });
@@ -140,7 +140,7 @@ class StreamableKafkaMessageSourceTest {
         BlockingStream<TrackedEventMessage<?>> result = testSubject.openStream(null);
 
         verify(consumerFactory).createConsumer(null);
-        verify(fetcher).poll(eq(mockConsumer), any(), any());
+        verify(fetcher).poll(eq(mockConsumer), any(), any(), any());
 
         result.close();
         assertTrue(closed.get());
@@ -149,7 +149,7 @@ class StreamableKafkaMessageSourceTest {
     @Test
     void testOpeningMessageStreamWithValidTokenShouldStartTheFetcher() {
         AtomicBoolean closed = new AtomicBoolean(false);
-        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(() -> {
+        when(fetcher.poll(eq(mockConsumer), any(), any(), any())).thenReturn(() -> {
             closed.set(true);
             return true;
         });
@@ -157,7 +157,7 @@ class StreamableKafkaMessageSourceTest {
         BlockingStream<TrackedEventMessage<?>> result = testSubject.openStream(emptyToken());
 
         verify(consumerFactory).createConsumer(null);
-        verify(fetcher).poll(eq(mockConsumer), any(), any());
+        verify(fetcher).poll(eq(mockConsumer), any(), any(), any());
 
         result.close();
         assertTrue(closed.get());

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,9 @@
 
 package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
@@ -26,9 +29,12 @@ import java.util.concurrent.TimeUnit;
  * @param <E> the type of the element contained in the buffer
  * @author Nakul Mishra
  * @author Steven van Beelen
+ * @author Gerard Klijs
  * @since 4.0
  */
 public interface Buffer<E> {
+
+    Logger logger = LoggerFactory.getLogger(Buffer.class);
 
     /**
      * Inserts the provided element in this buffer, waiting for space to become available if the buffer is full.
@@ -104,4 +110,13 @@ public interface Buffer<E> {
      * Removes all of the messages from this buffer.
      */
     void clear();
+
+    /**
+     * Can be used to set some exception originating from another thread, that should pop up using the buffer.
+     *
+     * @param exception the exception thrown from a thread that fills the buffer.
+     */
+    default void setException(RuntimeException exception) {
+        logger.warn("setException was called, but is not implemented to do something with it", exception);
+    }
 }
