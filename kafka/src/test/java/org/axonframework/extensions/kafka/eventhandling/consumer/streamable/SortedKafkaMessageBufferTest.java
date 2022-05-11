@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2021. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 
+import org.axonframework.extensions.kafka.eventhandling.consumer.FetchEventException;
 import org.junit.jupiter.api.*;
 
 import java.util.Collection;
@@ -42,7 +43,8 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for {@link SortedKafkaMessageBuffer}.
  *
- * @author Nakul Mishra.
+ * @author Nakul Mishra
+ * @author Gerard Klijs
  */
 public class SortedKafkaMessageBufferTest extends JSR166TestCase {
 
@@ -576,5 +578,31 @@ public class SortedKafkaMessageBufferTest extends JSR166TestCase {
             }
         });
         assertTrue(buffer.isEmpty());
+    }
+
+    public void testExceptionThrowOnTakeWhenSet() {
+        final SortedKafkaMessageBuffer<KafkaEventMessage> buff = new SortedKafkaMessageBuffer<>(SIZE);
+        buff.setException(new FetchEventException("something"));
+        assertThrows(FetchEventException.class, buff::take);
+    }
+
+    public void testExceptionThrowOnPeekWhenSet() {
+        final SortedKafkaMessageBuffer<KafkaEventMessage> buff = new SortedKafkaMessageBuffer<>(SIZE);
+        buff.setException(new FetchEventException("something"));
+        assertThrows(FetchEventException.class, buff::peek);
+    }
+
+    public void testExceptionThrowOnPollWhenSet() {
+        final SortedKafkaMessageBuffer<KafkaEventMessage> buff = new SortedKafkaMessageBuffer<>(SIZE);
+        buff.setException(new FetchEventException("something"));
+        assertThrows(FetchEventException.class, () -> buff.poll(10L, TimeUnit.SECONDS));
+    }
+
+    public void testOnceExceptionSetTakeStillFirstEmptiesBuffer() throws InterruptedException {
+        final SortedKafkaMessageBuffer<KafkaEventMessage> buff = new SortedKafkaMessageBuffer<>(SIZE);
+        buff.put(message(0, 1, 0, "m"));
+        buff.setException(new FetchEventException("something"));
+        buff.take();
+        assertThrows(FetchEventException.class, buff::take);
     }
 }

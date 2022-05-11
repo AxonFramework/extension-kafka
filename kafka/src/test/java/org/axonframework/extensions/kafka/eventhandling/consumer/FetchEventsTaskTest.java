@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@ import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.KafkaEventMessage;
 import org.junit.jupiter.api.*;
 import org.mockito.verification.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -40,6 +42,7 @@ import static org.mockito.Mockito.*;
  */
 class FetchEventsTaskTest {
 
+    private static final Logger logger = LoggerFactory.getLogger(FetchEventsTaskTest.class);
     private static final int TIMEOUT_MILLIS = 100;
 
     private ConsumerRecords<String, String> consumerRecords;
@@ -52,6 +55,7 @@ class FetchEventsTaskTest {
     private EventConsumer<KafkaEventMessage> testEventConsumer;
     private java.util.function.Consumer<FetchEventsTask<String, String, KafkaEventMessage>> testCloseHandler;
     private FetchEventsTask<String, String, KafkaEventMessage> testSubject;
+    private RuntimeErrorHandler runtimeErrorHandler;
 
     @SuppressWarnings("unchecked")
     @BeforeEach
@@ -64,9 +68,15 @@ class FetchEventsTaskTest {
         testRecordConverter = mock(RecordConverter.class);
         testEventConsumer = mock(EventConsumer.class);
         testCloseHandler = task -> expectedToBeClosed.set(true);
+        runtimeErrorHandler = e -> logger.warn("Something bad happened", e);
 
         testSubject = new FetchEventsTask<>(
-                testConsumer, testPollTimeout, testRecordConverter, testEventConsumer, testCloseHandler
+                testConsumer,
+                testPollTimeout,
+                testRecordConverter,
+                testEventConsumer,
+                testCloseHandler,
+                runtimeErrorHandler
         );
 
         when(testConsumer.poll(testPollTimeout)).thenReturn(consumerRecords);
@@ -80,7 +90,12 @@ class FetchEventsTaskTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> new FetchEventsTask<>(
-                        invalidConsumer, testPollTimeout, testRecordConverter, testEventConsumer, testCloseHandler
+                        invalidConsumer,
+                        testPollTimeout,
+                        testRecordConverter,
+                        testEventConsumer,
+                        testCloseHandler,
+                        runtimeErrorHandler
                 )
         );
     }
@@ -91,7 +106,12 @@ class FetchEventsTaskTest {
         assertThrows(
                 AxonConfigurationException.class,
                 () -> new FetchEventsTask<>(
-                        testConsumer, negativeTimeout, testRecordConverter, testEventConsumer, testCloseHandler
+                        testConsumer,
+                        negativeTimeout,
+                        testRecordConverter,
+                        testEventConsumer,
+                        testCloseHandler,
+                        runtimeErrorHandler
                 )
         );
     }
@@ -102,7 +122,12 @@ class FetchEventsTaskTest {
             throw new InterruptedException();
         };
         FetchEventsTask<String, String, KafkaEventMessage> testSubjectWithFailingEventConsumer = new FetchEventsTask<>(
-                testConsumer, testPollTimeout, testRecordConverter, failingEventConsumer, testCloseHandler
+                testConsumer,
+                testPollTimeout,
+                testRecordConverter,
+                failingEventConsumer,
+                testCloseHandler,
+                runtimeErrorHandler
         );
 
         Thread taskRunner = new Thread(testSubjectWithFailingEventConsumer);

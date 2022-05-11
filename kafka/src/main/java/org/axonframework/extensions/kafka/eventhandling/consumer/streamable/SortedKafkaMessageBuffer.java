@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2021. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -34,6 +35,7 @@ import static org.axonframework.common.Assert.notNull;
  * @param <E> the type of the elements stored in this {@link Buffer} implementation
  * @author Nakul Mishra
  * @author Steven van Beelen
+ * @author Gerard Klijs
  * @since 4.0
  */
 public class SortedKafkaMessageBuffer<E extends Comparable<?> & KafkaRecordMetaData<?>> implements Buffer<E> {
@@ -72,6 +74,8 @@ public class SortedKafkaMessageBuffer<E extends Comparable<?> & KafkaRecordMetaD
      */
     private int count;
 
+    private final AtomicReference<RuntimeException> possibleException = new AtomicReference<>(null);
+
 
     /**
      * Create a default {@link SortedKafkaMessageBuffer} with capacity of {@code 1000}.
@@ -95,6 +99,9 @@ public class SortedKafkaMessageBuffer<E extends Comparable<?> & KafkaRecordMetaD
         this.capacity = capacity;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void put(E e) throws InterruptedException {
         notNull(e, () -> "Element may not be null");
@@ -108,6 +115,9 @@ public class SortedKafkaMessageBuffer<E extends Comparable<?> & KafkaRecordMetaD
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void putAll(Collection<E> c) throws InterruptedException {
         notNull(c, () -> "Element collection may not be null");
@@ -150,6 +160,9 @@ public class SortedKafkaMessageBuffer<E extends Comparable<?> & KafkaRecordMetaD
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public E poll(long timeout, TimeUnit unit) throws InterruptedException {
         long nanos = unit.toNanos(timeout);
@@ -158,6 +171,7 @@ public class SortedKafkaMessageBuffer<E extends Comparable<?> & KafkaRecordMetaD
 
         try {
             while (this.count == 0) {
+                throwIfPresent();
                 if (nanos <= 0) {
                     return null;
                 }
@@ -180,12 +194,16 @@ public class SortedKafkaMessageBuffer<E extends Comparable<?> & KafkaRecordMetaD
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public E take() throws InterruptedException {
         final ReentrantLock lock = this.lock;
         lock.lockInterruptibly();
         try {
             while (this.count == 0) {
+                throwIfPresent();
                 this.notEmpty.await();
             }
             return remove();
@@ -206,17 +224,28 @@ public class SortedKafkaMessageBuffer<E extends Comparable<?> & KafkaRecordMetaD
         return x;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public E peek() {
         final ReentrantLock lock = this.lock;
         lock.lock();
         try {
-            return this.count > 0 ? this.delegate.first() : null;
+            if (this.count > 0) {
+                return this.delegate.first();
+            } else {
+                throwIfPresent();
+                return null;
+            }
         } finally {
             lock.unlock();
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public int size() {
         final ReentrantLock lock = this.lock;
@@ -228,6 +257,9 @@ public class SortedKafkaMessageBuffer<E extends Comparable<?> & KafkaRecordMetaD
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean isEmpty() {
         final ReentrantLock lock = this.lock;
@@ -239,6 +271,9 @@ public class SortedKafkaMessageBuffer<E extends Comparable<?> & KafkaRecordMetaD
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public int remainingCapacity() {
         final ReentrantLock lock = this.lock;
@@ -250,6 +285,9 @@ public class SortedKafkaMessageBuffer<E extends Comparable<?> & KafkaRecordMetaD
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void clear() {
         final ReentrantLock lock = this.lock;
@@ -261,8 +299,27 @@ public class SortedKafkaMessageBuffer<E extends Comparable<?> & KafkaRecordMetaD
         }
     }
 
+    private void throwIfPresent() {
+        RuntimeException e = possibleException.get();
+        if (e != null) {
+            throw e;
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String toString() {
         return "SortedKafkaMessageBuffer:" + this.delegate;
+    }
+
+    /**
+     * {@inheritDoc} Will throw the exception once the buffer is empty. Will throw the error either on {@link
+     * #poll(long, TimeUnit)} or {@link #peek()} or {@link #take()} using {@link #throwIfPresent()}.
+     */
+    @Override
+    public void setException(RuntimeException exception) {
+        possibleException.set(exception);
     }
 }
