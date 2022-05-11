@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -87,12 +87,30 @@ public class AsyncFetcher<K, V, E> implements Fetcher<K, V, E> {
         this.requirePoolShutdown = builder.requirePoolShutdown;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Registration poll(Consumer<K, V> consumer,
                              RecordConverter<K, V, E> recordConverter,
                              EventConsumer<E> eventConsumer) {
+        return poll(consumer, recordConverter, eventConsumer,
+                    e -> logger.warn("Error from fetching thread, should be handled properly", e));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Registration poll(Consumer<K, V> consumer, RecordConverter<K, V, E> recordConverter,
+                             EventConsumer<E> eventConsumer, RuntimeErrorHandler runtimeErrorHandler) {
         FetchEventsTask<K, V, E> fetcherTask =
-                new FetchEventsTask<>(consumer, pollTimeout, recordConverter, eventConsumer, activeFetchers::remove);
+                new FetchEventsTask<>(consumer,
+                                      pollTimeout,
+                                      recordConverter,
+                                      eventConsumer,
+                                      activeFetchers::remove,
+                                      runtimeErrorHandler);
 
         activeFetchers.add(fetcherTask);
         executorService.execute(fetcherTask);

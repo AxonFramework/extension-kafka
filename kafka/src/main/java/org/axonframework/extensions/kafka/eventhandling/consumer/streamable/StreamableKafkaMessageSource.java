@@ -60,6 +60,7 @@ import static org.axonframework.common.BuilderUtils.assertThat;
  * @param <V> the value type of {@link ConsumerRecords} to consume, fetch and convert
  * @author Nakul Mishra
  * @author Steven van Beelen
+ * @author Gerard Klijs
  * @since 4.0
  */
 public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSource<TrackedEventMessage<?>> {
@@ -122,7 +123,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
         ConsumerSeekUtil.seekToCurrentPositions(consumer, recordConverter::currentToken, topics);
 
         Buffer<KafkaEventMessage> buffer = bufferFactory.get();
-        Registration closeHandler = fetcher.poll(consumer, recordConverter, buffer::putAll);
+        Registration closeHandler = fetcher.poll(consumer, recordConverter, buffer::putAll, buffer::setException);
         return new KafkaMessageStream(buffer, closeHandler);
     }
 
