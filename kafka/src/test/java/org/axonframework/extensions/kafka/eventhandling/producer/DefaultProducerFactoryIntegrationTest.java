@@ -20,7 +20,6 @@ import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.KafkaException;
 import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaContainerTest;
@@ -210,7 +209,7 @@ class DefaultProducerFactoryIntegrationTest extends KafkaContainerTest {
             testProducer.beginTransaction();
             send(testProducer, "testTransactionalProducerBehaviorOnCommittingAnAbortedTransaction", "bar");
             testProducer.abortTransaction();
-            assertThrows(KafkaException.class, testProducer::commitTransaction);
+            assertThrows(IllegalStateException.class, testProducer::commitTransaction);
         } finally {
             cleanup(producerFactory, testProducer);
         }
