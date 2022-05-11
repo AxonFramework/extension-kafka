@@ -36,7 +36,7 @@ public class FetchEventException extends AxonException {
     }
 
     /**
-     * Creates a new {@link FetchEventException}
+     * Creates a new {@link FetchEventException}.
      *
      * @param message some info about the exception
      * @param cause   the {@link Throwable} that is the cause of the exception
