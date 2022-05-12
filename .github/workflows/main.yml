@@ -16,8 +16,10 @@ jobs:
         include:
           - java-version: 8
             sonar-enabled: false
+            deploy-enabled: true
           - java-version: 11
             sonar-enabled: true
+            deploy-enabled: false
 
     steps:
       - name: Checkout code
@@ -58,7 +60,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy to Sonatype
-        if: success()
+        if: success() && matrix.deploy-enabled
         run: | # no clean, no tests, no examples
           ./mvnw -B -U deploy -DskipTests=true -DskipExamples=true
         env:
