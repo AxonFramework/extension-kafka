@@ -18,6 +18,7 @@ package org.axonframework.extensions.kafka.eventhandling.tokenstore;
 
 import com.thoughtworks.xstream.XStream;
 import org.apache.kafka.clients.CommonClientConfigs;
+import org.axonframework.common.AxonThreadFactory;
 import org.axonframework.eventhandling.GlobalSequenceTrackingToken;
 import org.axonframework.eventhandling.Segment;
 import org.axonframework.eventhandling.TrackingToken;
@@ -242,6 +243,7 @@ class KafkaTokenStoreConcurrentIntegrationTest extends KafkaContainerTest {
         KafkaTokenStore tokenStore = KafkaTokenStore
                 .builder()
                 .topic(TOPICS[0])
+                .executor(Executors.newFixedThreadPool(1, new AxonThreadFactory("tokenStoreConsumer")))
                 .nodeId(nodeId)
                 .claimTimeout(Duration.ofSeconds(1))
                 .serializer(serializer)

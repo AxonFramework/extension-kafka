@@ -45,9 +45,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.annotation.Nonnull;
@@ -111,6 +114,7 @@ public class KafkaTokenStore implements TokenStore {
         this.nodeId = builder.nodeId;
         this.claimTimeout = builder.claimTimeout;
         this.tokenStoreState = new TokenStoreState(
+                builder.executorSupplier.get(),
                 builder.topic,
                 builder.claimTimeout,
                 builder.consumerConfiguration,
@@ -425,6 +429,7 @@ public class KafkaTokenStore implements TokenStore {
         private Serializer serializer;
         private TemporalAmount claimTimeout = Duration.ofSeconds(10);
         private String nodeId = ManagementFactory.getRuntimeMXBean().getName();
+        private Supplier<Executor> executorSupplier = Executors::newSingleThreadExecutor;
         private Map<String, Object> consumerConfiguration;
         private Map<String, Object> producerConfiguration;
         private Duration readTimeOut = Duration.ofSeconds(5L);
@@ -486,6 +491,20 @@ public class KafkaTokenStore implements TokenStore {
         public Builder nodeId(String nodeId) {
             assertNonEmpty(nodeId, "The nodeId may not be null or empty");
             this.nodeId = nodeId;
+            return this;
+        }
+
+        /**
+         * Sets the {@code executor} to identify ownership of the tokens. Defaults to the name of the managed bean for
+         * the runtime system of the Java virtual machine.
+         *
+         * @param executor, the {@link Executor} to run the consumer thread. Will default to {@link
+         *                  Executors#newSingleThreadExecutor() newSingleThreadExecutor}
+         * @return the current Builder instance, for fluent interfacing
+         */
+        public Builder executor(Executor executor) {
+            assertNonNull(executor, "The executor may not be null");
+            this.executorSupplier = () -> executor;
             return this;
         }
 

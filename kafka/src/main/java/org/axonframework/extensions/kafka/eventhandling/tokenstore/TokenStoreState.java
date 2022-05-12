@@ -47,7 +47,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -68,11 +67,11 @@ class TokenStoreState {
     private static final String KEY_FORMAT = "%s::%d";
     private final Map<String, Map<Integer, TokenUpdate>> state = new ConcurrentHashMap<>();
     private final Map<UUID, CompletableFuture<Boolean>> writeResult = new ConcurrentHashMap<>();
-    private final Executor executor = Executors.newSingleThreadExecutor();
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
     private final AtomicReference<CompletableFuture<Boolean>> isReady = new AtomicReference<>(new CompletableFuture<>());
     private final AtomicReference<Producer<String, TokenUpdate>> producer = new AtomicReference<>(null);
 
+    private final Executor executor;
     private final String topic;
     private final TemporalAmount claimTimeout;
     private final Map<String, Object> consumerConfiguration;
@@ -82,17 +81,20 @@ class TokenStoreState {
     /**
      * initializes the TokenStoreState
      *
+     * @param executor              the executor the consumer thread is run with
      * @param topic                 the name of the topic, if it doesn't exist it will be created
      * @param claimTimeout          the claim timeout of the store, used to set the topic config
      * @param consumerConfiguration used to configure the Kafka consumer
      * @param producerConfiguration used to configure the Kafka producer
      */
-    TokenStoreState(String topic,
+    TokenStoreState(Executor executor,
+                    String topic,
                     TemporalAmount claimTimeout,
                     Map<String, Object> consumerConfiguration,
                     Map<String, Object> producerConfiguration,
                     Duration writeTimeOut
     ) {
+        this.executor = executor;
         this.topic = topic;
         this.claimTimeout = claimTimeout;
         this.consumerConfiguration = consumerConfiguration;
