@@ -432,7 +432,7 @@ public class KafkaTokenStore implements TokenStore {
 
         /**
          * Sets the {@code topic} specifying the topic used for the token claim updates. Defaults to
-         * __axon_token_store_updates. Please make sure that either the topic doesn't exist yet, and can be created be
+         * __axon_token_store_updates. Please make sure that either the topic doesn't exist yet, and can be created by
          * the consumer, or the topic is configured correctly. It should be a compacted topic, and it might have
          * multiple partition, but one should be more than enough for the expected traffic. The {@code
          * min.compaction.lag.ms} of the topic should be at least double the {@code claimTimeout}. This is because we
