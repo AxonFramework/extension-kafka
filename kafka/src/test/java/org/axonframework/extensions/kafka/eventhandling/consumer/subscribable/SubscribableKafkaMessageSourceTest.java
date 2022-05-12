@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2021. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -131,7 +131,7 @@ class SubscribableKafkaMessageSourceTest {
 
     @Test
     void testAutoStartInitiatesProcessingOnFirstEventProcessor() {
-        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(NO_OP_FETCHER_REGISTRATION);
+        when(fetcher.poll(eq(mockConsumer), any(), any(), any())).thenReturn(NO_OP_FETCHER_REGISTRATION);
 
         SubscribableKafkaMessageSource<String, String> testSubject =
                 SubscribableKafkaMessageSource.<String, String>builder()
@@ -146,13 +146,13 @@ class SubscribableKafkaMessageSourceTest {
 
         verify(consumerFactory, times(1)).createConsumer(DEFAULT_GROUP_ID);
         verify(mockConsumer, times(1)).subscribe(Collections.singletonList(TEST_TOPIC));
-        verify(fetcher).poll(eq(mockConsumer), any(), any());
+        verify(fetcher).poll(eq(mockConsumer), any(), any(), any());
     }
 
     @Test
     void testCancelingSubscribedEventProcessorRunsConnectedCloseHandlerWhenAutoStartIsOn() {
         AtomicBoolean closedFetcherRegistration = new AtomicBoolean(false);
-        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(() -> {
+        when(fetcher.poll(eq(mockConsumer), any(), any(), any())).thenReturn(() -> {
             closedFetcherRegistration.set(true);
             return true;
         });
@@ -178,7 +178,7 @@ class SubscribableKafkaMessageSourceTest {
 
     @Test
     void testSubscribingTheSameInstanceTwiceDisregardsSecondInstanceOnStart() {
-        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(NO_OP_FETCHER_REGISTRATION);
+        when(fetcher.poll(eq(mockConsumer), any(), any(), any())).thenReturn(NO_OP_FETCHER_REGISTRATION);
 
         testSubject.subscribe(NO_OP_EVENT_PROCESSOR);
         testSubject.subscribe(NO_OP_EVENT_PROCESSOR);
@@ -187,7 +187,7 @@ class SubscribableKafkaMessageSourceTest {
 
         verify(consumerFactory, times(1)).createConsumer(DEFAULT_GROUP_ID);
         verify(mockConsumer, times(1)).subscribe(Collections.singletonList(TEST_TOPIC));
-        verify(fetcher, times(1)).poll(eq(mockConsumer), any(), any());
+        verify(fetcher, times(1)).poll(eq(mockConsumer), any(), any(), any());
     }
 
     @Test
@@ -211,14 +211,14 @@ class SubscribableKafkaMessageSourceTest {
 
         verify(consumerFactory).createConsumer(DEFAULT_GROUP_ID);
         verify(mockConsumer).subscribe(testTopics);
-        verify(fetcher).poll(eq(mockConsumer), any(), any());
+        verify(fetcher).poll(eq(mockConsumer), any(), any(), any());
     }
 
     @Test
     void testStartBuildsConsumersUpToConsumerCount() {
         int expectedNumberOfConsumers = 2;
 
-        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(NO_OP_FETCHER_REGISTRATION);
+        when(fetcher.poll(eq(mockConsumer), any(), any(), any())).thenReturn(NO_OP_FETCHER_REGISTRATION);
 
         SubscribableKafkaMessageSource<String, String> testSubject =
                 SubscribableKafkaMessageSource.<String, String>builder()
@@ -234,7 +234,7 @@ class SubscribableKafkaMessageSourceTest {
 
         verify(consumerFactory, times(expectedNumberOfConsumers)).createConsumer(DEFAULT_GROUP_ID);
         verify(mockConsumer, times(expectedNumberOfConsumers)).subscribe(Collections.singletonList(TEST_TOPIC));
-        verify(fetcher, times(expectedNumberOfConsumers)).poll(eq(mockConsumer), any(), any());
+        verify(fetcher, times(expectedNumberOfConsumers)).poll(eq(mockConsumer), any(), any(), any());
     }
 
     @Test
@@ -243,7 +243,7 @@ class SubscribableKafkaMessageSourceTest {
 
         AtomicBoolean closedEventProcessorOne = new AtomicBoolean(false);
         AtomicBoolean closedEventProcessorTwo = new AtomicBoolean(false);
-        when(fetcher.poll(eq(mockConsumer), any(), any()))
+        when(fetcher.poll(eq(mockConsumer), any(), any(), any()))
                 .thenReturn(() -> {
                     closedEventProcessorOne.set(true);
                     return true;
@@ -268,7 +268,7 @@ class SubscribableKafkaMessageSourceTest {
 
         verify(consumerFactory, times(expectedNumberOfConsumers)).createConsumer(DEFAULT_GROUP_ID);
         verify(mockConsumer, times(expectedNumberOfConsumers)).subscribe(Collections.singletonList(TEST_TOPIC));
-        verify(fetcher, times(expectedNumberOfConsumers)).poll(eq(mockConsumer), any(), any());
+        verify(fetcher, times(expectedNumberOfConsumers)).poll(eq(mockConsumer), any(), any(), any());
 
         assertTrue(closedEventProcessorOne.get());
         assertTrue(closedEventProcessorTwo.get());
