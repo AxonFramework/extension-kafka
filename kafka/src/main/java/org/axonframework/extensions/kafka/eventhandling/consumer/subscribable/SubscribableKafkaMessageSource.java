@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2021. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -165,20 +165,30 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
         }
 
         for (int consumerIndex = 0; consumerIndex < consumerCount; consumerIndex++) {
-            Consumer<K, V> consumer = consumerFactory.createConsumer(groupId);
-            consumer.subscribe(topics);
-
-            Registration closeConsumer = fetcher.poll(
-                    consumer,
-                    consumerRecords -> StreamSupport.stream(consumerRecords.spliterator(), false)
-                                                    .map(messageConverter::readKafkaMessage)
-                                                    .filter(Optional::isPresent)
-                                                    .map(Optional::get)
-                                                    .collect(Collectors.toList()),
-                    eventMessages -> eventProcessors.forEach(eventProcessor -> eventProcessor.accept(eventMessages))
-            );
-            fetcherRegistrations.add(closeConsumer);
+            addConsumer();
         }
+    }
+
+    private void addConsumer() {
+        Consumer<K, V> consumer = consumerFactory.createConsumer(groupId);
+        consumer.subscribe(topics);
+
+        Registration closeConsumer = fetcher.poll(
+                consumer,
+                consumerRecords -> StreamSupport.stream(consumerRecords.spliterator(), false)
+                                                .map(messageConverter::readKafkaMessage)
+                                                .filter(Optional::isPresent)
+                                                .map(Optional::get)
+                                                .collect(Collectors.toList()),
+                eventMessages -> eventProcessors.forEach(eventProcessor -> eventProcessor.accept(eventMessages)),
+                this::restartOnError
+        );
+        fetcherRegistrations.add(closeConsumer);
+    }
+
+    private void restartOnError(RuntimeException e) {
+        logger.warn("Consumer had a fatal exception, starting a new one", e);
+        addConsumer();
     }
 
     /**

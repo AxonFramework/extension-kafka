@@ -321,5 +321,15 @@ public class SortedKafkaMessageBuffer<E extends Comparable<?> & KafkaRecordMetaD
     @Override
     public void setException(RuntimeException exception) {
         possibleException.set(exception);
+        try {
+            lock.lockInterruptibly();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        try {
+            this.notEmpty.signal();
+        } finally {
+            lock.unlock();
+        }
     }
 }
