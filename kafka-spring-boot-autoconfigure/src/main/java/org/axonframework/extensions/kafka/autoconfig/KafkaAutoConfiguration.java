@@ -19,6 +19,7 @@ package org.axonframework.extensions.kafka.autoconfig;
 import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.config.EventProcessingConfigurer;
 import org.axonframework.eventhandling.PropagatingErrorHandler;
+import org.axonframework.eventhandling.tokenstore.TokenStore;
 import org.axonframework.extensions.kafka.KafkaProperties;
 import org.axonframework.extensions.kafka.eventhandling.DefaultKafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
@@ -34,6 +35,7 @@ import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducer
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
+import org.axonframework.extensions.kafka.eventhandling.tokenstore.KafkaTokenStore;
 import org.axonframework.serialization.Serializer;
 import org.axonframework.serialization.upcasting.event.EventUpcasterChain;
 import org.axonframework.spring.config.AxonConfiguration;
@@ -186,6 +188,21 @@ public class KafkaAutoConfiguration {
         return kafkaEventPublisher;
     }
 
+    @Bean
+    @ConditionalOnMissingBean
+    @Conditional(ProducerStreamingProcessorModeCondition.class)
+    @ConditionalOnProperty(name = "axon.kafka.fetcher.enabled", havingValue = "true", matchIfMissing = true)
+    public TokenStore tokenStore(
+            Serializer serializer
+    ) {
+        return KafkaTokenStore
+                .builder()
+                .serializer(serializer)
+                .consumerConfiguration(properties.buildConsumerProperties())
+                .producerConfiguration(properties.buildProducerProperties())
+                .build();
+    }
+
     @Bean("axonKafkaConsumerFactory")
     @ConditionalOnMissingBean
     @ConditionalOnProperty(name = "axon.kafka.fetcher.enabled", havingValue = "true", matchIfMissing = true)
@@ -206,7 +223,7 @@ public class KafkaAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnBean({ConsumerFactory.class, KafkaMessageConverter.class, Fetcher.class})
-    @Conditional(StreamingProcessorModeCondition.class)
+    @Conditional(ConsumerStreamingProcessorModeCondition.class)
     @ConditionalOnProperty(name = "axon.kafka.fetcher.enabled", havingValue = "true", matchIfMissing = true)
     public StreamableKafkaMessageSource<String, byte[]> streamableKafkaMessageSource(
             ConsumerFactory<String, byte[]> kafkaConsumerFactory,
@@ -224,9 +241,9 @@ public class KafkaAutoConfiguration {
                                            .build();
     }
 
-    private static class StreamingProcessorModeCondition extends AnyNestedCondition {
+    private static class ConsumerStreamingProcessorModeCondition extends AnyNestedCondition {
 
-        public StreamingProcessorModeCondition() {
+        public ConsumerStreamingProcessorModeCondition() {
             super(ConfigurationPhase.REGISTER_BEAN);
         }
 
@@ -238,6 +255,25 @@ public class KafkaAutoConfiguration {
 
         @SuppressWarnings("unused")
         @ConditionalOnProperty(name = "axon.kafka.consumer.event-processor-mode", havingValue = "pooled_streaming")
+        static class PooledStreamingCondition {
+
+        }
+    }
+
+    private static class ProducerStreamingProcessorModeCondition extends AnyNestedCondition {
+
+        public ProducerStreamingProcessorModeCondition() {
+            super(ConfigurationPhase.REGISTER_BEAN);
+        }
+
+        @SuppressWarnings("unused")
+        @ConditionalOnProperty(name = "axon.kafka.producer.event-processor-mode", havingValue = "tracking")
+        static class TrackingCondition {
+
+        }
+
+        @SuppressWarnings("unused")
+        @ConditionalOnProperty(name = "axon.kafka.producer.event-processor-mode", havingValue = "pooled_streaming")
         static class PooledStreamingCondition {
 
         }

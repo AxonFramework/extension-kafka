@@ -15,7 +15,8 @@
   ~ limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.axonframework.extensions.kafka</groupId>
@@ -34,6 +35,7 @@
         <jmh-core.version>1.35</jmh-core.version>
         <test-containers.version>1.17.1</test-containers.version>
         <maven-enforcer-plugin.version>3.0.0</maven-enforcer-plugin.version>
+        <findbugs-jsr305.version>3.0.2</findbugs-jsr305.version>
     </properties>
 
     <packaging>jar</packaging>
@@ -96,6 +98,12 @@
             <artifactId>jackson-datatype-jsr310</artifactId>
             <version>${jackson.version}</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+            <version>${findbugs-jsr305.version}</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 

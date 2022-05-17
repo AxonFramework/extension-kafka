@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2021. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.CreatePartitionsResult;
 import org.apache.kafka.clients.admin.CreateTopicsResult;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
+import org.apache.kafka.clients.admin.ListTopicsResult;
 import org.apache.kafka.clients.admin.NewPartitions;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.KafkaFuture;
@@ -32,6 +33,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -60,6 +62,17 @@ public abstract class KafkaAdminUtils {
      * @param topics          a list of topics to be created
      */
     public static void createTopics(String bootstrapServer, String... topics) {
+        createTopics(bootstrapServer, 3, topics);
+    }
+
+    /**
+     * Method responsible for creating the {@code topics} on the provided {@code bootstrapServer}.
+     *
+     * @param bootstrapServer the kafka address
+     * @param retries         the number of retries if there is an error
+     * @param topics          a list of topics to be created
+     */
+    public static void createTopics(String bootstrapServer, int retries, String... topics) {
         try (AdminClient adminClient = AdminClient.create(minimalAdminConfig(bootstrapServer))) {
             CreateTopicsResult topicsCreationResult = adminClient.createTopics(topics(topics));
             topicsCreationResult.values().values()
@@ -67,7 +80,13 @@ public abstract class KafkaAdminUtils {
             Arrays.stream(topics).forEach(topic -> logger.info("Completed topic creation: {}", topic));
         } catch (Exception e) {
             logger.warn("Encountered an exception while creating topics [{}] for [{}].", topics, bootstrapServer, e);
-            throw e;
+            if (retries > 0) {
+                int retriesLeft = retries - 1;
+                logger.info("Retrying topic creation, retries left: {}", retriesLeft);
+                createTopics(bootstrapServer, retriesLeft, topics);
+            } else {
+                throw e;
+            }
         }
     }
 
@@ -98,15 +117,26 @@ public abstract class KafkaAdminUtils {
     public static void deleteTopics(String bootstrapServer, String... topics) {
         try (AdminClient adminClient = AdminClient.create(minimalAdminConfig(bootstrapServer))) {
             DeleteTopicsResult topicsDeletionResult = adminClient.deleteTopics(Arrays.asList(topics));
-            topicsDeletionResult.values().values()
-                                .forEach(KafkaAdminUtils::waitForCompletion);
+            waitForCompletion(topicsDeletionResult.all());
             Arrays.stream(topics).forEach(topic -> logger.info("Completed topic deletion: {}", topic));
         }
     }
 
-    private static void waitForCompletion(KafkaFuture<Void> kafkaFuture) {
+    /**
+     * Method responsible for listing the {@code topics} on the provided {@code bootstrapServer}.
+     *
+     * @param bootstrapServer the kafka address
+     */
+    public static Set<String> listTopics(String bootstrapServer) {
+        try (AdminClient adminClient = AdminClient.create(minimalAdminConfig(bootstrapServer))) {
+            ListTopicsResult listTopicsResult = adminClient.listTopics();
+            return waitForCompletion(listTopicsResult.names());
+        }
+    }
+
+    private static <T> T waitForCompletion(KafkaFuture<T> kafkaFuture) {
         try {
-            kafkaFuture.get(25, TimeUnit.SECONDS);
+            return kafkaFuture.get(25, TimeUnit.SECONDS);
         } catch (InterruptedException | TimeoutException | ExecutionException e) {
             throw new IllegalStateException(e);
         }

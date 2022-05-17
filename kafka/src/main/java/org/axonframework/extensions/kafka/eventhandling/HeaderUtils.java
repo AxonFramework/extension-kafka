@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2021. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -89,6 +89,42 @@ public abstract class HeaderUtils {
      */
     public static Long valueAsLong(Headers headers, String key, Long defaultValue) {
         Long value = asLong(value(headers, key));
+        return value != null ? value : defaultValue;
+    }
+
+    /**
+     * Converts the given bytes to {@code int}.
+     *
+     * @param value the bytes to convert into a {@code int}
+     * @return the {@code int} build from the given bytes
+     */
+    public static Integer asInt(byte[] value) {
+        return value != null ? ByteBuffer.wrap(value).getInt() : null;
+    }
+
+    /**
+     * Return a {@link Integer} representation of the {@code value} stored under a given {@code key} inside the {@link
+     * Headers}. In case of a missing entry {@code null} is returned.
+     *
+     * @param headers the Kafka {@code headers} to pull the {@link Integer} value from
+     * @param key     the key corresponding to the expected {@link Integer} value
+     * @return the value as a {@link Integer} corresponding to the given {@code key} in the {@code headers}
+     */
+    public static Integer valueAsInt(Headers headers, String key) {
+        return asInt(value(headers, key));
+    }
+
+    /**
+     * Return a {@link Integer} representation of the {@code value} stored under a given {@code key} inside the {@link
+     * Headers}. In case of a missing entry {@code defaultValue} is returned.
+     *
+     * @param headers      the Kafka {@code headers} to pull the {@link Integer} value from
+     * @param key          the key corresponding to the expected {@link Integer} value
+     * @param defaultValue the default value to return when {@code key} does not exist in the given {@code headers}
+     * @return the value as a {@link Integer} corresponding to the given {@code key} in the {@code headers}
+     */
+    public static Integer valueAsInt(Headers headers, String key, Integer defaultValue) {
+        Integer value = asInt(value(headers, key));
         return value != null ? value : defaultValue;
     }
 
