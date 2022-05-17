@@ -77,6 +77,7 @@ class TokenStoreState {
     private final Map<String, Object> consumerConfiguration;
     private final Map<String, Object> producerConfiguration;
     private final long writeTimeOutMillis;
+    private final java.util.function.Consumer<Executor> shutdownAction;
 
     /**
      * initializes the TokenStoreState
@@ -86,20 +87,22 @@ class TokenStoreState {
      * @param claimTimeout          the claim timeout of the store, used to set the topic config
      * @param consumerConfiguration used to configure the Kafka consumer
      * @param producerConfiguration used to configure the Kafka producer
+     * @param shutdownAction        the action to take on shutdown
      */
     TokenStoreState(Executor executor,
                     String topic,
                     TemporalAmount claimTimeout,
                     Map<String, Object> consumerConfiguration,
                     Map<String, Object> producerConfiguration,
-                    Duration writeTimeOut
-    ) {
+                    Duration writeTimeOut,
+                    java.util.function.Consumer<Executor> shutdownAction) {
         this.executor = executor;
         this.topic = topic;
         this.claimTimeout = claimTimeout;
         this.consumerConfiguration = consumerConfiguration;
         this.producerConfiguration = producerConfiguration;
         this.writeTimeOutMillis = writeTimeOut.toMillis();
+        this.shutdownAction = shutdownAction;
     }
 
     Future<Boolean> send(TokenUpdate update) {
@@ -158,6 +161,7 @@ class TokenStoreState {
             }
             return null;
         });
+        shutdownAction.accept(executor);
     }
 
     private int[] toPrimitiveIntArray(Map<Integer, TokenUpdate> segments) {

@@ -46,10 +46,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -90,9 +92,13 @@ public class KafkaTokenStore implements TokenStore {
      * duration (by using {@link Duration#ofSeconds(long)}, {@code nodeId} is defaulted to the {@code
      * ManagementFactory#getRuntimeMXBean#getName} output, the {@code readTimeOut} to a 5 seconds duration (by using
      * {@link Duration#ofSeconds(long)}, and the {@code writeTimeout} to a 3 seconds duration (by using {@link
-     * Duration#ofSeconds(long)}. The {@code consumerConfiguration}, {@code producerConfiguration} and {@link
-     * Serializer} are <b>hard requirements</b> and as such should be provided. For the {@code consumerConfiguration}
-     * and {@code producerConfiguration} the most important property is the {@code bootstrap.servers} config.
+     * Duration#ofSeconds(long)}. The {@code executorSupplier} is defaulted to supply a {@link
+     * Executors#newSingleThreadExecutor() newSingleThreadExecutor}, and the {@code shutdownAction} to shut the executor
+     * down.
+     * <p>
+     * The {@code consumerConfiguration}, {@code producerConfiguration} and {@link Serializer} are <b>hard
+     * requirements</b> and as such should be provided. For the {@code consumerConfiguration} and {@code
+     * producerConfiguration} the most important property is the {@code bootstrap.servers} config.
      *
      * @return a Builder to be able to create a {@link KafkaTokenStore}
      */
@@ -119,7 +125,8 @@ public class KafkaTokenStore implements TokenStore {
                 builder.claimTimeout,
                 builder.consumerConfiguration,
                 builder.producerConfiguration,
-                builder.writeTimeout
+                builder.writeTimeout,
+                builder.shutdownAction
         );
         this.serializer = builder.serializer;
         this.readTimeOutMillis = builder.readTimeOut.toMillis();
@@ -418,10 +425,14 @@ public class KafkaTokenStore implements TokenStore {
      * duration (by using {@link Duration#ofSeconds(long)}, {@code nodeId} is defaulted to the {@code
      * ManagementFactory#getRuntimeMXBean#getName} output, the {@code readTimeOut} to a 5 seconds duration (by using
      * {@link Duration#ofSeconds(long)}, and the {@code writeTimeout} to a 3 seconds duration (by using {@link
-     * Duration#ofSeconds(long)}. The {@code consumerConfiguration}, {@code producerConfiguration} and {@link
-     * Serializer} are <b>hard requirements</b> and as such should be provided. For the {@code consumerConfiguration}
-     * and {@code producerConfiguration} the most important property is the {@code bootstrap.servers} config, as well as
-     * any security config needed.
+     * Duration#ofSeconds(long)}). The {@code executorSupplier} is defaulted to supply a {@link
+     * Executors#newSingleThreadExecutor() newSingleThreadExecutor}, and the {@code shutdownAction} to shut the executor
+     * down.
+     * <p>
+     * The {@code consumerConfiguration}, {@code producerConfiguration} and {@link Serializer} are <b>hard
+     * requirements</b> and as such should be provided. For the {@code consumerConfiguration} and {@code
+     * producerConfiguration} the most important property is the {@code bootstrap.servers} config, as well as any
+     * security config needed.
      */
     public static class Builder {
 
@@ -430,6 +441,11 @@ public class KafkaTokenStore implements TokenStore {
         private TemporalAmount claimTimeout = Duration.ofSeconds(10);
         private String nodeId = ManagementFactory.getRuntimeMXBean().getName();
         private Supplier<Executor> executorSupplier = Executors::newSingleThreadExecutor;
+        private Consumer<Executor> shutdownAction = executor -> {
+            if (executor instanceof ExecutorService) {
+                ((ExecutorService) executor).shutdown();
+            }
+        };
         private Map<String, Object> consumerConfiguration;
         private Map<String, Object> producerConfiguration;
         private Duration readTimeOut = Duration.ofSeconds(5L);
@@ -495,16 +511,17 @@ public class KafkaTokenStore implements TokenStore {
         }
 
         /**
-         * Sets the {@code executor} to identify ownership of the tokens. Defaults to the name of the managed bean for
-         * the runtime system of the Java virtual machine.
+         * Sets the {@code executor} to run the Kafka consumer thread. This will also set the shutdown action to no-op.
+         * Will default to {@link Executors#newSingleThreadExecutor() newSingleThreadExecutor}.
          *
-         * @param executor, the {@link Executor} to run the consumer thread. Will default to {@link
-         *                  Executors#newSingleThreadExecutor() newSingleThreadExecutor}
+         * @param executor, the {@link Executor} to run the consumer thread.
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder executor(Executor executor) {
             assertNonNull(executor, "The executor may not be null");
             this.executorSupplier = () -> executor;
+            this.shutdownAction = e -> {
+            };
             return this;
         }
 
@@ -557,6 +574,19 @@ public class KafkaTokenStore implements TokenStore {
         public Builder writeTimeout(Duration writeTimeout) {
             assertNonNull(writeTimeout, "The readTimeOut may not be null");
             this.writeTimeout = writeTimeout;
+            return this;
+        }
+
+        /**
+         * Registers an action to perform when the token store shuts down. Will override any previously registered
+         * actions. Defaults to shutting down the executor, when no executor is supplied, or no-op when one is.
+         *
+         * @param shutdownAction the action to perform when the token store is shut down
+         * @return the current Builder instance, for fluent interfacing
+         */
+        public Builder onShutdown(Consumer<Executor> shutdownAction) {
+            assertNonNull(shutdownAction, "The shutdown action may not be null");
+            this.shutdownAction = shutdownAction;
             return this;
         }
 

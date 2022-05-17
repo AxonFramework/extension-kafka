@@ -244,6 +244,11 @@ class KafkaTokenStoreConcurrentIntegrationTest extends KafkaContainerTest {
                 .builder()
                 .topic(TOPICS[0])
                 .executor(Executors.newFixedThreadPool(1, new AxonThreadFactory("tokenStoreConsumer")))
+                .onShutdown(e -> {
+                    if (e instanceof ExecutorService) {
+                        ((ExecutorService) e).shutdown();
+                    }
+                })
                 .nodeId(nodeId)
                 .claimTimeout(Duration.ofSeconds(1))
                 .serializer(serializer)

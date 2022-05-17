@@ -121,4 +121,10 @@ class KafkaTokenStoreBuilderTest {
         KafkaTokenStore.Builder builder = KafkaTokenStore.builder();
         assertThrows(AxonConfigurationException.class, () -> builder.readTimeOut(null));
     }
+
+    @Test
+    void testBuildWithNullOnShutdown() {
+        KafkaTokenStore.Builder builder = KafkaTokenStore.builder();
+        assertThrows(AxonConfigurationException.class, () -> builder.onShutdown(null));
+    }
 }
