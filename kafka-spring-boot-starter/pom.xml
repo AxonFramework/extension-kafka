@@ -21,11 +21,11 @@
     <parent>
         <groupId>org.axonframework.extensions.kafka</groupId>
         <artifactId>axon-kafka-parent</artifactId>
-        <version>4.5.4</version>
+        <version>4.5.5-SNAPSHOT</version>
     </parent>
 
     <artifactId>axon-kafka-spring-boot-starter</artifactId>
-    <version>4.5.4</version>
+    <version>4.5.5-SNAPSHOT</version>
 
     <name>Axon Framework Kafka Extension - Spring Boot Starter</name>
     <description>Spring Boot Starter module for the Axon Kafka Extension</description>
