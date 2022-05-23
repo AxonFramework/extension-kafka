@@ -21,7 +21,6 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.CreatePartitionsResult;
 import org.apache.kafka.clients.admin.CreateTopicsResult;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
-import org.apache.kafka.clients.admin.ListTopicsResult;
 import org.apache.kafka.clients.admin.NewPartitions;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.KafkaFuture;
@@ -33,7 +32,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -123,20 +121,22 @@ public abstract class KafkaAdminUtils {
     }
 
     /**
-     * Method responsible for listing the {@code topics} on the provided {@code bootstrapServer}.
+     * Method responsible for deleting the {@code topics} on the provided {@code bootstrapServer}.
      *
      * @param bootstrapServer the kafka address
+     * @param topics          a list of topics to be deleted
      */
-    public static Set<String> listTopics(String bootstrapServer) {
+    public static void deleteTopics(String bootstrapServer, List<String> topics) {
         try (AdminClient adminClient = AdminClient.create(minimalAdminConfig(bootstrapServer))) {
-            ListTopicsResult listTopicsResult = adminClient.listTopics();
-            return waitForCompletion(listTopicsResult.names());
+            DeleteTopicsResult topicsDeletionResult = adminClient.deleteTopics(topics);
+            waitForCompletion(topicsDeletionResult.all());
+            topics.forEach(topic -> logger.info("Completed topic deletion: {}", topic));
         }
     }
 
-    private static <T> T waitForCompletion(KafkaFuture<T> kafkaFuture) {
+    private static <T> void waitForCompletion(KafkaFuture<T> kafkaFuture) {
         try {
-            return kafkaFuture.get(25, TimeUnit.SECONDS);
+            kafkaFuture.get(25, TimeUnit.SECONDS);
         } catch (InterruptedException | TimeoutException | ExecutionException e) {
             throw new IllegalStateException(e);
         }

@@ -31,8 +31,8 @@ import org.axonframework.eventhandling.tokenstore.TokenStore;
 import org.axonframework.eventhandling.tokenstore.UnableToClaimTokenException;
 import org.axonframework.eventhandling.tokenstore.UnableToInitializeTokenException;
 import org.axonframework.eventhandling.tokenstore.jdbc.TokenSchema;
-import org.axonframework.lifecycle.ShutdownHandler;
-import org.axonframework.lifecycle.StartHandler;
+import org.axonframework.lifecycle.Lifecycle;
+import org.axonframework.lifecycle.Phase;
 import org.axonframework.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +60,6 @@ import javax.annotation.Nullable;
 
 import static org.axonframework.common.BuilderUtils.assertNonEmpty;
 import static org.axonframework.common.BuilderUtils.assertNonNull;
-import static org.axonframework.lifecycle.Phase.EXTERNAL_CONNECTIONS;
 
 /**
  * An implementation of the {@link TokenStore} that allows you to store and retrieve tracking tokens backed by a
@@ -72,7 +71,7 @@ import static org.axonframework.lifecycle.Phase.EXTERNAL_CONNECTIONS;
  * @author Gerard Klijs
  * @since 4.6.0
  */
-public class KafkaTokenStore implements TokenStore {
+public class KafkaTokenStore implements TokenStore, Lifecycle {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaTokenStore.class);
     private static final String DEFAULT_TOPIC = "__axon_token_store_updates";
@@ -89,16 +88,16 @@ public class KafkaTokenStore implements TokenStore {
      * Instantiate a Builder to be able to create a {@link KafkaTokenStore}.
      * <p>
      * The {@code topic} defaults 'to __axon_token_store_updates'. The {@code claimTimeout} is defaulted to a 10 seconds
-     * duration (by using {@link Duration#ofSeconds(long)}, {@code nodeId} is defaulted to the {@code
-     * ManagementFactory#getRuntimeMXBean#getName} output, the {@code readTimeOut} to a 5 seconds duration (by using
-     * {@link Duration#ofSeconds(long)}, and the {@code writeTimeout} to a 3 seconds duration (by using {@link
-     * Duration#ofSeconds(long)}. The {@code executorSupplier} is defaulted to supply a {@link
-     * Executors#newSingleThreadExecutor() newSingleThreadExecutor}, and the {@code shutdownAction} to shut the executor
-     * down.
+     * duration (by using {@link Duration#ofSeconds(long)}, {@code nodeId} is defaulted to the
+     * {@code ManagementFactory#getRuntimeMXBean#getName} output, the {@code readTimeOut} to a 5 seconds duration (by
+     * using {@link Duration#ofSeconds(long)}, and the {@code writeTimeout} to a 3 seconds duration (by using
+     * {@link Duration#ofSeconds(long)}. The {@code executorSupplier} is defaulted to supply a
+     * {@link Executors#newSingleThreadExecutor() newSingleThreadExecutor}, and the {@code shutdownAction} to shut the
+     * executor down.
      * <p>
      * The {@code consumerConfiguration}, {@code producerConfiguration} and {@link Serializer} are <b>hard
-     * requirements</b> and as such should be provided. For the {@code consumerConfiguration} and {@code
-     * producerConfiguration} the most important property is the {@code bootstrap.servers} config.
+     * requirements</b> and as such should be provided. For the {@code consumerConfiguration} and
+     * {@code producerConfiguration} the most important property is the {@code bootstrap.servers} config.
      *
      * @return a Builder to be able to create a {@link KafkaTokenStore}
      */
@@ -287,18 +286,9 @@ public class KafkaTokenStore implements TokenStore {
     }
 
     /**
-     * Returns a List of known available {@code segments} for a given {@code processorName}. A segment is considered
-     * available if it is not claimed by any other event processor.
-     * <p>
-     * The segments returned are segments for which a token has been stored previously and have not been claimed by
-     * another processor. When the {@link TokenStore} is empty, an empty list is returned.
-     * <p>
-     * By default, if this method is not implemented, we will return all segments instead, whether they are available or
-     * not.
-     *
-     * @param processorName the processor's name for which to fetch the segments
-     * @return a List of available segment identifiers for the specified {@code processorName}
+     * {@inheritDoc}
      */
+    @Override
     public List<Segment> fetchAvailableSegments(@Nonnull String processorName) {
         int[] allSegments = fetchSegments(processorName);
         return tokenStoreState.fetchAll(processorName)
@@ -311,7 +301,6 @@ public class KafkaTokenStore implements TokenStore {
     /**
      * Starts the token store state
      */
-    @StartHandler(phase = EXTERNAL_CONNECTIONS)
     public void start() {
         tokenStoreState.start();
     }
@@ -319,9 +308,22 @@ public class KafkaTokenStore implements TokenStore {
     /**
      * Closes the token store state
      */
-    @ShutdownHandler(phase = EXTERNAL_CONNECTIONS)
     public void close() {
         tokenStoreState.close();
+    }
+
+
+    /**
+     * Registers lifecycle handlers. Starts early in order to build up state if needed in time before a
+     * {@link org.axonframework.eventhandling.StreamingEventProcessor StreamingEventProcessor} is started. Closed after
+     * the {@link Phase#INBOUND_EVENT_CONNECTORS} in case tokens need to be released when the processor is stopped.
+     *
+     * @param lifecycle the lifecycle instance to register the handlers with
+     */
+    @Override
+    public void registerLifecycleHandlers(@Nonnull LifecycleRegistry lifecycle) {
+        lifecycle.onStart(Phase.EXTERNAL_CONNECTIONS, this::start);
+        lifecycle.onShutdown(Phase.EXTERNAL_CONNECTIONS, this::close);
     }
 
     private static class FutureWithContext {
@@ -422,16 +424,16 @@ public class KafkaTokenStore implements TokenStore {
      * Builder class to instantiate a {@link KafkaTokenStore}.
      * <p>
      * The {@code topic} defaults 'to __axon_token_store_updates'. The {@code claimTimeout} is defaulted to a 10 seconds
-     * duration (by using {@link Duration#ofSeconds(long)}, {@code nodeId} is defaulted to the {@code
-     * ManagementFactory#getRuntimeMXBean#getName} output, the {@code readTimeOut} to a 5 seconds duration (by using
-     * {@link Duration#ofSeconds(long)}, and the {@code writeTimeout} to a 3 seconds duration (by using {@link
-     * Duration#ofSeconds(long)}). The {@code executorSupplier} is defaulted to supply a {@link
-     * Executors#newSingleThreadExecutor() newSingleThreadExecutor}, and the {@code shutdownAction} to shut the executor
-     * down.
+     * duration (by using {@link Duration#ofSeconds(long)}, {@code nodeId} is defaulted to the
+     * {@code ManagementFactory#getRuntimeMXBean#getName} output, the {@code readTimeOut} to a 5 seconds duration (by
+     * using {@link Duration#ofSeconds(long)}, and the {@code writeTimeout} to a 3 seconds duration (by using
+     * {@link Duration#ofSeconds(long)}). The {@code executorSupplier} is defaulted to supply a
+     * {@link Executors#newSingleThreadExecutor() newSingleThreadExecutor}, and the {@code shutdownAction} to shut the
+     * executor down.
      * <p>
      * The {@code consumerConfiguration}, {@code producerConfiguration} and {@link Serializer} are <b>hard
-     * requirements</b> and as such should be provided. For the {@code consumerConfiguration} and {@code
-     * producerConfiguration} the most important property is the {@code bootstrap.servers} config, as well as any
+     * requirements</b> and as such should be provided. For the {@code consumerConfiguration} and
+     * {@code producerConfiguration} the most important property is the {@code bootstrap.servers} config, as well as any
      * security config needed.
      */
     public static class Builder {
@@ -455,12 +457,12 @@ public class KafkaTokenStore implements TokenStore {
          * Sets the {@code topic} specifying the topic used for the token claim updates. Defaults to
          * __axon_token_store_updates. Please make sure that either the topic doesn't exist yet, and can be created by
          * the consumer, or the topic is configured correctly. It should be a compacted topic, and it might have
-         * multiple partition, but one should be more than enough for the expected traffic. The {@code
-         * min.compaction.lag.ms} of the topic should be at least double the {@code claimTimeout}. This is because we
-         * consider the first message with the same sequence number as the 'correct' message, instead of Kafka, that
-         * might delete a message when there is a newer message using the same key. To be sure the topic is cleaned up
-         * in time, independent of the default configured values, the {@code max.compaction.lag.ms} can be set to a
-         * value about 4 times the {@code min.compaction.lag.ms} value.
+         * multiple partition, but one should be more than enough for the expected traffic. The
+         * {@code min.compaction.lag.ms} of the topic should be at least double the {@code claimTimeout}. This is
+         * because we consider the first message with the same sequence number as the 'correct' message, instead of
+         * Kafka, that might delete a message when there is a newer message using the same key. To be sure the topic is
+         * cleaned up in time, independent of the default configured values, the {@code max.compaction.lag.ms} can be
+         * set to a value about 4 times the {@code min.compaction.lag.ms} value.
          *
          * @param topic the topic used for token claim updates
          * @return the current Builder instance, for fluent interfacing
@@ -485,8 +487,8 @@ public class KafkaTokenStore implements TokenStore {
 
         /**
          * Sets the {@code claimTimeout} specifying the amount of time this process will wait after which this process
-         * will force a claim of a {@link TrackingToken}. Thus, if a claim has not been updated for the given {@code
-         * claimTimeout}, this process will 'steal' the claim. Defaults to a duration of 10 seconds.
+         * will force a claim of a {@link TrackingToken}. Thus, if a claim has not been updated for the given
+         * {@code claimTimeout}, this process will 'steal' the claim. Defaults to a duration of 10 seconds.
          *
          * @param claimTimeout a timeout specifying the time after which this process will force a claim
          * @return the current Builder instance, for fluent interfacing

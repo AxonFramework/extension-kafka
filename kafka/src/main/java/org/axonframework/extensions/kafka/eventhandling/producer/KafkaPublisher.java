@@ -17,13 +17,6 @@
 package org.axonframework.extensions.kafka.eventhandling.producer;
 
 import com.thoughtworks.xstream.XStream;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.function.Supplier;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.errors.ProducerFencedException;
@@ -31,8 +24,8 @@ import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.eventhandling.EventMessage;
 import org.axonframework.extensions.kafka.eventhandling.DefaultKafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
+import org.axonframework.lifecycle.Lifecycle;
 import org.axonframework.lifecycle.Phase;
-import org.axonframework.lifecycle.ShutdownHandler;
 import org.axonframework.messaging.EventPublicationFailedException;
 import org.axonframework.messaging.unitofwork.CurrentUnitOfWork;
 import org.axonframework.messaging.unitofwork.UnitOfWork;
@@ -44,6 +37,15 @@ import org.axonframework.serialization.xml.CompactDriver;
 import org.axonframework.serialization.xml.XStreamSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
+import javax.annotation.Nonnull;
 
 import static org.axonframework.common.BuilderUtils.assertNonNull;
 import static org.axonframework.common.BuilderUtils.assertThat;
@@ -65,7 +67,7 @@ import static org.axonframework.common.BuilderUtils.assertThat;
  * @author Lars Bilger
  * @since 4.0
  */
-public class KafkaPublisher<K, V> {
+public class KafkaPublisher<K, V> implements Lifecycle {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaPublisher.class);
 
@@ -227,12 +229,19 @@ public class KafkaPublisher<K, V> {
 
     /**
      * Shuts down this component by calling {@link ProducerFactory#shutDown()} ensuring no new {@link Producer}
-     * instances can be created. Upon shutdown of an application, this method is invoked in the {@link
-     * Phase#INBOUND_EVENT_CONNECTORS} phase.
+     * instances can be created. Upon shutdown of an application, this method is invoked in the
+     * {@link Phase#INBOUND_EVENT_CONNECTORS} phase.
      */
-    @ShutdownHandler(phase = Phase.INBOUND_EVENT_CONNECTORS)
     public void shutDown() {
         producerFactory.shutDown();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void registerLifecycleHandlers(@Nonnull LifecycleRegistry lifecycle) {
+        lifecycle.onShutdown(Phase.INBOUND_EVENT_CONNECTORS, this::shutDown);
     }
 
     /**
