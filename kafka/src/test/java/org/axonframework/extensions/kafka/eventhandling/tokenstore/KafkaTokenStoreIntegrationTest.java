@@ -29,13 +29,13 @@ import org.axonframework.serialization.xml.CompactDriver;
 import org.axonframework.serialization.xml.XStreamSerializer;
 import org.junit.jupiter.api.*;
 
-import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 /**
  * Test class validating the {@link KafkaTokenStore}.
@@ -44,7 +44,9 @@ import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
  */
 class KafkaTokenStoreIntegrationTest extends KafkaContainerTest {
 
-    private static final String[] TOPICS = {"__axon_token_store_updates"};
+    private static final List<String> TOPICS = new ArrayList<>();
+    private static final String TOPIC_FORMAT = "KafkaTokenStoreIntegrationTest_%d";
+    private static int TOPIC_COUNTER = 0;
     private static final String PROCESSOR_NAME = "processor_name";
     private static final int SEGMENT = 2;
 
@@ -56,18 +58,13 @@ class KafkaTokenStoreIntegrationTest extends KafkaContainerTest {
     }
 
     @AfterEach
-    void tearDown() {
+    void teardown() {
         tokenStore.close();
-        if (!KafkaAdminUtils.listTopics(getBootstrapServers()).isEmpty()) {
-            KafkaAdminUtils.deleteTopics(getBootstrapServers(), TOPICS);
-        }
-        await().atMost(Duration.ofSeconds(5)).until(() -> {
-            try {
-                return KafkaAdminUtils.listTopics(getBootstrapServers()).isEmpty();
-            } catch (Exception e) {
-                return false;
-            }
-        });
+    }
+
+    @AfterAll
+    public static void after() {
+        KafkaAdminUtils.deleteTopics(getBootstrapServers(), TOPICS);
     }
 
     @Test
@@ -186,6 +183,8 @@ class KafkaTokenStoreIntegrationTest extends KafkaContainerTest {
     }
 
     private KafkaTokenStore getTokenStore() {
+        String topic = String.format(TOPIC_FORMAT, TOPIC_COUNTER);
+        TOPIC_COUNTER++;
         Map<String, Object> configuration = new HashMap<>();
         configuration.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, getBootstrapServers());
         Serializer serializer = XStreamSerializer.builder()
@@ -193,6 +192,7 @@ class KafkaTokenStoreIntegrationTest extends KafkaContainerTest {
                                                  .build();
         KafkaTokenStore tokenStore = KafkaTokenStore
                 .builder()
+                .topic(topic)
                 .serializer(serializer)
                 .consumerConfiguration(configuration)
                 .producerConfiguration(configuration)

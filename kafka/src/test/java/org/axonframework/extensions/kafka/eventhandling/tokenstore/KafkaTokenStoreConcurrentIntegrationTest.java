@@ -31,6 +31,7 @@ import org.axonframework.serialization.xml.XStreamSerializer;
 import org.junit.jupiter.api.*;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -52,7 +53,9 @@ import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
  */
 class KafkaTokenStoreConcurrentIntegrationTest extends KafkaContainerTest {
 
-    private static final String[] TOPICS = {"some_other_topic"};
+    private static final List<String> TOPICS = new ArrayList<>();
+    private static final String TOPIC_FORMAT = "KafkaTokenStoreConcurrentIntegrationTest_%d";
+    private static int TOPIC_COUNTER = 0;
     private static final String PROCESSOR_NAME = "processor_name";
     private static final int SEGMENT = 2;
 
@@ -61,9 +64,12 @@ class KafkaTokenStoreConcurrentIntegrationTest extends KafkaContainerTest {
 
     @BeforeEach
     void setUp() {
-        KafkaAdminUtils.createTopics(getBootstrapServers(), TOPICS);
-        t1 = getTokenStore("node-1");
-        t2 = getTokenStore("node-2");
+        String topic = String.format(TOPIC_FORMAT, TOPIC_COUNTER);
+        TOPIC_COUNTER++;
+        TOPICS.add(topic);
+        KafkaAdminUtils.createTopics(getBootstrapServers(), topic);
+        t1 = getTokenStore("node-1", topic);
+        t2 = getTokenStore("node-2", topic);
         t1.initializeTokenSegments(PROCESSOR_NAME, 5);
     }
 
@@ -71,14 +77,11 @@ class KafkaTokenStoreConcurrentIntegrationTest extends KafkaContainerTest {
     void tearDown() {
         t1.close();
         t2.close();
+    }
+
+    @AfterAll
+    public static void after() {
         KafkaAdminUtils.deleteTopics(getBootstrapServers(), TOPICS);
-        await().atMost(Duration.ofSeconds(5)).until(() -> {
-            try {
-                return KafkaAdminUtils.listTopics(getBootstrapServers()).isEmpty();
-            } catch (Exception e) {
-                return false;
-            }
-        });
     }
 
     @Test
@@ -234,7 +237,7 @@ class KafkaTokenStoreConcurrentIntegrationTest extends KafkaContainerTest {
         assertEquals(otherToken, result.get());
     }
 
-    private KafkaTokenStore getTokenStore(String nodeId) {
+    private KafkaTokenStore getTokenStore(String nodeId, String topic) {
         Map<String, Object> configuration = new HashMap<>();
         configuration.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, getBootstrapServers());
         Serializer serializer = XStreamSerializer.builder()
@@ -242,7 +245,7 @@ class KafkaTokenStoreConcurrentIntegrationTest extends KafkaContainerTest {
                                                  .build();
         KafkaTokenStore tokenStore = KafkaTokenStore
                 .builder()
-                .topic(TOPICS[0])
+                .topic(topic)
                 .executor(Executors.newFixedThreadPool(1, new AxonThreadFactory("tokenStoreConsumer")))
                 .onShutdown(e -> {
                     if (e instanceof ExecutorService) {

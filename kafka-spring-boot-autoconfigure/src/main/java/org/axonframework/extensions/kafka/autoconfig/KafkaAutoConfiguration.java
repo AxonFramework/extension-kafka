@@ -38,7 +38,6 @@ import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory
 import org.axonframework.extensions.kafka.eventhandling.tokenstore.KafkaTokenStore;
 import org.axonframework.serialization.Serializer;
 import org.axonframework.serialization.upcasting.event.EventUpcasterChain;
-import org.axonframework.spring.config.AxonConfiguration;
 import org.axonframework.springboot.autoconfig.AxonAutoConfiguration;
 import org.axonframework.springboot.autoconfig.InfraConfiguration;
 import org.slf4j.Logger;
@@ -92,12 +91,13 @@ public class KafkaAutoConfiguration {
     @ConditionalOnMissingBean
     public KafkaMessageConverter<String, byte[]> kafkaMessageConverter(
             @Qualifier("eventSerializer") Serializer eventSerializer,
-            AxonConfiguration config
+            org.axonframework.config.Configuration configuration
     ) {
         return DefaultKafkaMessageConverter
                 .builder()
                 .serializer(eventSerializer)
-                .upcasterChain(config.upcasterChain() != null ? config.upcasterChain() : new EventUpcasterChain())
+                .upcasterChain(configuration.upcasterChain()
+                                       != null ? configuration.upcasterChain() : new EventUpcasterChain())
                 .build();
     }
 
@@ -139,7 +139,7 @@ public class KafkaAutoConfiguration {
     public KafkaPublisher<String, byte[]> kafkaPublisher(
             ProducerFactory<String, byte[]> axonKafkaProducerFactory,
             KafkaMessageConverter<String, byte[]> kafkaMessageConverter,
-            AxonConfiguration configuration) {
+            org.axonframework.config.Configuration configuration) {
         return KafkaPublisher.<String, byte[]>builder()
                              .producerFactory(axonKafkaProducerFactory)
                              .messageConverter(kafkaMessageConverter)

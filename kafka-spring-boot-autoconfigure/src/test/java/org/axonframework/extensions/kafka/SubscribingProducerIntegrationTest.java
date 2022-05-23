@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2021. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @SpringBootTest
-@TestPropertySource(properties = "axon.kafka.producer.event-processor-mode=SUBSCRIBING")
+@TestPropertySource("classpath:application-subscribing.properties")
 class SubscribingProducerIntegrationTest {
 
     @MockBean

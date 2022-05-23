@@ -48,7 +48,6 @@ import org.axonframework.monitoring.NoOpMessageMonitor;
 import org.axonframework.serialization.Serializer;
 import org.axonframework.serialization.xml.CompactDriver;
 import org.axonframework.serialization.xml.XStreamSerializer;
-import org.axonframework.spring.config.AxonConfiguration;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -577,8 +576,8 @@ class KafkaAutoConfigurationIntegrationTest {
         }
 
         @Bean
-        public AxonConfiguration axonConfiguration() {
-            AxonConfiguration mock = mock(AxonConfiguration.class);
+        public org.axonframework.config.Configuration axonConfiguration() {
+            org.axonframework.config.Configuration mock = mock(org.axonframework.config.Configuration.class);
             //noinspection unchecked,rawtypes
             when(mock.messageMonitor(any(), any())).thenReturn((MessageMonitor) NoOpMessageMonitor.instance());
             return mock;
