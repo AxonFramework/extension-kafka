@@ -27,6 +27,7 @@ import org.junit.jupiter.api.*;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -85,15 +86,18 @@ class FailingConsumerErrorThroughBufferTest {
                                             .fetcher(fetcher)
                                             .build();
         BlockingStream<TrackedEventMessage<?>> stream = streamableMessageSource.openStream(null);
+        AtomicReference<FetchEventException> fetchEventException = new AtomicReference<>();
         await().atMost(Duration.ofSeconds(1L)).until(() -> {
             try {
                 stream.hasNextAvailable();
                 return false;
             } catch (FetchEventException e) {
+                fetchEventException.set(e);
                 return true;
             }
         });
         stream.close();
+        assertNotNull(fetchEventException.get());
     }
 
     @Test
@@ -105,15 +109,18 @@ class FailingConsumerErrorThroughBufferTest {
                                             .fetcher(fetcher)
                                             .build();
         BlockingStream<TrackedEventMessage<?>> stream = streamableMessageSource.openStream(null);
+        AtomicReference<FetchEventException> fetchEventException = new AtomicReference<>();
         await().atMost(Duration.ofSeconds(1L)).until(() -> {
             try {
                 stream.peek();
                 return false;
             } catch (FetchEventException e) {
+                fetchEventException.set(e);
                 return true;
             }
         });
         stream.close();
+        assertNotNull(fetchEventException.get());
     }
 
     private class MockFactory implements ConsumerFactory<String, byte[]> {
