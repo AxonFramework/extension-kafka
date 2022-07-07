@@ -47,7 +47,6 @@ import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.AnyNestedCondition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -73,7 +72,6 @@ import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEve
 @ConditionalOnExpression(
         "${axon.kafka.publisher.enabled:true} or ${axon.kafka.fetcher.enabled:true}"
 )
-@ConditionalOnClass(KafkaPublisher.class)
 @AutoConfigureAfter(AxonAutoConfiguration.class)
 @AutoConfigureBefore(InfraConfiguration.class)
 @EnableConfigurationProperties(KafkaProperties.class)
