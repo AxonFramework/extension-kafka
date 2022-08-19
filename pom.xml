@@ -56,7 +56,7 @@
         <axon.version>4.6.0-SNAPSHOT</axon.version>
         <kafka.version>3.2.1</kafka.version>
         <!-- Spring -->
-        <spring.boot.version>2.7.2</spring.boot.version>
+        <spring.boot.version>2.7.3</spring.boot.version>
         <!-- Logging -->
         <slf4j.version>1.7.36</slf4j.version>
         <log4j.version>2.18.0</log4j.version>
