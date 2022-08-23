@@ -19,15 +19,14 @@ package org.axonframework.extensions.kafka.eventhandling.cloudevent;
 import com.thoughtworks.xstream.XStream;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.core.v1.CloudEventBuilder;
-import io.cloudevents.rw.CloudEventRWException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.eventhandling.DomainEventMessage;
 import org.axonframework.eventhandling.EventMessage;
 import org.axonframework.eventhandling.GenericDomainEventMessage;
+import org.axonframework.eventhandling.async.FullConcurrencyPolicy;
 import org.axonframework.extensions.kafka.eventhandling.DefaultKafkaMessageConverter;
-import org.axonframework.extensions.kafka.utils.TestSerializer;
 import org.axonframework.messaging.MetaData;
 import org.axonframework.serialization.FixedValueRevisionResolver;
 import org.axonframework.serialization.upcasting.event.EventUpcasterChain;
@@ -39,6 +38,8 @@ import java.net.URI;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -72,7 +73,10 @@ class CloudEventKafkaMessageConverterTest {
     }
 
     private static EventMessage<Object> eventMessage() {
-        return asEventMessage("SomePayload").withMetaData(MetaData.with("key", "value"));
+        return asEventMessage("SomePayload")
+                .withMetaData(
+                        MetaData.with("key", "value")
+                                .and("traceId", UUID.randomUUID().toString()));
     }
 
     private static GenericDomainEventMessage<String> domainMessage() {
@@ -171,10 +175,6 @@ class CloudEventKafkaMessageConverterTest {
 
     @Test
     void testWritingEventMessageWithNullRevisionShouldWriteRevisionAsNull() {
-        testSubject = CloudEventKafkaMessageConverter
-                .builder()
-                .serializer(TestSerializer.XSTREAM.getSerializer())
-                .build();
         EventMessage<?> eventMessage = eventMessage();
         ProducerRecord<String, CloudEvent> senderMessage = testSubject.createKafkaMessage(eventMessage, SOME_TOPIC);
 
@@ -259,7 +259,7 @@ class CloudEventKafkaMessageConverterTest {
     void whenMetadataContainsWrongName_thenThrowAnError() {
         EventMessage<Object> eventMessage = asEventMessage("SomePayload").withMetaData(MetaData.with("_KEY", "value"));
 
-        assertThrows(CloudEventRWException.class, () -> testSubject.createKafkaMessage(eventMessage, SOME_TOPIC));
+        assertThrows(InvalidMetaDataException.class, () -> testSubject.createKafkaMessage(eventMessage, SOME_TOPIC));
     }
 
     @Test
@@ -268,6 +268,66 @@ class CloudEventKafkaMessageConverterTest {
                 .withMetaData(MetaData.with("key", Collections.singletonList("value")));
 
         assertThrows(InvalidMetaDataException.class, () -> testSubject.createKafkaMessage(eventMessage, SOME_TOPIC));
+    }
+
+    @Test
+    void testSequencingPolicyIsSet_thenItShouldBeUsed() {
+
+        testSubject = CloudEventKafkaMessageConverter.builder()
+                                                     .serializer(serializer)
+                                                     .sequencingPolicy(new FullConcurrencyPolicy())
+                                                     .build();
+
+        EventMessage<?> expected = eventMessage();
+        ProducerRecord<String, CloudEvent> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
+        assertEquals(expected.getIdentifier(), senderMessage.key());
+    }
+
+    @Test
+    void testWhenAddMetadataMappersIsSupplied_thenItShouldBeUsed() {
+        Map<String, String> metadataToExtensionMap = new HashMap<>();
+        metadataToExtensionMap.put("key", "foo");
+
+        testSubject = CloudEventKafkaMessageConverter.builder()
+                                                     .serializer(serializer)
+                                                     .addMetadataMappers(metadataToExtensionMap)
+                                                     .build();
+
+        EventMessage<?> expected = eventMessage();
+        ProducerRecord<String, CloudEvent> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
+        EventMessage<?> actual = receiverMessage(senderMessage);
+
+        assertEventMessage(actual, expected);
+        assertEquals("value", senderMessage.value().getExtension("foo"));
+    }
+
+    @Test
+    void testWhenAddMetadataMapperIsSupplied_thenItShouldBeUsed() {
+        testSubject = CloudEventKafkaMessageConverter.builder()
+                                                     .serializer(serializer)
+                                                     .addMetadataMapper("key", "foo")
+                                                     .build();
+
+        EventMessage<?> expected = eventMessage();
+        ProducerRecord<String, CloudEvent> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
+        EventMessage<?> actual = receiverMessage(senderMessage);
+
+        assertEventMessage(actual, expected);
+        assertEquals("value", senderMessage.value().getExtension("foo"));
+    }
+
+    @Test
+    void testSourceSupplierIsSet_thenItShouldBeUsed() {
+        URI sourceUri = URI.create("https://github.com/AxonFramework/extension-kafka/");
+
+        testSubject = CloudEventKafkaMessageConverter.builder()
+                                                     .serializer(serializer)
+                                                     .sourceSupplier(m -> sourceUri)
+                                                     .build();
+
+        EventMessage<?> expected = eventMessage();
+        ProducerRecord<String, CloudEvent> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
+        assertEquals(sourceUri, senderMessage.value().getSource());
     }
 
 

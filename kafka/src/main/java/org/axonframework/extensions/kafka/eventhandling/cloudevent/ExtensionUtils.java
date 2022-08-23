@@ -68,30 +68,36 @@ class ExtensionUtils {
         return NON_METADATA_EXTENSIONS.contains(extensionName);
     }
 
-    static void setExtension(CloudEventBuilder builder, Map.Entry<String, Object> entry) {
-        if (isNonMetadataExtension(entry.getKey())) {
+    static void setExtension(CloudEventBuilder builder, String extensionName, Object value) {
+        if (isNonMetadataExtension(extensionName)) {
             throw new InvalidMetaDataException(
                     String.format("Metadata property '%s' is already reserved to be used for Axon",
-                                  entry.getKey())
+                                  extensionName)
             );
         }
-        if (entry.getValue() instanceof String) {
-            builder.withExtension(entry.getKey(), (String) entry.getValue());
-        } else if (entry.getValue() instanceof Number) {
-            builder.withExtension(entry.getKey(), (Number) entry.getValue());
-        } else if (entry.getValue() instanceof Boolean) {
-            builder.withExtension(entry.getKey(), (Boolean) entry.getValue());
-        } else if (entry.getValue() instanceof URI) {
-            builder.withExtension(entry.getKey(), (URI) entry.getValue());
-        } else if (entry.getValue() instanceof OffsetDateTime) {
-            builder.withExtension(entry.getKey(), (OffsetDateTime) entry.getValue());
-        } else if (entry.getValue() instanceof byte[]) {
-            builder.withExtension(entry.getKey(), (byte[]) entry.getValue());
+        if (!isValidExtensionName(extensionName)) {
+            throw new InvalidMetaDataException(
+                    String.format("Metadata property '%s' is not a valid extension name",
+                                  extensionName)
+            );
+        }
+        if (value instanceof String) {
+            builder.withExtension(extensionName, (String) value);
+        } else if (value instanceof Number) {
+            builder.withExtension(extensionName, (Number) value);
+        } else if (value instanceof Boolean) {
+            builder.withExtension(extensionName, (Boolean) value);
+        } else if (value instanceof URI) {
+            builder.withExtension(extensionName, (URI) value);
+        } else if (value instanceof OffsetDateTime) {
+            builder.withExtension(extensionName, (OffsetDateTime) value);
+        } else if (value instanceof byte[]) {
+            builder.withExtension(extensionName, (byte[]) value);
         } else {
             throw new InvalidMetaDataException(
                     String.format("Metadata property '%s' is of class '%s' and thus can't be added",
-                                  entry.getKey(),
-                                  entry.getValue().getClass())
+                                  extensionName,
+                                  value.getClass())
             );
         }
     }
@@ -112,11 +118,11 @@ class ExtensionUtils {
         }
     }
 
-    static OffsetDateTime asOffsetDateTime(Object object) {
+    static OffsetDateTime asOffsetDateTime(Object object, long fallbackTimestamp) {
         if (object instanceof OffsetDateTime) {
             return (OffsetDateTime) object;
         } else {
-            return Instant.now().atOffset(ZoneOffset.UTC);
+            return Instant.ofEpochMilli(fallbackTimestamp).atOffset(ZoneOffset.UTC);
         }
     }
 
@@ -126,5 +132,28 @@ class ExtensionUtils {
         } else {
             return data.toBytes();
         }
+    }
+
+    static boolean isValidExtensionName(String name) {
+        for (int i = 0; i < name.length(); ++i) {
+            if (!isValidChar(name.charAt(i))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static boolean isValidChar(char c) {
+        return c >= 'a' && c <= 'z' || c >= '0' && c <= '9';
+    }
+
+    static boolean isValidMetadataToExtensionMap(Map<String, String> metadataToExtensionMap) {
+        for (String extensionName : metadataToExtensionMap.values()) {
+            if (!isValidExtensionName(extensionName)) {
+                return false;
+            }
+        }
+        return true;
     }
 }
