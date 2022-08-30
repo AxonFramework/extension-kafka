@@ -40,6 +40,7 @@ import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -119,7 +120,21 @@ class CloudEventKafkaMessageConverterTest {
     }
 
     @Test
-    void testWritingEventMessageAsKafkaMessageShouldStoreMetaData() {
+    void whenNoDataContentTypeSupplierSet_thenDataTypeShouldBeNull() {
+        ProducerRecord<String, CloudEvent> evt = testSubject.createKafkaMessage(eventMessage(), SOME_TOPIC);
+
+        assertNull(evt.value().getDataContentType());
+    }
+
+    @Test
+    void whenNoDataSchemaSet_thenDataSchemaShouldBeNull() {
+        ProducerRecord<String, CloudEvent> evt = testSubject.createKafkaMessage(eventMessage(), SOME_TOPIC);
+
+        assertNull(evt.value().getDataSchema());
+    }
+
+    @Test
+    void whenWritingEventMessageAsKafkaMessage_thenShouldStoreMetaData() {
         EventMessage<?> expected = eventMessage();
         ProducerRecord<String, CloudEvent> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
 
@@ -128,7 +143,7 @@ class CloudEventKafkaMessageConverterTest {
     }
 
     @Test
-    void testWritingDomainMessageAsKafkaMessageShouldAppendDomainHeaders() {
+    void whenWritingDomainMessageAsKafkaMessage_thenShouldAppendDomainHeaders() {
         GenericDomainEventMessage<String> expected = domainMessage();
         ProducerRecord<String, CloudEvent> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
 
@@ -139,7 +154,7 @@ class CloudEventKafkaMessageConverterTest {
     }
 
     @Test
-    void testReadingMessage_WhenKafkaReturnNullHeadersShouldReturnEmptyMessage() {
+    void whenKafkaReturnNullHeaders_thenShouldReturnEmptyMessage() {
         //noinspection unchecked
         ConsumerRecord<String, CloudEvent> source = mock(ConsumerRecord.class);
         when(source.headers()).thenReturn(null);
@@ -148,14 +163,14 @@ class CloudEventKafkaMessageConverterTest {
     }
 
     @Test
-    void testReadingMessageMissingAxonHeaderShouldReturnMessageAnyway() {
+    void whenReadingMessageMissingAxonHeader_thenShouldReturnMessageAnyway() {
         ConsumerRecord<String, CloudEvent> msgWithoutHeaders =
                 new ConsumerRecord<>("foo", 0, 0, "abc", minimalCloudEvent());
         assertTrue(testSubject.readKafkaMessage(msgWithoutHeaders).isPresent());
     }
 
     @Test
-    void testWritingEventMessageShouldBeReadAsEventMessageAndPassUpcaster() {
+    void whenWritingEventMessage_thenShouldBeReadAsEventMessageAndPassUpcaster() {
         AtomicInteger upcasterCalled = new AtomicInteger(0);
 
         EventUpcasterChain chain = new EventUpcasterChain(intermediateRepresentations -> {
@@ -174,7 +189,7 @@ class CloudEventKafkaMessageConverterTest {
     }
 
     @Test
-    void testWritingEventMessageWithNullRevisionShouldWriteRevisionAsNull() {
+    void whenWritingEventMessageWithNullRevision_thenShouldWriteRevisionAsNull() {
         EventMessage<?> eventMessage = eventMessage();
         ProducerRecord<String, CloudEvent> senderMessage = testSubject.createKafkaMessage(eventMessage, SOME_TOPIC);
 
@@ -182,7 +197,7 @@ class CloudEventKafkaMessageConverterTest {
     }
 
     @Test
-    void testWritingDomainEventMessageShouldBeReadAsDomainMessage() {
+    void whenWritingDomainEventMessage_thenShouldBeReadAsDomainMessage() {
         DomainEventMessage<?> expected = domainMessage();
         ProducerRecord<String, CloudEvent> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
         EventMessage<?> actual = receiverMessage(senderMessage);
@@ -192,7 +207,7 @@ class CloudEventKafkaMessageConverterTest {
     }
 
     @Test
-    void testWritingDomainEventMessageShouldBeReadAsDomainMessageAndPassUpcaster() {
+    void whenWritingDomainEventMessage_thenShouldBeReadAsDomainMessageAndPassUpcaster() {
 
         AtomicInteger upcasterCalled = new AtomicInteger(0);
 
@@ -213,35 +228,35 @@ class CloudEventKafkaMessageConverterTest {
 
 
     @Test
-    void testBuildWithoutSerializerThrowsAxonConfigurationException() {
+    void whenBuildWithoutSerializer_thenThrowsAxonConfigurationException() {
         DefaultKafkaMessageConverter.Builder testSubject = DefaultKafkaMessageConverter.builder();
 
         assertThrows(AxonConfigurationException.class, testSubject::build);
     }
 
     @Test
-    void testBuildWithNullSerializerThrowsAxonConfigurationException() {
+    void whenBuildWithNullSerializer_thenThrowsAxonConfigurationException() {
         DefaultKafkaMessageConverter.Builder testSubject = DefaultKafkaMessageConverter.builder();
 
         assertThrows(AxonConfigurationException.class, () -> testSubject.serializer(null));
     }
 
     @Test
-    void testBuildWithNullSequencingPolicyThrowsAxonConfigurationException() {
+    void whenBuildWithNullSequencingPolicy_thenThrowsAxonConfigurationException() {
         DefaultKafkaMessageConverter.Builder testSubject = DefaultKafkaMessageConverter.builder();
 
         assertThrows(AxonConfigurationException.class, () -> testSubject.sequencingPolicy(null));
     }
 
     @Test
-    void testBuildWithNullHeaderValueMapperThrowsAxonConfigurationException() {
+    void whenBuildWithNullHeaderValueMapper_thenThrowsAxonConfigurationException() {
         DefaultKafkaMessageConverter.Builder testSubject = DefaultKafkaMessageConverter.builder();
 
         assertThrows(AxonConfigurationException.class, () -> testSubject.headerValueMapper(null));
     }
 
     @Test
-    void testBuildWithNullUpcasterChainThrowsAxonConfigurationException() {
+    void whenBuildWithNullUpcasterChain_thenThrowsAxonConfigurationException() {
         DefaultKafkaMessageConverter.Builder testSubject = DefaultKafkaMessageConverter.builder();
 
         assertThrows(AxonConfigurationException.class, () -> testSubject.upcasterChain(null));
@@ -271,7 +286,7 @@ class CloudEventKafkaMessageConverterTest {
     }
 
     @Test
-    void testSequencingPolicyIsSet_thenItShouldBeUsed() {
+    void whenSequencingPolicyIsSet_thenItShouldBeUsed() {
 
         testSubject = CloudEventKafkaMessageConverter.builder()
                                                      .serializer(serializer)
@@ -284,7 +299,7 @@ class CloudEventKafkaMessageConverterTest {
     }
 
     @Test
-    void testWhenAddMetadataMappersIsSupplied_thenItShouldBeUsed() {
+    void whenAddMetadataMappersIsSupplied_thenItShouldBeUsed() {
         Map<String, String> metadataToExtensionMap = new HashMap<>();
         metadataToExtensionMap.put("key", "foo");
 
@@ -302,7 +317,7 @@ class CloudEventKafkaMessageConverterTest {
     }
 
     @Test
-    void testWhenAddMetadataMapperIsSupplied_thenItShouldBeUsed() {
+    void whenAddMetadataMapperIsSupplied_thenItShouldBeUsed() {
         testSubject = CloudEventKafkaMessageConverter.builder()
                                                      .serializer(serializer)
                                                      .addMetadataMapper("key", "foo")
@@ -317,7 +332,7 @@ class CloudEventKafkaMessageConverterTest {
     }
 
     @Test
-    void testSourceSupplierIsSet_thenItShouldBeUsed() {
+    void whenSourceSupplierIsSet_thenItShouldBeUsed() {
         URI sourceUri = URI.create("https://github.com/AxonFramework/extension-kafka/");
 
         testSubject = CloudEventKafkaMessageConverter.builder()
@@ -328,6 +343,37 @@ class CloudEventKafkaMessageConverterTest {
         EventMessage<?> expected = eventMessage();
         ProducerRecord<String, CloudEvent> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
         assertEquals(sourceUri, senderMessage.value().getSource());
+    }
+
+    @Test
+    void testDataContentTypeIsSet_thenItShouldBeUsed() {
+        String APPLICATION_JSON = "application/json";
+        testSubject = CloudEventKafkaMessageConverter.builder()
+                                                     .serializer(serializer)
+                                                     .dataContentTypeSupplier(m -> Optional.of(APPLICATION_JSON))
+                                                     .build();
+
+        EventMessage<?> expected = eventMessage();
+        ProducerRecord<String, CloudEvent> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
+        assertEquals(APPLICATION_JSON, senderMessage.value().getDataContentType());
+    }
+
+    @Test
+    void testDataSchemaIsSet_thenItShouldBeUsed() {
+        URI dataSchema = URI.create(String.class.getCanonicalName());
+        testSubject = CloudEventKafkaMessageConverter.builder()
+                                                     .serializer(serializer)
+                                                     .dataSchemaSupplier(m -> {
+                                                         if (m.getPayload() instanceof String) {
+                                                             return Optional.of(dataSchema);
+                                                         }
+                                                         return Optional.empty();
+                                                     })
+                                                     .build();
+
+        EventMessage<?> expected = eventMessage();
+        ProducerRecord<String, CloudEvent> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
+        assertEquals(dataSchema, senderMessage.value().getDataSchema());
     }
 
 
