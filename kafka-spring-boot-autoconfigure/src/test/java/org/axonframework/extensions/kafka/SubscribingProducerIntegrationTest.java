@@ -47,7 +47,7 @@ import static org.mockito.Mockito.*;
 class SubscribingProducerIntegrationTest {
 
     @MockBean
-    private KafkaPublisher<String, byte[]> kafkaPublisher;
+    private KafkaPublisher<?, ?> kafkaPublisher;
 
     @Autowired
     private EventBus eventBus;

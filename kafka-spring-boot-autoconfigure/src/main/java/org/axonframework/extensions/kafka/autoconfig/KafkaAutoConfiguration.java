@@ -23,6 +23,7 @@ import org.axonframework.eventhandling.tokenstore.TokenStore;
 import org.axonframework.extensions.kafka.KafkaProperties;
 import org.axonframework.extensions.kafka.eventhandling.DefaultKafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
+import org.axonframework.extensions.kafka.eventhandling.cloudevent.CloudEventKafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.consumer.AsyncFetcher;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
@@ -87,27 +88,42 @@ public class KafkaAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public KafkaMessageConverter<String, byte[]> kafkaMessageConverter(
+    @SuppressWarnings("squid:S1452") //needs wildcard to be generic
+    public KafkaMessageConverter<?, ?> kafkaMessageConverter(
             @Qualifier("eventSerializer") Serializer eventSerializer,
             org.axonframework.config.Configuration configuration
     ) {
-        return DefaultKafkaMessageConverter
-                .builder()
-                .serializer(eventSerializer)
-                .upcasterChain(configuration.upcasterChain()
-                                       != null ? configuration.upcasterChain() : new EventUpcasterChain())
-                .build();
+        KafkaProperties.MessageConverterMode converterMode = properties.getMessageConverterMode();
+        if (converterMode == KafkaProperties.MessageConverterMode.DEFAULT) {
+            return DefaultKafkaMessageConverter
+                    .builder()
+                    .serializer(eventSerializer)
+                    .upcasterChain(configuration.upcasterChain()
+                                           != null ? configuration.upcasterChain() : new EventUpcasterChain())
+                    .build();
+        } else if (converterMode == KafkaProperties.MessageConverterMode.CLOUD_EVENT) {
+            return CloudEventKafkaMessageConverter
+                    .builder()
+                    .serializer(eventSerializer)
+                    .upcasterChain(configuration.upcasterChain()
+                                           != null ? configuration.upcasterChain() : new EventUpcasterChain())
+                    .build();
+        } else {
+            throw new AxonConfigurationException(
+                    "Unknown Kafka Message Converter Mode [" + converterMode + "] detected");
+        }
     }
 
     @Bean("axonKafkaProducerFactory")
     @ConditionalOnMissingBean
     @ConditionalOnProperty(name = "axon.kafka.publisher.enabled", havingValue = "true", matchIfMissing = true)
-    public ProducerFactory<String, byte[]> kafkaProducerFactory() {
+    @SuppressWarnings("squid:S1452") //needs wildcard to be generic
+    public <K, V> ProducerFactory<?, ?> kafkaProducerFactory() {
         ConfirmationMode confirmationMode = properties.getPublisher().getConfirmationMode();
         String transactionIdPrefix = properties.getProducer().getTransactionIdPrefix();
 
-        DefaultProducerFactory.Builder<String, byte[]> builder =
-                DefaultProducerFactory.<String, byte[]>builder()
+        DefaultProducerFactory.Builder<K, V> builder =
+                DefaultProducerFactory.<K, V>builder()
                                       .configuration(properties.buildProducerProperties())
                                       .confirmationMode(confirmationMode);
 
@@ -134,11 +150,14 @@ public class KafkaAutoConfiguration {
     @Bean(destroyMethod = "shutDown")
     @ConditionalOnBean({ProducerFactory.class, KafkaMessageConverter.class})
     @ConditionalOnProperty(name = "axon.kafka.publisher.enabled", havingValue = "true", matchIfMissing = true)
-    public KafkaPublisher<String, byte[]> kafkaPublisher(
-            ProducerFactory<String, byte[]> axonKafkaProducerFactory,
-            KafkaMessageConverter<String, byte[]> kafkaMessageConverter,
+    @SuppressWarnings("squid:S1452") //needs wildcard to be generic
+    public <K, V> KafkaPublisher<?, ?> kafkaPublisher(
+            @Qualifier("eventSerializer") Serializer eventSerializer,
+            ProducerFactory<K, V> axonKafkaProducerFactory,
+            KafkaMessageConverter<K, V> kafkaMessageConverter,
             org.axonframework.config.Configuration configuration) {
-        return KafkaPublisher.<String, byte[]>builder()
+        return KafkaPublisher.<K, V>builder()
+                             .serializer(eventSerializer)
                              .producerFactory(axonKafkaProducerFactory)
                              .messageConverter(kafkaMessageConverter)
                              .messageMonitor(configuration.messageMonitor(KafkaPublisher.class, "kafkaPublisher"))
@@ -150,12 +169,15 @@ public class KafkaAutoConfiguration {
     @ConditionalOnMissingBean
     @ConditionalOnBean({KafkaPublisher.class})
     @ConditionalOnProperty(name = "axon.kafka.publisher.enabled", havingValue = "true", matchIfMissing = true)
-    public KafkaEventPublisher<String, byte[]> kafkaEventPublisher(
-            KafkaPublisher<String, byte[]> kafkaPublisher,
+    @SuppressWarnings("squid:S1452") //needs wildcard to be generic
+    public <K, V> KafkaEventPublisher<?, ?> kafkaEventPublisher(
+            KafkaPublisher<K, V> kafkaPublisher,
             KafkaProperties kafkaProperties,
             EventProcessingConfigurer eventProcessingConfigurer) {
-        KafkaEventPublisher<String, byte[]> kafkaEventPublisher =
-                KafkaEventPublisher.<String, byte[]>builder().kafkaPublisher(kafkaPublisher).build();
+        KafkaEventPublisher<K, V> kafkaEventPublisher = KafkaEventPublisher
+                .<K, V>builder()
+                .kafkaPublisher(kafkaPublisher)
+                .build();
 
         /*
          * Register an invocation error handler which re-throws any exception.
@@ -204,7 +226,8 @@ public class KafkaAutoConfiguration {
     @Bean("axonKafkaConsumerFactory")
     @ConditionalOnMissingBean
     @ConditionalOnProperty(name = "axon.kafka.fetcher.enabled", havingValue = "true", matchIfMissing = true)
-    public ConsumerFactory<String, byte[]> kafkaConsumerFactory() {
+    @SuppressWarnings("squid:S1452") //needs wildcard to be generic
+    public ConsumerFactory<?, ?> kafkaConsumerFactory() {
         return new DefaultConsumerFactory<>(properties.buildConsumerProperties());
     }
 
@@ -223,13 +246,16 @@ public class KafkaAutoConfiguration {
     @ConditionalOnBean({ConsumerFactory.class, KafkaMessageConverter.class, Fetcher.class})
     @Conditional(ConsumerStreamingProcessorModeCondition.class)
     @ConditionalOnProperty(name = "axon.kafka.fetcher.enabled", havingValue = "true", matchIfMissing = true)
-    public StreamableKafkaMessageSource<String, byte[]> streamableKafkaMessageSource(
-            ConsumerFactory<String, byte[]> kafkaConsumerFactory,
-            Fetcher<String, byte[], KafkaEventMessage> kafkaFetcher,
-            KafkaMessageConverter<String, byte[]> kafkaMessageConverter
+    @SuppressWarnings("squid:S1452") //needs wildcard to be generic
+    public <K, V> StreamableKafkaMessageSource<?, ?> streamableKafkaMessageSource(
+            @Qualifier("eventSerializer") Serializer eventSerializer,
+            ConsumerFactory<K, V> kafkaConsumerFactory,
+            Fetcher<K, V, KafkaEventMessage> kafkaFetcher,
+            KafkaMessageConverter<K, V> kafkaMessageConverter
     ) {
-        return StreamableKafkaMessageSource.<String, byte[]>builder()
+        return StreamableKafkaMessageSource.<K, V>builder()
                                            .topics(Collections.singletonList(properties.getDefaultTopic()))
+                                           .serializer(eventSerializer)
                                            .consumerFactory(kafkaConsumerFactory)
                                            .fetcher(kafkaFetcher)
                                            .messageConverter(kafkaMessageConverter)

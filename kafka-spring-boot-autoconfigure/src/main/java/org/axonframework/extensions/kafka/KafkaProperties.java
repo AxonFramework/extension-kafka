@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2021. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 package org.axonframework.extensions.kafka;
 
+import io.cloudevents.kafka.CloudEventDeserializer;
+import io.cloudevents.kafka.CloudEventSerializer;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -49,6 +51,7 @@ import java.util.Map;
  * @author Nakul Mishra
  * @author Simon Zambrovski
  * @author Steven van Beelen
+ * @author Gerard Klijs
  * @since 4.0
  */
 @ConfigurationProperties(prefix = "axon.kafka")
@@ -85,6 +88,8 @@ public class KafkaProperties {
     private final Consumer consumer = new Consumer();
 
     private final Ssl ssl = new Ssl();
+
+    private MessageConverterMode messageConverterMode = MessageConverterMode.DEFAULT;
 
     public List<String> getBootstrapServers() {
         return this.bootstrapServers;
@@ -143,6 +148,14 @@ public class KafkaProperties {
         return this.ssl;
     }
 
+    public void setMessageConverterMode(MessageConverterMode messageConverterMode) {
+        this.messageConverterMode = messageConverterMode;
+    }
+
+    public MessageConverterMode getMessageConverterMode() {
+        return messageConverterMode;
+    }
+
     @SuppressWarnings("Duplicates")
     private Map<String, Object> buildCommonProperties() {
         Map<String, Object> commonProperties = new HashMap<>();
@@ -170,7 +183,7 @@ public class KafkaProperties {
     @SuppressWarnings("squid:S1117") //renaming properties would be confusing and breaking
     public Map<String, Object> buildConsumerProperties() {
         Map<String, Object> properties = buildCommonProperties();
-        properties.putAll(this.consumer.buildProperties());
+        properties.putAll(this.consumer.buildProperties(getMessageConverterMode()));
         return properties;
     }
 
@@ -184,7 +197,7 @@ public class KafkaProperties {
      */
     public Map<String, Object> buildProducerProperties() {
         Map<String, Object> producerProperties = buildCommonProperties();
-        producerProperties.putAll(this.producer.buildProperties());
+        producerProperties.putAll(this.producer.buildProperties(getMessageConverterMode()));
         return producerProperties;
     }
 
@@ -298,8 +311,8 @@ public class KafkaProperties {
          * Controls the mode of event processor responsible for sending messages to Kafka. Depending on this, different
          * error handling behaviours are taken in case of any errors during Kafka publishing.
          * <p>
-         * Defaults to {@link EventProcessorMode#SUBSCRIBING}, using a {@link org.axonframework.eventhandling.SubscribingEventProcessor}
-         * to publish events.
+         * Defaults to {@link EventProcessorMode#SUBSCRIBING}, using a
+         * {@link org.axonframework.eventhandling.SubscribingEventProcessor} to publish events.
          */
         private EventProcessorMode eventProcessorMode = EventProcessorMode.SUBSCRIBING;
 
@@ -400,7 +413,7 @@ public class KafkaProperties {
         }
 
         @SuppressWarnings({"Duplicates", "WeakerAccess", "squid:S1117"})
-        public Map<String, Object> buildProperties() {
+        public Map<String, Object> buildProperties(MessageConverterMode messageConverterMode) {
             Map<String, Object> producerProperties = new HashMap<>();
 
             if (this.acks != null) {
@@ -428,7 +441,9 @@ public class KafkaProperties {
                 producerProperties.put(ProducerConfig.RETRIES_CONFIG, this.retries);
             }
             addSslProperties(producerProperties, this.ssl);
-            if (this.valueSerializer != null) {
+            if (messageConverterMode == MessageConverterMode.CLOUD_EVENT) {
+                producerProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, CloudEventSerializer.class);
+            } else if (this.valueSerializer != null) {
                 producerProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, this.valueSerializer);
             }
             if (!CollectionUtils.isEmpty(this.properties)) {
@@ -460,7 +475,8 @@ public class KafkaProperties {
 
         /**
          * Size of the buffer containing fetched Kafka records to be transferred over in to Axon Event Messages. Will
-         * only be used for a {@link org.axonframework.extensions.kafka.eventhandling.consumer.streamable.StreamableKafkaMessageSource}
+         * only be used for a
+         * {@link org.axonframework.extensions.kafka.eventhandling.consumer.streamable.StreamableKafkaMessageSource}
          * instance. Defaults to {@code 10.000} records.
          */
         private int bufferSize = 10_000;
@@ -675,7 +691,7 @@ public class KafkaProperties {
         }
 
         @SuppressWarnings({"Duplicates", "WeakerAccess"})
-        public Map<String, Object> buildProperties() {
+        public Map<String, Object> buildProperties(MessageConverterMode messageConverterMode) {
             Map<String, Object> consumerProperties = new HashMap<>();
 
             if (this.autoCommitInterval != null) {
@@ -706,7 +722,9 @@ public class KafkaProperties {
                 consumerProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, this.keyDeserializer);
             }
             addSslProperties(consumerProperties, this.ssl);
-            if (this.valueDeserializer != null) {
+            if (messageConverterMode == MessageConverterMode.CLOUD_EVENT) {
+                consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, CloudEventDeserializer.class);
+            } else if (this.valueDeserializer != null) {
                 consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, this.valueDeserializer);
             }
             if (this.maxPollRecords != null) {
@@ -726,14 +744,15 @@ public class KafkaProperties {
     public enum EventProcessorMode {
         /**
          * For producing messages a {@link org.axonframework.eventhandling.SubscribingEventProcessor} will be used, that
-         * will utilize Kafka's transactions for sending. A {@link org.axonframework.extensions.kafka.eventhandling.consumer.subscribable.SubscribableKafkaMessageSource}
+         * will utilize Kafka's transactions for sending. A
+         * {@link org.axonframework.extensions.kafka.eventhandling.consumer.subscribable.SubscribableKafkaMessageSource}
          * will be created for consuming messages.
          */
         SUBSCRIBING,
         /**
-         * Use a {@link org.axonframework.eventhandling.TrackingEventProcessor} to publish messages. A {@link
-         * org.axonframework.extensions.kafka.eventhandling.consumer.streamable.StreamableKafkaMessageSource} will be
-         * created for consuming messages.
+         * Use a {@link org.axonframework.eventhandling.TrackingEventProcessor} to publish messages. A
+         * {@link org.axonframework.extensions.kafka.eventhandling.consumer.streamable.StreamableKafkaMessageSource}
+         * will be created for consuming messages.
          */
         TRACKING,
         /**
@@ -742,6 +761,22 @@ public class KafkaProperties {
          * will be created for consuming messages.
          */
         POOLED_STREAMING
+    }
+
+    /**
+     * Modes for kafka message conversion.
+     */
+    public enum MessageConverterMode {
+        /**
+         * Default way using an 'axon' format, with data as binary value, and headers fo additional information, with
+         * most headers starting with 'axon-'.
+         */
+        DEFAULT,
+        /**
+         * Using Cloud Events, depending on the configuration of the serializers is either stored as one JSON with
+         * everything, or only the data as value with the metadata as headers, with all headers starting with 'ce_'.
+         */
+        CLOUD_EVENT
     }
 
     /**

@@ -17,6 +17,8 @@
 package org.axonframework.extensions.kafka.autoconfig;
 
 import com.thoughtworks.xstream.XStream;
+import io.cloudevents.kafka.CloudEventDeserializer;
+import io.cloudevents.kafka.CloudEventSerializer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.SslConfigs;
@@ -33,6 +35,7 @@ import org.axonframework.config.EventProcessingModule;
 import org.axonframework.eventhandling.EventBus;
 import org.axonframework.extensions.kafka.KafkaProperties;
 import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
+import org.axonframework.extensions.kafka.eventhandling.cloudevent.CloudEventKafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
@@ -557,6 +560,41 @@ class KafkaAutoConfigurationIntegrationTest {
                         kafkaProperties.getConsumer().getEventProcessorMode()
                 );
                 assertNotNull(context.getBean(StreamableKafkaMessageSource.class));
+            });
+    }
+
+    @Test
+    void whenUsingCloudEventMode_thanCorrectConvertersSerializerAndDeserializerAreSet() {
+        this.contextRunner.withUserConfiguration(TestConfiguration.class)
+                          .withPropertyValues(
+                                  "axon.kafka.message-converter-mode=cloud_event"
+                          ).run(context -> {
+                // Required bean assertions
+
+                KafkaMessageConverter<?, ?> converter = context.getBean(KafkaMessageConverter.class);
+                assertTrue(converter instanceof CloudEventKafkaMessageConverter);
+
+                // Producer assertions
+                Map<String, Object> producerConfigs =
+                        ((DefaultProducerFactory<?, ?>) context.getBean(DefaultProducerFactory.class))
+                                .configurationProperties();
+                assertEquals(
+                        StringSerializer.class, producerConfigs.get(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG)
+                );
+                assertEquals(
+                        CloudEventSerializer.class, producerConfigs.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG)
+                );
+
+                // Consumer assertions
+                Map<String, Object> consumerConfigs =
+                        ((DefaultConsumerFactory<?, ?>) context.getBean(DefaultConsumerFactory.class))
+                                .configurationProperties();
+                assertEquals(
+                        StringDeserializer.class, consumerConfigs.get(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG)
+                );
+                assertEquals(
+                        CloudEventDeserializer.class, consumerConfigs.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG)
+                );
             });
     }
 
