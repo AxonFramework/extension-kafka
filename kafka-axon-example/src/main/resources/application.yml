@@ -5,6 +5,8 @@ spring:
 axon:
   axonserver:
     enabled: false
+  serializer:
+    events: jackson
   kafka:
     clientid: kafka-axon-example
     producer:

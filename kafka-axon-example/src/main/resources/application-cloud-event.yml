@@ -1,0 +1,3 @@
+axon:
+  kafka:
+    message-converter-mode: cloud_event
