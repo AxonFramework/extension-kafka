@@ -32,7 +32,7 @@
     <properties>
         <kotlin.version>1.7.10</kotlin.version>
         <kotlin-logging-jvm.version>2.1.23</kotlin-logging-jvm.version>
-        <kotlin.jackson.version>2.13.3</kotlin.jackson.version>
+        <kotlin.jackson.version>2.13.4</kotlin.jackson.version>
     </properties>
 
     <dependencies>
