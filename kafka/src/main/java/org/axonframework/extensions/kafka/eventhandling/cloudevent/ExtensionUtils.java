@@ -16,13 +16,21 @@
 
 package org.axonframework.extensions.kafka.eventhandling.cloudevent;
 
+import io.cloudevents.CloudEvent;
 import io.cloudevents.CloudEventData;
 import io.cloudevents.core.v1.CloudEventBuilder;
+import org.axonframework.eventhandling.DomainEventMessage;
+import org.axonframework.eventhandling.EventMessage;
+import org.axonframework.messaging.MetaData;
+import org.axonframework.serialization.SerializedObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -30,6 +38,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Objects.isNull;
+import static org.axonframework.extensions.kafka.eventhandling.cloudevent.MetadataUtils.reservedMetadataFilter;
 
 /**
  * Utility class for dealing with cloud event extension, to store and retrieve data.
@@ -38,6 +47,8 @@ import static java.util.Objects.isNull;
  * @since 4.6.0
  */
 class ExtensionUtils {
+
+    private static final Logger logger = LoggerFactory.getLogger(ExtensionUtils.class);
 
     /**
      * Extension name pointing to the revision of a message.
@@ -62,6 +73,55 @@ class ExtensionUtils {
 
     private ExtensionUtils() {
         // Utility class
+    }
+
+    static void setExtensions(
+            CloudEventBuilder builder,
+            EventMessage<?> message,
+            SerializedObject<byte[]> serializedObject,
+            Map<String, String> extensionNameResolver
+    ) {
+        if (!isNull(serializedObject.getType().getRevision())) {
+            builder.withExtension(MESSAGE_REVISION, serializedObject.getType().getRevision());
+        }
+        if (message instanceof DomainEventMessage) {
+            DomainEventMessage<?> domainMessage = (DomainEventMessage<?>) message;
+            builder.withExtension(AGGREGATE_ID, domainMessage.getAggregateIdentifier());
+            builder.withExtension(AGGREGATE_SEQ, domainMessage.getSequenceNumber());
+            builder.withExtension(AGGREGATE_TYPE, domainMessage.getType());
+        }
+        message.getMetaData().entrySet()
+               .stream()
+               .filter(reservedMetadataFilter())
+               .forEach(entry -> setExtension(builder,
+                                              resolveExtensionName(entry.getKey(), extensionNameResolver),
+                                              entry.getValue()));
+    }
+
+    static MetaData getExtensionsAsMetadata(CloudEvent cloudEvent, Map<String, String> metadataNameResolver) {
+        Map<String, Object> metadataMap = new HashMap<>();
+        cloudEvent.getExtensionNames().forEach(name -> {
+            if (!isNonMetadataExtension(name)) {
+                metadataMap.put(resolveMetadataKey(name, metadataNameResolver), cloudEvent.getExtension(name));
+            }
+        });
+        return MetaData.from(metadataMap);
+    }
+
+    private static String resolveMetadataKey(String extensionName, Map<String, String> metadataNameResolver) {
+        if (metadataNameResolver.containsKey(extensionName)) {
+            return metadataNameResolver.get(extensionName);
+        }
+        logger.debug("Extension name: '{}' was not part of the supplied map, this might give errors", extensionName);
+        return extensionName;
+    }
+
+    private static String resolveExtensionName(String metadataKey, Map<String, String> extensionNameResolver) {
+        if (extensionNameResolver.containsKey(metadataKey)) {
+            return extensionNameResolver.get(metadataKey);
+        }
+        logger.debug("Metadata key: '{}' was not part of the supplied map, this might give errors", metadataKey);
+        return metadataKey;
     }
 
     static boolean isNonMetadataExtension(String extensionName) {

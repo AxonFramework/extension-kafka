@@ -47,6 +47,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage;
 import static org.axonframework.extensions.kafka.eventhandling.HeaderUtils.valueAsString;
 import static org.axonframework.extensions.kafka.eventhandling.cloudevent.ExtensionUtils.*;
+import static org.axonframework.extensions.kafka.eventhandling.cloudevent.MetadataUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -346,34 +347,122 @@ class CloudEventKafkaMessageConverterTest {
     }
 
     @Test
-    void testDataContentTypeIsSet_thenItShouldBeUsed() {
-        String APPLICATION_JSON = "application/json";
+    void testSubjectSupplierIsSet_thenItShouldBeUsed() {
+        String expected = "some_subject";
         testSubject = CloudEventKafkaMessageConverter.builder()
                                                      .serializer(serializer)
-                                                     .dataContentTypeSupplier(m -> Optional.of(APPLICATION_JSON))
+                                                     .subjectSupplier(m -> Optional.of(expected))
                                                      .build();
 
-        EventMessage<?> expected = eventMessage();
-        ProducerRecord<String, CloudEvent> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
-        assertEquals(APPLICATION_JSON, senderMessage.value().getDataContentType());
+        EventMessage<?> eventMessage = eventMessage();
+        ProducerRecord<String, CloudEvent> senderMessage = testSubject.createKafkaMessage(eventMessage, SOME_TOPIC);
+        assertEquals(expected, senderMessage.value().getSubject());
+    }
+
+    @Test
+    void testDataContentTypeIsSet_thenItShouldBeUsed() {
+        String expected = "application/json";
+        testSubject = CloudEventKafkaMessageConverter.builder()
+                                                     .serializer(serializer)
+                                                     .dataContentTypeSupplier(m -> Optional.of(expected))
+                                                     .build();
+
+        EventMessage<?> eventMessage = eventMessage();
+        ProducerRecord<String, CloudEvent> senderMessage = testSubject.createKafkaMessage(eventMessage, SOME_TOPIC);
+        assertEquals(expected, senderMessage.value().getDataContentType());
     }
 
     @Test
     void testDataSchemaIsSet_thenItShouldBeUsed() {
-        URI dataSchema = URI.create(String.class.getCanonicalName());
+        URI expected = URI.create(String.class.getCanonicalName());
         testSubject = CloudEventKafkaMessageConverter.builder()
                                                      .serializer(serializer)
                                                      .dataSchemaSupplier(m -> {
                                                          if (m.getPayload() instanceof String) {
-                                                             return Optional.of(dataSchema);
+                                                             return Optional.of(expected);
                                                          }
                                                          return Optional.empty();
                                                      })
                                                      .build();
 
-        EventMessage<?> expected = eventMessage();
-        ProducerRecord<String, CloudEvent> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
-        assertEquals(dataSchema, senderMessage.value().getDataSchema());
+        EventMessage<?> eventMessage = eventMessage();
+        ProducerRecord<String, CloudEvent> senderMessage = testSubject.createKafkaMessage(eventMessage, SOME_TOPIC);
+        assertEquals(expected, senderMessage.value().getDataSchema());
+    }
+
+    @Test
+    void givenAnAxonEventWithSubjectMetadata_whenDefaultResolversAreUsed_thenSubjectIsPresentInCloudEvent() {
+        String expected = "some_subject";
+        EventMessage<Object> eventMessage = asEventMessage("SomePayload").withMetaData(MetaData.with(SUBJECT,
+                                                                                                     expected));
+
+        ProducerRecord<String, CloudEvent> senderMessage = testSubject.createKafkaMessage(eventMessage, SOME_TOPIC);
+        assertEquals(expected, senderMessage.value().getSubject());
+    }
+
+    @Test
+    void givenAnAxonEventWithContentTypeMetadata_whenDefaultResolversAreUsed_thenContentTypeIsPresentInCloudEvent() {
+        String expected = "some_content_type";
+        EventMessage<Object> eventMessage = asEventMessage("SomePayload").withMetaData(MetaData.with(DATA_CONTENT_TYPE,
+                                                                                                     expected));
+
+        ProducerRecord<String, CloudEvent> senderMessage = testSubject.createKafkaMessage(eventMessage, SOME_TOPIC);
+        assertEquals(expected, senderMessage.value().getDataContentType());
+    }
+
+    @Test
+    void givenAnAxonEventWithDataSchemaMetadata_whenDefaultResolversAreUsed_thenDataSchemaIsPresentInCloudEvent() {
+        URI expected = URI.create("some_data_schema");
+        EventMessage<Object> eventMessage = asEventMessage("SomePayload").withMetaData(MetaData.with(DATA_SCHEMA,
+                                                                                                     expected));
+
+        ProducerRecord<String, CloudEvent> senderMessage = testSubject.createKafkaMessage(eventMessage, SOME_TOPIC);
+        assertEquals(expected, senderMessage.value().getDataSchema());
+    }
+
+    @Test
+    void givenAnCloudEventWithSubject_whenConvertedToAxonEvent_thenSubjectIsPresentInMetadata() {
+        String expected = "some_subject";
+        CloudEvent cloudEvent = minimalCloudEventAsBuilder()
+                .withSubject(expected)
+                .build();
+        ConsumerRecord<String, CloudEvent> consumerRecord =
+                new ConsumerRecord<>("foo", 0, 0, "abc", cloudEvent);
+        EventMessage<?> eventMessage = testSubject.readKafkaMessage(consumerRecord).orElseThrow(
+                () -> new AssertionError("Expected valid message")
+        );
+
+        assertEquals(expected, eventMessage.getMetaData().get(SUBJECT));
+    }
+
+    @Test
+    void givenAnCloudEventWithDataContentType_whenConvertedToAxonEvent_thenDataContentTypeIsPresentInMetadata() {
+        String expected = "some_content_type";
+        CloudEvent cloudEvent = minimalCloudEventAsBuilder()
+                .withDataContentType(expected)
+                .build();
+        ConsumerRecord<String, CloudEvent> consumerRecord =
+                new ConsumerRecord<>("foo", 0, 0, "abc", cloudEvent);
+        EventMessage<?> eventMessage = testSubject.readKafkaMessage(consumerRecord).orElseThrow(
+                () -> new AssertionError("Expected valid message")
+        );
+
+        assertEquals(expected, eventMessage.getMetaData().get(DATA_CONTENT_TYPE));
+    }
+
+    @Test
+    void givenAnCloudEventWithDataSchema_whenConvertedToAxonEvent_thenDataSchemaIsPresentInMetadata() {
+        URI expected = URI.create("some_data_schema");
+        CloudEvent cloudEvent = minimalCloudEventAsBuilder()
+                .withDataSchema(expected)
+                .build();
+        ConsumerRecord<String, CloudEvent> consumerRecord =
+                new ConsumerRecord<>("foo", 0, 0, "abc", cloudEvent);
+        EventMessage<?> eventMessage = testSubject.readKafkaMessage(consumerRecord).orElseThrow(
+                () -> new AssertionError("Expected valid message")
+        );
+
+        assertEquals(expected, eventMessage.getMetaData().get(DATA_SCHEMA));
     }
 
 
@@ -390,11 +479,14 @@ class CloudEventKafkaMessageConverterTest {
     }
 
     private CloudEvent minimalCloudEvent() {
+        return minimalCloudEventAsBuilder().build();
+    }
+
+    private CloudEventBuilder minimalCloudEventAsBuilder() {
         return new CloudEventBuilder()
                 .withId(UUID.randomUUID().toString())
                 .withTime(Instant.now().atOffset(ZoneOffset.UTC))
                 .withSource(URI.create("org.axonframework.extensions.kafka.eventhandling.serialisation"))
-                .withType(Object.class.getCanonicalName())
-                .build();
+                .withType(Object.class.getCanonicalName());
     }
 }

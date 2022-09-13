@@ -21,7 +21,6 @@ import io.cloudevents.core.v1.CloudEventBuilder;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.axonframework.common.AxonConfigurationException;
-import org.axonframework.eventhandling.DomainEventMessage;
 import org.axonframework.eventhandling.EventData;
 import org.axonframework.eventhandling.EventMessage;
 import org.axonframework.eventhandling.GenericDomainEventEntry;
@@ -50,10 +49,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.util.Objects.isNull;
 import static org.axonframework.common.BuilderUtils.assertNonNull;
 import static org.axonframework.common.BuilderUtils.assertThat;
 import static org.axonframework.extensions.kafka.eventhandling.cloudevent.ExtensionUtils.*;
+import static org.axonframework.extensions.kafka.eventhandling.cloudevent.MetadataUtils.*;
 
 /**
  * Converts and {@link EventMessage} to a {@link ProducerRecord} Kafka message and from a {@link ConsumerRecord} Kafka
@@ -62,12 +61,14 @@ import static org.axonframework.extensions.kafka.eventhandling.cloudevent.Extens
  * During conversion metadata entries are stored as extensions This might require adding mappings with either
  * {@link Builder#addMetadataMapper(String, String)} or {@link Builder#addMetadataMappers(Map)}. For the 'source' field
  * we default to the class of the message. You can set the {@link Builder#sourceSupplier(Function) sourceSupplier} to
- * change this. For the 'dataContentType' field we default to none. You can set the
+ * change this. For the 'subject' field we default to setting it from the metadata. You can set the
+ * {@link Builder#subjectSupplier(Function) subjectSupplier} to change this. For the 'dataContentType' field we default
+ * to setting it from the metadata. You can set the
  * {@link Builder#dataContentTypeSupplier(Function) dataContentTypeSupplier} to change this. For the 'dataSchema' field
- * we default to none. You can set the {@link Builder#dataSchemaSupplier(Function)  dataSchemaSupplier} to change this.
- * Other message-specific attributes are mapped to those best matching Cloud Events. The
- * {@link EventMessage#getPayload()} is serialized using the configured {@link Serializer} and passed as bytearray to
- * the Cloud Event data field.
+ * we default to setting it from the metadata. You can set the
+ * {@link Builder#dataSchemaSupplier(Function)  dataSchemaSupplier} to change this. Other message-specific attributes
+ * are mapped to those best matching Cloud Events. The {@link EventMessage#getPayload()} is serialized using the
+ * configured {@link Serializer} and passed as bytearray to the Cloud Event data field.
  * <p>
  * <p>
  * If an up-caster / up-caster chain is configured, this converter will pass the converted messages through it. Please
@@ -88,6 +89,7 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
     private final Map<String, String> extensionNameResolver;
     private final Map<String, String> metadataNameResolver;
     private final Function<EventMessage<?>, URI> sourceSupplier;
+    private final Function<EventMessage<?>, Optional<String>> subjectSupplier;
     private final Function<EventMessage<?>, Optional<String>> dataContentTypeSupplier;
     private final Function<EventMessage<?>, Optional<URI>> dataSchemaSupplier;
 
@@ -111,6 +113,7 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
                                                                   .collect(Collectors.toMap(Map.Entry::getValue,
                                                                                             Map.Entry::getKey));
         this.sourceSupplier = builder.sourceSupplier;
+        this.subjectSupplier = builder.subjectSupplier;
         this.dataContentTypeSupplier = builder.dataContentTypeSupplier;
         this.dataSchemaSupplier = builder.dataSchemaSupplier;
     }
@@ -157,21 +160,13 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
         CloudEventBuilder builder = new CloudEventBuilder();
         builder.withId(message.getIdentifier());
         builder.withData(serializedObject.getData());
+        subjectSupplier.apply(message).ifPresent(builder::withSubject);
         dataContentTypeSupplier.apply(message).ifPresent(builder::withDataContentType);
         dataSchemaSupplier.apply(message).ifPresent(builder::withDataSchema);
         builder.withSource(sourceSupplier.apply(message));
         builder.withType(serializedObject.getType().getName());
         builder.withTime(message.getTimestamp().atOffset(ZoneOffset.UTC));
-        if (!isNull(serializedObject.getType().getRevision())) {
-            builder.withExtension(MESSAGE_REVISION, serializedObject.getType().getRevision());
-        }
-        if (message instanceof DomainEventMessage) {
-            DomainEventMessage<?> domainMessage = (DomainEventMessage<?>) message;
-            builder.withExtension(AGGREGATE_ID, domainMessage.getAggregateIdentifier());
-            builder.withExtension(AGGREGATE_SEQ, domainMessage.getSequenceNumber());
-            builder.withExtension(AGGREGATE_TYPE, domainMessage.getType());
-        }
-        message.getMetaData().forEach((key, value) -> setExtension(builder, resolveExtensionName(key), value));
+        setExtensions(builder, message, serializedObject, extensionNameResolver);
         return builder.build();
     }
 
@@ -232,13 +227,9 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
     }
 
     private byte[] extractMetadataAsBytes(CloudEvent cloudEvent) {
-        Map<String, Object> metadataMap = new HashMap<>();
-        cloudEvent.getExtensionNames().forEach(name -> {
-            if (!isNonMetadataExtension(name)) {
-                metadataMap.put(resolveMetadataKey(name), cloudEvent.getExtension(name));
-            }
-        });
-        return serializer.serialize(MetaData.from(metadataMap), byte[].class).getData();
+        MetaData metaData = getExtensionsAsMetadata(cloudEvent, metadataNameResolver)
+                .mergedWith(getAdditionalEntries(cloudEvent));
+        return serializer.serialize(metaData, byte[].class).getData();
     }
 
     /**
@@ -288,22 +279,6 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
         return Optional.of(new GenericEventMessage<>(message, () -> timestamp));
     }
 
-    private String resolveMetadataKey(String extensionName) {
-        if (metadataNameResolver.containsKey(extensionName)) {
-            return metadataNameResolver.get(extensionName);
-        }
-        logger.debug("Extension name: '{}' was not part of the supplied map, this might give errors", extensionName);
-        return extensionName;
-    }
-
-    private String resolveExtensionName(String metadataKey) {
-        if (extensionNameResolver.containsKey(metadataKey)) {
-            return extensionNameResolver.get(metadataKey);
-        }
-        logger.debug("Metadata key: '{}' was not part of the supplied map, this might give errors", metadataKey);
-        return metadataKey;
-    }
-
     /**
      * Builder class to instantiate a {@link CloudEventKafkaMessageConverter}.
      * <p>
@@ -319,8 +294,9 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
         private EventUpcasterChain upcasterChain = new EventUpcasterChain();
         private final Map<String, String> metadataToExtensionMap = tracingMap();
         private Function<EventMessage<?>, URI> sourceSupplier = m -> URI.create(m.getClass().getCanonicalName());
-        private Function<EventMessage<?>, Optional<String>> dataContentTypeSupplier = m -> Optional.empty();
-        private Function<EventMessage<?>, Optional<URI>> dataSchemaSupplier = m -> Optional.empty();
+        private Function<EventMessage<?>, Optional<String>> subjectSupplier = defaultSubjectSupplier();
+        private Function<EventMessage<?>, Optional<String>> dataContentTypeSupplier = defaultDataContentTypeSupplier();
+        private Function<EventMessage<?>, Optional<URI>> dataSchemaSupplier = defaultDataSchemaSupplier();
 
         /**
          * Creates a new map, to convert the two metadata properties used for tracing, which are incompatible with cloud
@@ -415,8 +391,21 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
         }
 
         /**
+         * Sets the {@code dataContentTypeSupplier} to be used to determine the subject type of the Cloud Event, this
+         * defaults to trying to get the value via the {@link MetadataUtils#SUBJECT} metadata.
+         *
+         * @param subjectSupplier the supplier of the subject
+         * @return the current Builder instance, for fluent interfacing
+         */
+        public Builder subjectSupplier(Function<EventMessage<?>, Optional<String>> subjectSupplier) {
+            assertNonNull(subjectSupplier, "dataContentTypeSupplier must not be null");
+            this.subjectSupplier = subjectSupplier;
+            return this;
+        }
+
+        /**
          * Sets the {@code dataContentTypeSupplier} to be used to determine the data content type of the Cloud Event,
-         * this defaults to none.
+         * this defaults to trying to get the value via the {@link MetadataUtils#DATA_CONTENT_TYPE} metadata.
          *
          * @param dataContentTypeSupplier the supplier of the data content type
          * @return the current Builder instance, for fluent interfacing
@@ -429,7 +418,7 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
 
         /**
          * Sets the {@code dataContentTypeSupplier} to be used to determine the data content type of the Cloud Event,
-         * this defaults to none.
+         * this defaults to trying to get the value via the {@link MetadataUtils#DATA_SCHEMA} metadata.
          *
          * @param dataSchemaSupplier the supplier of the data schema
          * @return the current Builder instance, for fluent interfacing
