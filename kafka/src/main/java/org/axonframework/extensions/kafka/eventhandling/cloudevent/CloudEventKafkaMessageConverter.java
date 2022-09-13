@@ -55,25 +55,25 @@ import static org.axonframework.extensions.kafka.eventhandling.cloudevent.Extens
 import static org.axonframework.extensions.kafka.eventhandling.cloudevent.MetadataUtils.*;
 
 /**
- * Converts and {@link EventMessage} to a {@link ProducerRecord} Kafka message and from a {@link ConsumerRecord} Kafka
+ * Converts an {@link EventMessage} to a {@link ProducerRecord} Kafka message and from a {@link ConsumerRecord} Kafka
  * message back to an EventMessage (if possible).
  * <p>
- * During conversion metadata entries are stored as extensions This might require adding mappings with either
- * {@link Builder#addMetadataMapper(String, String)} or {@link Builder#addMetadataMappers(Map)}. For the 'source' field
- * we default to the class of the message. You can set the {@link Builder#sourceSupplier(Function) sourceSupplier} to
- * change this. For the 'subject' field we default to setting it from the metadata. You can set the
- * {@link Builder#subjectSupplier(Function) subjectSupplier} to change this. For the 'dataContentType' field we default
- * to setting it from the metadata. You can set the
- * {@link Builder#dataContentTypeSupplier(Function) dataContentTypeSupplier} to change this. For the 'dataSchema' field
- * we default to setting it from the metadata. You can set the
- * {@link Builder#dataSchemaSupplier(Function)  dataSchemaSupplier} to change this. Other message-specific attributes
- * are mapped to those best matching Cloud Events. The {@link EventMessage#getPayload()} is serialized using the
- * configured {@link Serializer} and passed as bytearray to the Cloud Event data field.
+ * During conversion, metadata entries are stored as extensions. This might require adding mappings with either
+ * {@link Builder#addMetadataMapper(String, String)} or {@link Builder#addMetadataMappers(Map)}. For the {@code source}
+ * field, we default to the class of the message. You can set the
+ * {@link Builder#sourceSupplier(Function) sourceSupplier} to change this. For the {@code subject} field, we default to
+ * setting it from the metadata. You can set the {@link Builder#subjectSupplier(Function) subjectSupplier} to change
+ * this. For the {@code dataContentType} field, we default to setting it from the metadata. You can set the
+ * {@link Builder#dataContentTypeSupplier(Function) dataContentTypeSupplier} to change this. For the {@code dataSchema}
+ * field, we default to setting it from the metadata. You can set the
+ * {@link Builder#dataSchemaSupplier(Function)  dataSchemaSupplier} to change this. This converter maps other
+ * message-specific attributes to those best matching Cloud Events. The {@link EventMessage#getPayload()} is serialized
+ * using the configured {@link Serializer} and passed as byte-array to the Cloud Event data field.
  * <p>
  * <p>
- * If an up-caster / up-caster chain is configured, this converter will pass the converted messages through it. Please
- * note, that since the message converter consumes records one-by-one, the up-casting functionality is limited to
- * one-to-one and one-to-many up-casters only.
+ * If you have configured an up-caster / up-caster chain, this converter will pass the converted messages through the
+ * chain. Please note that since the message converter consumes records one-by-one, the up-casting functionality is
+ * limited to one-to-one and one-to-many up-casters only.
  * </p>
  *
  * @author Gerard Klijs
@@ -98,6 +98,17 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
      * <p>
      * Will assert that the {@link Serializer} is not {@code null} and will throw an {@link AxonConfigurationException}
      * if it is {@code null}.
+     * <p>
+     * The {@code upcasterChain} is defaulted to a new {@link EventUpcasterChain}. During conversion, metadata entries
+     * are stored as extensions. This might require adding mappings with either
+     * {@link Builder#addMetadataMapper(String, String)} or {@link Builder#addMetadataMappers(Map)}. For the
+     * {@code source} field, we default to the class of the message. You can set the
+     * {@link Builder#sourceSupplier(Function) sourceSupplier} to change this. For the {@code subject} field, we default
+     * to setting it from the metadata. You can set the {@link Builder#subjectSupplier(Function) subjectSupplier} to
+     * change this. For the {@code dataContentType} field, we default to setting it from the metadata. You can set the
+     * {@link Builder#dataContentTypeSupplier(Function) dataContentTypeSupplier} to change this. For the
+     * {@code dataSchema} field, we default to setting it from the metadata. You can set the
+     * {@link Builder#dataSchemaSupplier(Function)  dataSchemaSupplier} to change this.
      *
      * @param builder the {@link Builder} used to instantiate a {@link CloudEventKafkaMessageConverter} instance
      */
@@ -122,8 +133,7 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
      * Instantiate a Builder to be able to create a {@link CloudEventKafkaMessageConverter}.
      * <p>
      * The {@link SequencingPolicy} is defaulted to an {@link SequentialPerAggregatePolicy}. The {@link Serializer} is
-     * a
-     * <b>hard requirement</b> and as such should be provided.
+     * a <b>hard requirement</b> and as such should be provided.
      *
      * @return a Builder to be able to create a {@link CloudEventKafkaMessageConverter}
      */
@@ -136,7 +146,8 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
      * <p>
      * Note that the {@link ProducerRecord} created through this method sets the {@link ProducerRecord#timestamp()} to
      * {@code null}. Doing so will ensure the used Producer sets a timestamp itself for the record. The
-     * {@link EventMessage#getTimestamp()} field is however still taken into account, but as via the CloudEvent.
+     * {@link EventMessage#getTimestamp()} field is however still taken into account, but as the Cloud Event
+     * {@code time} field.
      * <p>
      * Additional note that the ProducerRecord will be given a {@code null} {@link ProducerRecord#partition()} value. In
      * return, the {@link ProducerRecord#key()} field is defined by using the configured {@link SequencingPolicy} to
@@ -198,7 +209,9 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
     }
 
     /**
-     * Constructs event data representation from given Kafka headers and byte array body.
+     * Constructs event data representation from given Cloud Event. Note that we rely on the
+     * {@link io.cloudevents.kafka.CloudEventSerializer} to transform the Kafka value bytes, and optionally headers to a
+     * {@link CloudEvent}.
      * <p>
      * This method <i>reuses</i> the {@link GenericDomainEventEntry} class for both types of events which can be
      * transmitted via Kafka. For domain events, the fields <code>aggregateType</code>, <code>aggregateId</code> and
@@ -246,8 +259,8 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
      * </ul>
      * </p>
      *
-     * @param cloudEvent Cloud Event
-     * @return <code>true</code> if the event is originated from an aggregate.
+     * @param cloudEvent The {@link CloudEvent} to validate if it's a domain event.
+     * @return {@code true} if the event is originated from an aggregate, {@code false} otherwise
      */
     private static boolean isDomainEvent(CloudEvent cloudEvent) {
         return cloudEvent.getExtension(AGGREGATE_TYPE) != null
@@ -285,7 +298,11 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
      * The {@link SequencingPolicy} is defaulted to an {@link SequentialPerAggregatePolicy}. The {@link Serializer} is
      * a
      * <b>hard requirement</b> and as such should be provided. The {@code upcasterChain} is defaulted to a new
-     * {@link EventUpcasterChain}. The {@code metadataToExtensionMap} is defaulted to a {@link #tracingMap()}.
+     * {@link EventUpcasterChain}. The {@code metadataToExtensionMap} is defaulted to a {@link #tracingMap()}. The
+     * {@code sourceSupplier} is defaulted to the class of the message. The {@code subjectSupplier} is defaulted to
+     * getting the subject from the 'cloud-event-subject' metadata. The {@code dataContentTypeSupplier} is defaulted to
+     * getting the subject from the 'cloud-event-data-content-type' metadata. The {@code dataSchemaSupplier} is
+     * defaulted to getting the subject from the 'cloud-event-data-schema' metadata.
      */
     public static class Builder {
 
@@ -337,7 +354,8 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
         }
 
         /**
-         * Sets the {@code upcasterChain} to be used during the consumption of events.
+         * Sets the {@code upcasterChain} to be used during the consumption of events. By default, a new
+         * {@link EventUpcasterChain} will be used.
          *
          * @param upcasterChain upcaster chain to be used on event reading.
          * @return the current Builder instance, for fluent interfacing
@@ -350,7 +368,8 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
 
         /**
          * Adds mappers to convert metadata keys to extension names. Please note that for extension names there is a
-         * limitation as can be seen in {@link ExtensionUtils#isValidExtensionName(String)}
+         * limitation as can be seen in {@link ExtensionUtils#isValidExtensionName(String)}. By default, just the two
+         * properties used for tracing are included.
          *
          * @param metadataMappers The map to convert metadata keys to extension names, and the other way around
          * @return the current Builder instance, for fluent interfacing
@@ -364,7 +383,8 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
 
         /**
          * Adds one mapping to convert metadata keys to extension names. Please note that for extension names there is a
-         * limitation as can be seen in {@link ExtensionUtils#isValidExtensionName(String)}
+         * limitation as can be seen in {@link ExtensionUtils#isValidExtensionName(String)}. By default, just the two
+         * properties used for tracing are included.
          *
          * @param metadataKey   the metadata key which is to be changed when used as extension
          * @param extensionName the extension name, this can only contain lowercase letters and digits

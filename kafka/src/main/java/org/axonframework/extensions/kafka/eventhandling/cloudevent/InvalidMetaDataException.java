@@ -29,7 +29,7 @@ public class InvalidMetaDataException extends AxonException {
     /**
      * Initializes the exception using the given {@code message}.
      *
-     * @param message The message describing the exception
+     * @param message The message describing the exception.
      */
     public InvalidMetaDataException(String message) {
         super(message);

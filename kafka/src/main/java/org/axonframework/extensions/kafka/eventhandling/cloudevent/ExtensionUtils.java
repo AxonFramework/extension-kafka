@@ -155,7 +155,8 @@ class ExtensionUtils {
             builder.withExtension(extensionName, (byte[]) value);
         } else {
             throw new InvalidMetaDataException(
-                    String.format("Metadata property '%s' is of class '%s' and thus can't be added",
+                    String.format("Metadata property '%s' is of class '%s' and thus can't be added.\n"
+                                          + "Supported classes are String, Number, Boolean, URI, OffsetDataTime and byte[]",
                                   extensionName,
                                   value.getClass())
             );

@@ -46,20 +46,21 @@ At this stage the following profiles can be used:
   * `cloud-events`
 
 If not specified, a `subscribing` producer and `tracking` consumer will be used.
-If `cloud-events` is not used, the format on the wire will be axon specific, using the
+If `cloud-events` is not used, the format on the wire will be Axon Framework specific, using the
 [DefaultKafkaMessageConverter.java](https://github.com/AxonFramework/extension-kafka/blob/master/kafka/src/main/java/org/axonframework/extensions/kafka/eventhandling/DefaultKafkaMessageConverter.java)
 To activate these modes, please use Spring profiles in the run configuration like so:
 `--spring.profiles.active=tracking-producer,subscribing-consumer`
 
 ### Checking the format on the wire
 
-To check the format on the wire, including the headers you can get inside the kafka container with:
+To check the format on the wire, including the headers you can get inside the Kafka container with:
 
 ```bash
 docker exec -it kafka-axon-example_kafka_1 bash
 ```
 
-From the kafka bin folder, for example `/opt/kafka_2.13-2.8.1/bin` you can run:
+You can use the `kafka-console-consumer.sh` script located in the Kafka container. The folder is located in a path
+similar to `/opt/kafka_2.13-2.8.1/bin`. To consume all events from the default topic and also print the headers use:
 
 ```bash
 ./kafka-console-consumer.sh --topic Axon.Events --from-beginning --bootstrap-server localhost:9092 --property print.headers=true

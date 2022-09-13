@@ -89,6 +89,9 @@ public class KafkaProperties {
 
     private final Ssl ssl = new Ssl();
 
+    /**
+     * Converter mode to use, can be 'default' or 'cloud_event'.
+     */
     private MessageConverterMode messageConverterMode = MessageConverterMode.DEFAULT;
 
     public List<String> getBootstrapServers() {
@@ -768,13 +771,14 @@ public class KafkaProperties {
      */
     public enum MessageConverterMode {
         /**
-         * Default way using an 'axon' format, with data as binary value, and headers fo additional information, with
-         * most headers starting with 'axon-'.
+         * Default way using an 'axon' format, with data as binary value and headers for additional information, where
+         * most of the headers start with 'axon-'.
          */
         DEFAULT,
         /**
-         * Using Cloud Events, depending on the configuration of the serializers is either stored as one JSON with
-         * everything, or only the data as value with the metadata as headers, with all headers starting with 'ce_'.
+         * Using <a href="https://cloudevents.io/">Cloud Events</a>, depending on the configuration of the serializers
+         * is either stored as one JSON with everything, or only the data as value with all other information as
+         * headers, with all headers starting with 'ce_'.
          */
         CLOUD_EVENT
     }
