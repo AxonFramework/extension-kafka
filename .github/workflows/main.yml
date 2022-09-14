@@ -11,6 +11,8 @@ jobs:
   build:
     name: Test and Build on JDK ${{ matrix.java-version }}
     runs-on: ubuntu-latest
+    continue-on-error: true # do not fail the whole job if one of the steps fails
+
     strategy:
       matrix:
         include:
@@ -37,7 +39,7 @@ jobs:
 
       - name: Run regular build
         run: |
-          ./mvnw -B -U clean verify
+          ./mvnw -B -U -Dstyle.color=always clean verify
 
       - name: Run integration tests
         run: | # no clean
@@ -51,7 +53,7 @@ jobs:
       - name: Sonar analysis
         if: matrix.sonar-enabled
         run: | # no clean
-          ./mvnw -B sonar:sonar \
+          ./mvnw -B -Dstyle.color=always sonar:sonar \
           -Dsonar.projectKey=AxonFramework_extension-kafka \
           -Dsonar.organization=axonframework \
           -Dsonar.host.url=https://sonarcloud.io \
@@ -60,9 +62,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy to Sonatype
-        if: success() && matrix.deploy-enabled
-        run: | # no clean, no tests, no examples
-          ./mvnw -B -U deploy -DskipTests=true -DskipExamples=true
+        if: success() && ${{ matrix.deploy-enabled }}
+        run: |
+          ./mvnw -B -U -Dstyle.color=always deploy -DskipTests=true -DskipExamples=true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MAVEN_USERNAME: ${{ secrets.SONATYPE_TOKEN_ID }}

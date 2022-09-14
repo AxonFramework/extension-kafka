@@ -32,7 +32,7 @@ jobs:
 
       - name: Run regular build
         run: |
-          ./mvnw -B -U clean verify
+          ./mvnw -B -U -Dstyle.color=always clean verify
 
       - name: Run integration tests
         run: | # no clean
@@ -46,7 +46,7 @@ jobs:
       - name: Sonar Analysis
         if: ${{ success() && matrix.sonar-enabled && github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
-          ./mvnw -B sonar:sonar \
+          ./mvnw -B -Dstyle.color=always sonar:sonar \
           -Dsonar.projectKey=AxonFramework_extension-kafka \
           -Dsonar.organization=axonframework \
           -Dsonar.host.url=https://sonarcloud.io \
