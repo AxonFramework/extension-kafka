@@ -46,26 +46,26 @@ import static org.axonframework.extensions.kafka.eventhandling.cloudevent.Metada
  * @author Gerard Klijs
  * @since 4.6.0
  */
-class ExtensionUtils {
+public class ExtensionUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(ExtensionUtils.class);
 
     /**
      * Extension name pointing to the revision of a message.
      */
-    static final String MESSAGE_REVISION = "axonmessagerevision";
+    public static final String MESSAGE_REVISION = "axonmessagerevision";
     /**
      * Extension name pointing to the aggregate identifier of a message.
      */
-    static final String AGGREGATE_ID = "axonmessageaggregateid";
+    public static final String AGGREGATE_ID = "axonmessageaggregateid";
     /**
      * Extension name pointing to the aggregate sequence of a message.
      */
-    static final String AGGREGATE_SEQ = "axonmessageaggregateseq";
+    public static final String AGGREGATE_SEQ = "axonmessageaggregateseq";
     /**
      * Extension name pointing to the aggregate type of a message.
      */
-    static final String AGGREGATE_TYPE = "axonmessageaggregatetype";
+    public static final String AGGREGATE_TYPE = "axonmessageaggregatetype";
 
     private static final Set<String> NON_METADATA_EXTENSIONS = Stream
             .of(AGGREGATE_TYPE, AGGREGATE_ID, AGGREGATE_SEQ, MESSAGE_REVISION)
@@ -75,7 +75,17 @@ class ExtensionUtils {
         // Utility class
     }
 
-    static void setExtensions(
+    /**
+     * Adds extension values to the {@link CloudEvent} based on the {@link EventMessage} and {@link SerializedObject}
+     * using the {@code extensionNameResolver} map to resolve the extension names.
+     *
+     * @param builder               a {@link CloudEventBuilder} to add the values to
+     * @param message               an {@link EventMessage} that might contain information that needs to be added as
+     *                              extension
+     * @param serializedObject      a {@link SerializedObject} that might contain a revision
+     * @param extensionNameResolver a {@link Map} used to convert metadata keys to extension names
+     */
+    public static void setExtensions(
             CloudEventBuilder builder,
             EventMessage<?> message,
             SerializedObject<byte[]> serializedObject,
@@ -98,7 +108,14 @@ class ExtensionUtils {
                                               entry.getValue()));
     }
 
-    static MetaData getExtensionsAsMetadata(CloudEvent cloudEvent, Map<String, String> metadataNameResolver) {
+    /**
+     * Will return extensions of the {@link CloudEvent} as {@link MetaData}.
+     *
+     * @param cloudEvent           the {@link CloudEvent} to extract the extensions of
+     * @param metadataNameResolver a {@link Map} used to convert extension names to metadata keys
+     * @return the {@link MetaData} containing the extension keys and values
+     */
+    public static MetaData getExtensionsAsMetadata(CloudEvent cloudEvent, Map<String, String> metadataNameResolver) {
         Map<String, Object> metadataMap = new HashMap<>();
         cloudEvent.getExtensionNames().forEach(name -> {
             if (!isNonMetadataExtension(name)) {
@@ -124,11 +141,11 @@ class ExtensionUtils {
         return metadataKey;
     }
 
-    static boolean isNonMetadataExtension(String extensionName) {
+    private static boolean isNonMetadataExtension(String extensionName) {
         return NON_METADATA_EXTENSIONS.contains(extensionName);
     }
 
-    static void setExtension(CloudEventBuilder builder, String extensionName, Object value) {
+    private static void setExtension(CloudEventBuilder builder, String extensionName, Object value) {
         if (isNonMetadataExtension(extensionName)) {
             throw new InvalidMetaDataException(
                     String.format("Metadata property '%s' is already reserved to be used for Axon",
@@ -163,7 +180,13 @@ class ExtensionUtils {
         }
     }
 
-    static String asNullableString(Object object) {
+    /**
+     * Will return the {@link Object} as {@link String} if it's a {@link String}, otherwise {@code null} is returned.
+     *
+     * @param object a value, which is likely to be a {@link String}
+     * @return the object as {@link String} or {@code null}
+     */
+    public static String asNullableString(Object object) {
         if (object instanceof String) {
             return (String) object;
         } else {
@@ -171,7 +194,13 @@ class ExtensionUtils {
         }
     }
 
-    static Long asLong(Object object) {
+    /**
+     * Will return the {@link Object} as {@link Long} if it's a {@link Long}, otherwise {@code 0L} is returned.
+     *
+     * @param object a value, which is likely to be a {@link Long}
+     * @return the object as {@link Long} or the default value, {@code 0L}
+     */
+    public static Long asLong(Object object) {
         if (object instanceof Long) {
             return (Long) object;
         } else {
@@ -179,7 +208,16 @@ class ExtensionUtils {
         }
     }
 
-    static OffsetDateTime asOffsetDateTime(Object object, long fallbackTimestamp) {
+    /**
+     * Will return the {@link Object} as {@link OffsetDateTime} if it's a {@link OffsetDateTime}, otherwise
+     * {@code fallbackTimestamp} is returned.
+     *
+     * @param object            a value, which is likely to be a {@link OffsetDateTime}
+     * @param fallbackTimestamp a fallback value as long, in case the {@code object} is {@code null}
+     * @return the object as {@link OffsetDateTime} or the fallback timestamp as {@link OffsetDateTime} at offset
+     * {@link ZoneOffset#UTC}
+     */
+    public static OffsetDateTime asOffsetDateTime(Object object, long fallbackTimestamp) {
         if (object instanceof OffsetDateTime) {
             return (OffsetDateTime) object;
         } else {
@@ -187,7 +225,14 @@ class ExtensionUtils {
         }
     }
 
-    static byte[] asBytes(CloudEventData data) {
+    /**
+     * Will return the {@link CloudEventData} as {@code byte[]} if it's not {@code null}, otherwise an empty array is
+     * returned.
+     *
+     * @param data {@link CloudEventData}, which might be {@code null}
+     * @return the data as byte array, or an empty byte array if the data was {@code null}
+     */
+    public static byte[] asBytes(CloudEventData data) {
         if (isNull(data)) {
             return new byte[0];
         } else {
@@ -195,13 +240,20 @@ class ExtensionUtils {
         }
     }
 
-    static boolean isValidExtensionName(String name) {
+    /**
+     * Tests whether the name is valid according to the cloud events <a
+     * href="https://github.com/cloudevents/spec/blob/main/cloudevents/spec.md#naming-conventions">attribute naming
+     * conventions</a>.
+     *
+     * @param name the {@link String} to validate
+     * @return {@code true} if the given {@code name} is valid and {@code false} if it isn't
+     */
+    public static boolean isValidExtensionName(String name) {
         for (int i = 0; i < name.length(); ++i) {
             if (!isValidChar(name.charAt(i))) {
                 return false;
             }
         }
-
         return true;
     }
 
@@ -209,7 +261,15 @@ class ExtensionUtils {
         return c >= 'a' && c <= 'z' || c >= '0' && c <= '9';
     }
 
-    static boolean isValidMetadataToExtensionMap(Map<String, String> metadataToExtensionMap) {
+    /**
+     * Tests whether all the values of the {@code metadataToExtensionMap} are valid according to the cloud events <a
+     * href="https://github.com/cloudevents/spec/blob/main/cloudevents/spec.md#naming-conventions">attribute naming
+     * conventions</a>.
+     *
+     * @param metadataToExtensionMap the {@link Map} to validate
+     * @return {@code true} if the given {@code metadataToExtensionMap} is valid and {@code false} if it isn't
+     */
+    public static boolean isValidMetadataToExtensionMap(Map<String, String> metadataToExtensionMap) {
         for (String extensionName : metadataToExtensionMap.values()) {
             if (!isValidExtensionName(extensionName)) {
                 return false;

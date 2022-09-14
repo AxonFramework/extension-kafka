@@ -43,15 +43,15 @@ public class MetadataUtils {
     /**
      * Metadata key to store the subject.
      */
-    static final String SUBJECT = "cloud-event-subject";
+    public static final String SUBJECT = "cloud-event-subject";
     /**
      * Metadata key to store the data content type.
      */
-    static final String DATA_CONTENT_TYPE = "cloud-event-data-content-type";
+    public static final String DATA_CONTENT_TYPE = "cloud-event-data-content-type";
     /**
      * Metadata key to store the data schema.
      */
-    static final String DATA_SCHEMA = "cloud-event-data-schema";
+    public static final String DATA_SCHEMA = "cloud-event-data-schema";
     private static final Set<String> RESERVED_METADATA = Stream
             .of(SUBJECT, DATA_CONTENT_TYPE, DATA_SCHEMA)
             .collect(Collectors.toCollection(HashSet::new));
@@ -60,11 +60,22 @@ public class MetadataUtils {
         // Utility class
     }
 
-    static Predicate<Map.Entry<String, Object>> reservedMetadataFilter() {
+    /**
+     * Provides a filter function which can be used to filter out the metadata keys used by this utility class.
+     *
+     * @return a predicate which can be applied on an entry of a metadata map
+     */
+    public static Predicate<Map.Entry<String, Object>> reservedMetadataFilter() {
         return e -> !RESERVED_METADATA.contains(e.getKey());
     }
 
-    static Map<String, Object> getAdditionalEntries(CloudEvent cloudEvent) {
+    /**
+     * If certain attributes are set on the {@link CloudEvent} these will be added with the correct metadata key.
+     *
+     * @param cloudEvent a {@link CloudEvent} to extract attributes.
+     * @return the map with metadata to add
+     */
+    public static Map<String, Object> getAdditionalEntries(CloudEvent cloudEvent) {
         Map<String, Object> metadataMap = new HashMap<>();
         if (!isNull(cloudEvent.getSubject())) {
             metadataMap.put(SUBJECT, cloudEvent.getSubject());
@@ -78,8 +89,13 @@ public class MetadataUtils {
         return metadataMap;
     }
 
+    /**
+     * Default function to set the subject to the value from the metadata with key {@link #SUBJECT} if present.
+     *
+     * @return a function to supply the subject based on a {@link EventMessage}
+     */
     @SuppressWarnings("squid:S1452") //needs wildcard to be generic
-    static Function<EventMessage<?>, Optional<String>> defaultSubjectSupplier() {
+    public static Function<EventMessage<?>, Optional<String>> defaultSubjectSupplier() {
         return message -> {
             Object subject = message.getMetaData().get(SUBJECT);
             if (subject instanceof String) {
@@ -90,8 +106,14 @@ public class MetadataUtils {
         };
     }
 
+    /**
+     * Default function to set the data content type to the value from the metadata with key {@link #DATA_CONTENT_TYPE}
+     * if present.
+     *
+     * @return a function to supply the data content type based on a {@link EventMessage}
+     */
     @SuppressWarnings("squid:S1452") //needs wildcard to be generic
-    static Function<EventMessage<?>, Optional<String>> defaultDataContentTypeSupplier() {
+    public static Function<EventMessage<?>, Optional<String>> defaultDataContentTypeSupplier() {
         return message -> {
             Object dataContentType = message.getMetaData().get(DATA_CONTENT_TYPE);
             if (dataContentType instanceof String) {
@@ -102,8 +124,13 @@ public class MetadataUtils {
         };
     }
 
+    /**
+     * Default function to set the data schema to the value from the metadata with key {@link #DATA_SCHEMA} if present.
+     *
+     * @return a function to supply the data schema based on a {@link EventMessage}
+     */
     @SuppressWarnings("squid:S1452") //needs wildcard to be generic
-    static Function<EventMessage<?>, Optional<URI>> defaultDataSchemaSupplier() {
+    public static Function<EventMessage<?>, Optional<URI>> defaultDataSchemaSupplier() {
         return message -> {
             Object dataSchema = message.getMetaData().get(DATA_SCHEMA);
             if (dataSchema instanceof URI) {
