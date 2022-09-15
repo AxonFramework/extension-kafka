@@ -121,6 +121,13 @@ class CloudEventKafkaMessageConverterTest {
     }
 
     @Test
+    void whenNoSourceSupplierSet_thenSourceShouldBeAxonIQ() {
+        ProducerRecord<String, CloudEvent> evt = testSubject.createKafkaMessage(eventMessage(), SOME_TOPIC);
+
+        assertEquals(URI.create("https://www.axoniq.io/"), evt.value().getSource());
+    }
+
+    @Test
     void whenNoDataContentTypeSupplierSet_thenDataTypeShouldBeNull() {
         ProducerRecord<String, CloudEvent> evt = testSubject.createKafkaMessage(eventMessage(), SOME_TOPIC);
 
@@ -164,10 +171,14 @@ class CloudEventKafkaMessageConverterTest {
     }
 
     @Test
-    void whenReadingMessageMissingAxonHeader_thenShouldReturnMessageAnyway() {
-        ConsumerRecord<String, CloudEvent> msgWithoutHeaders =
+    void whenMinimalCloudEventRead_thenShouldReturnAxonMessageAnywayBasedOnDefaults() {
+        ConsumerRecord<String, CloudEvent> consumerRecord =
                 new ConsumerRecord<>("foo", 0, 0, "abc", minimalCloudEvent());
-        assertTrue(testSubject.readKafkaMessage(msgWithoutHeaders).isPresent());
+        EventMessage<?> eventMessage = testSubject.readKafkaMessage(consumerRecord).orElseThrow(
+                () -> new AssertionError("Expected valid message")
+        );
+        assertNotNull(eventMessage);
+        assertEquals(0, eventMessage.getMetaData().keySet().size());
     }
 
     @Test

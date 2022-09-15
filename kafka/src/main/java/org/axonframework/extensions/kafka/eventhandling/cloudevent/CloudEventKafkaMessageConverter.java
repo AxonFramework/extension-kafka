@@ -60,7 +60,7 @@ import static org.axonframework.extensions.kafka.eventhandling.cloudevent.Metada
  * <p>
  * During conversion, metadata entries are stored as extensions. This might require adding mappings with either
  * {@link Builder#addMetadataMapper(String, String)} or {@link Builder#addMetadataMappers(Map)}. For the {@code source}
- * field, we default to the class of the message. You can set the
+ * field, we default to <a href="https://www.axoniq.io/">https://www.axoniq.io/</a>. You can set the
  * {@link Builder#sourceSupplier(Function) sourceSupplier} to change this. For the {@code subject} field, we default to
  * setting it from the metadata. You can set the {@link Builder#subjectSupplier(Function) subjectSupplier} to change
  * this. For the {@code dataContentType} field, we default to setting it from the metadata. You can set the
@@ -102,7 +102,7 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
      * The {@code upcasterChain} is defaulted to a new {@link EventUpcasterChain}. During conversion, metadata entries
      * are stored as extensions. This might require adding mappings with either
      * {@link Builder#addMetadataMapper(String, String)} or {@link Builder#addMetadataMappers(Map)}. For the
-     * {@code source} field, we default to the class of the message. You can set the
+     * {@code source} field, we default to <a href="https://www.axoniq.io/">https://www.axoniq.io/</a>. You can set the
      * {@link Builder#sourceSupplier(Function) sourceSupplier} to change this. For the {@code subject} field, we default
      * to setting it from the metadata. You can set the {@link Builder#subjectSupplier(Function) subjectSupplier} to
      * change this. For the {@code dataContentType} field, we default to setting it from the metadata. You can set the
@@ -132,8 +132,8 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
     /**
      * Instantiate a Builder to be able to create a {@link CloudEventKafkaMessageConverter}.
      * <p>
-     * The {@link SequencingPolicy} is defaulted to an {@link SequentialPerAggregatePolicy}. The {@link Serializer} is
-     * a <b>hard requirement</b> and as such should be provided.
+     * The {@link SequencingPolicy} is defaulted to an {@link SequentialPerAggregatePolicy}. The {@link Serializer} is a
+     * <b>hard requirement</b> and as such should be provided.
      *
      * @return a Builder to be able to create a {@link CloudEventKafkaMessageConverter}
      */
@@ -310,7 +310,7 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
         private SequencingPolicy<? super EventMessage<?>> sequencingPolicy = SequentialPerAggregatePolicy.instance();
         private EventUpcasterChain upcasterChain = new EventUpcasterChain();
         private final Map<String, String> metadataToExtensionMap = tracingMap();
-        private Function<EventMessage<?>, URI> sourceSupplier = m -> URI.create(m.getClass().getCanonicalName());
+        private Function<EventMessage<?>, URI> sourceSupplier = m -> URI.create("https://www.axoniq.io/");
         private Function<EventMessage<?>, Optional<String>> subjectSupplier = defaultSubjectSupplier();
         private Function<EventMessage<?>, Optional<String>> dataContentTypeSupplier = defaultDataContentTypeSupplier();
         private Function<EventMessage<?>, Optional<URI>> dataSchemaSupplier = defaultDataSchemaSupplier();
@@ -398,8 +398,8 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
         }
 
         /**
-         * Sets the {@code sourceSupplier} to be used to determine the source of the Cloud Event, this defaults to the
-         * full classpath of the message.
+         * Sets the {@code sourceSupplier} to be used to determine the source of the Cloud Event, this defaults to <a
+         * href="https://www.axoniq.io/">https://www.axoniq.io/</a>.
          *
          * @param sourceSupplier the supplier of the source
          * @return the current Builder instance, for fluent interfacing
