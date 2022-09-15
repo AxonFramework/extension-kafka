@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2021. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package org.axonframework.extensions.kafka.eventhandling;
 
 import com.thoughtworks.xstream.XStream;
-import com.thoughtworks.xstream.security.AnyTypePermission;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Headers;
@@ -35,6 +34,7 @@ import org.axonframework.serialization.xml.CompactDriver;
 import org.axonframework.serialization.xml.XStreamSerializer;
 import org.junit.jupiter.api.*;
 
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.apache.kafka.clients.consumer.ConsumerRecord.NULL_SIZE;
@@ -279,6 +279,16 @@ class DefaultKafkaMessageConverterTest {
         DefaultKafkaMessageConverter.Builder testSubject = DefaultKafkaMessageConverter.builder();
 
         assertThrows(AxonConfigurationException.class, () -> testSubject.upcasterChain(null));
+    }
+
+    @Test
+    void whenListIsUsedAsMetadataValue_thenAfterConvertNotTheSame() {
+        EventMessage<Object> expected = asEventMessage("SomePayload")
+                .withMetaData(MetaData.with("key", Collections.singletonList("value")));
+        ProducerRecord<String, byte[]> senderMessage = testSubject.createKafkaMessage(expected, SOME_TOPIC);
+        EventMessage<?> actual = receiverMessage(senderMessage);
+
+        assertNotEquals(expected.getMetaData(), actual.getMetaData());
     }
 
 

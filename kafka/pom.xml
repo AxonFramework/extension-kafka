@@ -36,6 +36,7 @@
         <test-containers.version>1.17.3</test-containers.version>
         <maven-enforcer-plugin.version>3.1.0</maven-enforcer-plugin.version>
         <findbugs-jsr305.version>3.0.2</findbugs-jsr305.version>
+        <cloudevents.version>2.3.0</cloudevents.version>
     </properties>
 
     <packaging>jar</packaging>
@@ -56,6 +57,11 @@
             <artifactId>kafka-clients</artifactId>
             <version>${kafka.version}</version>
             <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.cloudevents</groupId>
+            <artifactId>cloudevents-kafka</artifactId>
+            <version>${cloudevents.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

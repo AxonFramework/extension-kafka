@@ -1,5 +1,5 @@
 <!--
-  ~ Copyright (c) 2010-2021. Axon Framework
+  ~ Copyright (c) 2010-2022. Axon Framework
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Kafka Axon Example - Subscribing Producer and Tracking Consumer" type="JetRunConfigurationType" folderName="Kafka Axon Example">
     <option name="MAIN_CLASS_NAME" value="org.axonframework.extensions.kafka.example.KafkaAxonExampleApplicationKt" />
-    <module name="axon-kafka-example" />
+    <module name="kafka-axon-example"/>
     <option name="PROGRAM_PARAMETERS" value="--spring.profiles.active=subscribing-producer,tracking-consumer" />
     <shortenClasspath name="NONE" />
     <method v="2">
