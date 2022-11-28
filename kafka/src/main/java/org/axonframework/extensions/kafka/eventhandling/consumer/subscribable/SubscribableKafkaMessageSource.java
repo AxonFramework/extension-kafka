@@ -191,6 +191,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
 
     private void restartOnError(RuntimeException e) {
         logger.warn("Consumer had a fatal exception, starting a new one", e);
+        fetcherRegistrations.removeIf(Registration::cancel); //retrying and keeping failed items in the list will cause memory leak
         addConsumer();
     }
 
