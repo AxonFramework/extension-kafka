@@ -17,19 +17,6 @@
 package org.axonframework.extensions.kafka.eventhandling.consumer.subscribable;
 
 import com.thoughtworks.xstream.XStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.axonframework.common.AxonConfigurationException;
@@ -40,12 +27,27 @@ import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
+import org.axonframework.extensions.kafka.eventhandling.consumer.RuntimeErrorHandler;
 import org.axonframework.messaging.SubscribableMessageSource;
 import org.axonframework.serialization.Serializer;
 import org.axonframework.serialization.xml.CompactDriver;
 import org.axonframework.serialization.xml.XStreamSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static org.axonframework.common.BuilderUtils.assertNonNull;
 import static org.axonframework.common.BuilderUtils.assertThat;
@@ -82,7 +84,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
     private final int consumerCount;
 
     private final Set<java.util.function.Consumer<List<? extends EventMessage<?>>>> eventProcessors = new CopyOnWriteArraySet<>();
-    private final List<Registration> fetcherRegistrations = new CopyOnWriteArrayList<>();
+    private final Map<Integer, Registration> fetcherRegistrations = new ConcurrentHashMap<>();
     private final AtomicBoolean inProgress = new AtomicBoolean(false);
 
     /**
@@ -168,11 +170,11 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
         }
 
         for (int consumerIndex = 0; consumerIndex < consumerCount; consumerIndex++) {
-            addConsumer();
+            addConsumer(consumerIndex);
         }
     }
 
-    private void addConsumer() {
+    private void addConsumer(int consumerIndex) {
         Consumer<K, V> consumer = consumerFactory.createConsumer(groupId);
         consumer.subscribe(topics);
 
@@ -184,14 +186,16 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
                                                 .map(Optional::get)
                                                 .collect(Collectors.toList()),
                 eventMessages -> eventProcessors.forEach(eventProcessor -> eventProcessor.accept(eventMessages)),
-                this::restartOnError
+                restartOnError(consumerIndex)
         );
-        fetcherRegistrations.add(closeConsumer);
+        fetcherRegistrations.put(consumerIndex, closeConsumer);
     }
 
-    private void restartOnError(RuntimeException e) {
-        logger.warn("Consumer had a fatal exception, starting a new one", e);
-        addConsumer();
+    private RuntimeErrorHandler restartOnError(int consumerIndex) {
+        return e -> {
+            logger.warn("Consumer had a fatal exception, starting a new one", e);
+            addConsumer(consumerIndex);
+        };
     }
 
     /**
@@ -202,7 +206,8 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
             logger.debug("No Event Processors have been subscribed who's Consumers should be closed");
             return;
         }
-        fetcherRegistrations.forEach(Registration::close);
+        fetcherRegistrations.values().forEach(Registration::close);
+        fetcherRegistrations.clear();
         inProgress.set(false);
     }
 

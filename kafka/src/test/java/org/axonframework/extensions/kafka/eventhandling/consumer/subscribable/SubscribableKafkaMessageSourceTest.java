@@ -17,18 +17,25 @@
 package org.axonframework.extensions.kafka.eventhandling.consumer.subscribable;
 
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.common.errors.BrokerNotAvailableException;
 import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.common.Registration;
 import org.axonframework.eventhandling.EventMessage;
+import org.axonframework.extensions.kafka.eventhandling.consumer.AsyncFetcher;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
 import org.junit.jupiter.api.*;
 
+import java.lang.reflect.Field;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static java.util.concurrent.Executors.newSingleThreadExecutor;
+import static org.awaitility.Awaitility.await;
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.DEFAULT_GROUP_ID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -192,7 +199,7 @@ class SubscribableKafkaMessageSourceTest {
 
     @Test
     void testStartSubscribesConsumerToAllProvidedTopics() {
-        when(fetcher.poll(eq(mockConsumer), any(), any())).thenReturn(NO_OP_FETCHER_REGISTRATION);
+        when(fetcher.poll(eq(mockConsumer), any(), any(), any())).thenReturn(NO_OP_FETCHER_REGISTRATION);
 
         List<String> testTopics = new ArrayList<>();
         testTopics.add("topicOne");
@@ -272,5 +279,36 @@ class SubscribableKafkaMessageSourceTest {
 
         assertTrue(closedEventProcessorOne.get());
         assertTrue(closedEventProcessorTwo.get());
+    }
+
+    @Test
+    void restartingConsumerShouldNotCauseAMemoryLeakAndOnCloseNoRegistrationsShouldBeleft() throws NoSuchFieldException, IllegalAccessException {
+        fetcher = AsyncFetcher.<String, String, EventMessage<?>>builder()
+                              .executorService(newSingleThreadExecutor()).build();
+        when(mockConsumer.poll(any(Duration.class))).thenThrow(new BrokerNotAvailableException("none available"));
+
+        SubscribableKafkaMessageSource<String, String> testSubject =
+                SubscribableKafkaMessageSource.<String, String>builder()
+                                              .topics(Collections.singletonList(TEST_TOPIC))
+                                              .groupId(DEFAULT_GROUP_ID)
+                                              .consumerFactory(consumerFactory)
+                                              .fetcher(fetcher)
+                                              .autoStart()
+                                              .build();
+
+        testSubject.subscribe(NO_OP_EVENT_PROCESSOR);
+
+        await().atMost(Duration.ofSeconds(4)).untilAsserted(() -> verify(consumerFactory, atLeast(4)).createConsumer(DEFAULT_GROUP_ID));
+        Field fetcherRegistrations = SubscribableKafkaMessageSource.class.getDeclaredField("fetcherRegistrations");
+
+        fetcherRegistrations.setAccessible(true);
+
+        Map<Integer, Registration> registrations = (Map<Integer, Registration>) fetcherRegistrations.get(testSubject);
+        assertEquals(1, registrations.values().size());
+
+        testSubject.close();
+
+        registrations = (Map<Integer, Registration>) fetcherRegistrations.get(testSubject);
+        assertTrue(registrations.isEmpty());
     }
 }
