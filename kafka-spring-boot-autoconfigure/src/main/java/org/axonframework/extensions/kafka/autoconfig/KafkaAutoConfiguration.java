@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022. Axon Framework
+ * Copyright (c) 2010-2023. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,6 +44,7 @@ import org.axonframework.springboot.autoconfig.InfraConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.AnyNestedCondition;
@@ -54,7 +55,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
-import org.springframework.context.annotation.Configuration;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Collections;
@@ -69,7 +69,7 @@ import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEve
  * @author Steven van Beelen
  * @since 4.0
  */
-@Configuration
+@AutoConfiguration
 @ConditionalOnExpression(
         "${axon.kafka.publisher.enabled:true} or ${axon.kafka.fetcher.enabled:true}"
 )
