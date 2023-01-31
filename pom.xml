@@ -546,7 +546,7 @@
                 <jdk>[17,)</jdk>
             </activation>
             <modules>
-                <module>axon-spring-boot-3-integrationtests</module>
+                <module>kafka-spring-boot-3-integrationtests</module>
             </modules>
         </profile>
     </profiles>
