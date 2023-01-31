@@ -19,7 +19,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.axonframework.extensions.kafka</groupId>
     <artifactId>axon-kafka-parent</artifactId>
-    <version>4.7.0</version>
+    <version>4.7.1-SNAPSHOT</version>
 
     <packaging>pom</packaging>
 
@@ -575,7 +575,7 @@
         <connection>scm:git:git://github.com/AxonFramework/extension-kafka.git</connection>
         <developerConnection>scm:git:git@github.com:AxonFramework/extension-kafka.git</developerConnection>
         <url>https://github.com/AxonFramework/extension-kafka</url>
-        <tag>axon-kafka-4.7.0</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <developers>
