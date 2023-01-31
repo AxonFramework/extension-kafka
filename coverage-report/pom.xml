@@ -21,11 +21,10 @@
     <parent>
         <groupId>org.axonframework.extensions.kafka</groupId>
         <artifactId>axon-kafka-parent</artifactId>
-        <version>4.7.0-SNAPSHOT</version>
+        <version>4.7.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>axon-kafka-coverage-report</artifactId>
-    <version>4.7.0-SNAPSHOT</version>
 
     <name>Axon Framework Kafka Extension - Coverage Report Generator</name>
     <description>Coverage Report Generator for the Axon Kafka Extension</description>
@@ -50,7 +49,7 @@
         </dependency>
         <dependency>
             <groupId>org.axonframework.extensions.kafka</groupId>
-            <artifactId>axon-spring-boot-3-integrationtests</artifactId>
+            <artifactId>axon-kafka-spring-boot-3-integrationtests</artifactId>
             <version>${project.version}</version>
             <scope>runtime</scope>
         </dependency>
