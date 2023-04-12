@@ -8,7 +8,6 @@ updates:
   labels:
     - "Type: Dependency Upgrade"
     - "Priority 1: Must"
-    - "Status: In Progress"
   reviewers:
     - "gklijs" # Main
     - "smcvb"
@@ -21,7 +20,6 @@ updates:
   labels:
     - "Type: Dependency Upgrade"
     - "Priority 1: Must"
-    - "Status: In Progress"
   reviewers:
     - "gklijs" # Main
     - "smcvb"
