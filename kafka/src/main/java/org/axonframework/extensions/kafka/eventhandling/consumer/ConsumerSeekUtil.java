@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022. Axon Framework
+ * Copyright (c) 2010-2023. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,18 +54,11 @@ public class ConsumerSeekUtil {
      */
     public static void seekToCurrentPositions(Consumer<?, ?> consumer, Supplier<KafkaTrackingToken> tokenSupplier,
                                               List<String> topics) {
-        List<TopicPartition> all = consumer.listTopics().entrySet()
-                                           .stream()
-                                           .filter(e -> topics.contains(e.getKey()))
-                                           .flatMap(e -> e.getValue().stream())
-                                           .map(partitionInfo -> new TopicPartition(partitionInfo.topic(),
-                                                                                    partitionInfo.partition()))
-                                           .collect(Collectors.toList());
+        List<TopicPartition> all = topicPartitions(consumer, topics);
         consumer.assign(all);
         KafkaTrackingToken currentToken = tokenSupplier.get();
+        Map<TopicPartition, Long> tokenPartitionPositions = currentToken.getPositions();
         all.forEach(assignedPartition -> {
-            Map<TopicPartition, Long> tokenPartitionPositions = currentToken.getPositions();
-
             long offset = 0L;
             if (tokenPartitionPositions.containsKey(assignedPartition)) {
                 offset = tokenPartitionPositions.get(assignedPartition) + 1;
@@ -74,5 +67,22 @@ public class ConsumerSeekUtil {
             logger.info("Seeking topic-partition [{}] with offset [{}]", assignedPartition, offset);
             consumer.seek(assignedPartition, offset);
         });
+    }
+
+    /**
+     * Get all the {@link TopicPartition topicPartitions} belonging to the given {@code topics}.
+     *
+     * @param consumer a Kafka {@link Consumer}
+     * @param topics   a list with topics
+     * @return a list of all the {@link TopicPartition topicPartitions}
+     */
+    public static List<TopicPartition> topicPartitions(Consumer<?, ?> consumer, List<String> topics) {
+        return consumer.listTopics().entrySet()
+                       .stream()
+                       .filter(e -> topics.contains(e.getKey()))
+                       .flatMap(e -> e.getValue().stream())
+                       .map(partitionInfo -> new TopicPartition(partitionInfo.topic(),
+                                                                partitionInfo.partition()))
+                       .collect(Collectors.toList());
     }
 }

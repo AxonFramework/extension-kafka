@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022. Axon Framework
+ * Copyright (c) 2010-2023. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -111,7 +111,7 @@ class ConsumerSeekUtilIntegrationTest extends KafkaContainerTest {
     }
 
     @Test
-    void testSeekUsingEmptyTokenConsumerStartsAtPositionZero() {
+    void seekUsingEmptyTokenConsumerStartsAtPositionZero() {
         String topic = "testSeekUsing_EmptyToken_ConsumerStartsAtPositionZero";
         int recordsPerPartitions = 1;
         Producer<String, String> producer = producerFactory.createProducer();
@@ -136,7 +136,7 @@ class ConsumerSeekUtilIntegrationTest extends KafkaContainerTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    void testSeekUsingExistingTokenConsumerStartsAtSpecificPosition() {
+    void seekUsingExistingTokenConsumerStartsAtSpecificPosition() {
         String topic = "testSeekUsing_ExistingToken_ConsumerStartsAtSpecificPosition";
         int recordsPerPartitions = 10;
         Producer<String, String> producer = producerFactory.createProducer();
@@ -170,7 +170,7 @@ class ConsumerSeekUtilIntegrationTest extends KafkaContainerTest {
     }
 
     @Test
-    void testSeekUsingExistingTokenConsumerStartsAtSpecificPositionAndCanContinueReadingNewRecords() {
+    void seekUsingExistingTokenConsumerStartsAtSpecificPositionAndCanContinueReadingNewRecords() {
         String topic = "testSeekUsing_ExistingToken_ConsumerStartsAtSpecificPosition_AndCanContinueReadingNewRecords";
         int recordsPerPartitions = 10;
         Producer<String, String> testProducer = producerFactory.createProducer();
