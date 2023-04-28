@@ -21,7 +21,6 @@ import org.apache.kafka.clients.consumer.OffsetAndTimestamp;
 import org.apache.kafka.common.TopicPartition;
 
 import java.time.Instant;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +48,7 @@ class ConsumerPositionsUtil {
     ) {
         List<TopicPartition> all = topicPartitions(consumer, topics);
         Map<TopicPartition, Long> positions = new HashMap<>();
-        OffsetSupplier offsetSupplier = new OffsetSupplier(consumer, rawDefaultAt);
+        OffsetSupplier offsetSupplier = new OffsetSupplier(consumer, rawDefaultAt, all);
         all.forEach(assignedPartition -> {
             Long offset = offsetSupplier.getOffset(assignedPartition);
             //if it's 0, we otherwise miss the first event
@@ -60,7 +59,10 @@ class ConsumerPositionsUtil {
         return positions;
     }
 
-    static Map<TopicPartition, Long> getHeadPositions(Consumer<?, ?> consumer, List<String> topics) {
+    static Map<TopicPartition, Long> getHeadPositions(
+            @Nonnull Consumer<?, ?> consumer,
+            @Nonnull List<String> topics
+    ) {
         List<TopicPartition> all = topicPartitions(consumer, topics);
         Map<TopicPartition, Long> positions = new HashMap<>();
         Map<TopicPartition, Long> endOffsets = consumer.endOffsets(all);
@@ -75,24 +77,23 @@ class ConsumerPositionsUtil {
 
     private static class OffsetSupplier {
 
-        private final Consumer<?, ?> consumer;
-        private final long defaultAt;
+        private final Map<TopicPartition, OffsetAndTimestamp> partitionOffsetMap;
+        private final Map<TopicPartition, Long> endOffsets;
 
-        private OffsetSupplier(Consumer<?, ?> consumer, Instant rawDefaultAt) {
-            this.consumer = consumer;
-            defaultAt = rawDefaultAt.toEpochMilli();
+        private OffsetSupplier(Consumer<?, ?> consumer, Instant rawDefaultAt, List<TopicPartition> all) {
+            long defaultAt = rawDefaultAt.toEpochMilli();
+            Map<TopicPartition, Long> timestampsToSearch = new HashMap<>();
+            all.forEach(tp -> timestampsToSearch.put(tp, defaultAt));
+            partitionOffsetMap = consumer.offsetsForTimes(timestampsToSearch);
+            endOffsets = consumer.endOffsets(all);
         }
 
         private Optional<Long> getDefaultOffset(TopicPartition assignedPartition) {
-            Map<TopicPartition, Long> timestampsToSearch = new HashMap<>();
-            timestampsToSearch.put(assignedPartition, defaultAt);
-            Map<TopicPartition, OffsetAndTimestamp> partitionOffsetMap = consumer.offsetsForTimes(timestampsToSearch);
             return Optional.ofNullable(partitionOffsetMap.get(assignedPartition))
                            .map(OffsetAndTimestamp::offset);
         }
 
         private long getEndOffset(TopicPartition assignedPartition) {
-            Map<TopicPartition, Long> endOffsets = consumer.endOffsets(Collections.singletonList(assignedPartition));
             return endOffsets.get(assignedPartition);
         }
 
