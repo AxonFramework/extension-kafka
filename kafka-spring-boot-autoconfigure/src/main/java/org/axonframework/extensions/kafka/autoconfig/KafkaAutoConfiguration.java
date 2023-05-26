@@ -39,6 +39,7 @@ import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory
 import org.axonframework.extensions.kafka.eventhandling.tokenstore.KafkaTokenStore;
 import org.axonframework.serialization.Serializer;
 import org.axonframework.serialization.upcasting.event.EventUpcasterChain;
+import org.axonframework.springboot.TokenStoreProperties;
 import org.axonframework.springboot.autoconfig.AxonAutoConfiguration;
 import org.axonframework.springboot.autoconfig.InfraConfiguration;
 import org.slf4j.Logger;
@@ -75,15 +76,20 @@ import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEve
 )
 @AutoConfigureAfter(AxonAutoConfiguration.class)
 @AutoConfigureBefore(InfraConfiguration.class)
-@EnableConfigurationProperties(KafkaProperties.class)
+@EnableConfigurationProperties({KafkaProperties.class, TokenStoreProperties.class})
 public class KafkaAutoConfiguration {
 
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private final KafkaProperties properties;
+    private final TokenStoreProperties tokenStoreProperties;
 
-    public KafkaAutoConfiguration(KafkaProperties properties) {
+    public KafkaAutoConfiguration(
+            KafkaProperties properties,
+            TokenStoreProperties tokenStoreProperties
+    ) {
         this.properties = properties;
+        this.tokenStoreProperties = tokenStoreProperties;
     }
 
     @Bean
@@ -220,6 +226,7 @@ public class KafkaAutoConfiguration {
                 .serializer(serializer)
                 .consumerConfiguration(properties.buildConsumerProperties())
                 .producerConfiguration(properties.buildProducerProperties())
+                .claimTimeout(tokenStoreProperties.getClaimTimeout())
                 .build();
     }
 
