@@ -30,9 +30,12 @@ import org.apache.kafka.common.serialization.LongDeserializer;
 import org.apache.kafka.common.serialization.LongSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.axonframework.common.ReflectionUtils;
 import org.axonframework.config.EventProcessingConfigurer;
 import org.axonframework.config.EventProcessingModule;
 import org.axonframework.eventhandling.EventBus;
+import org.axonframework.eventhandling.tokenstore.TokenStore;
+import org.axonframework.eventhandling.tokenstore.jdbc.JdbcTokenStore;
 import org.axonframework.extensions.kafka.KafkaProperties;
 import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.cloudevent.CloudEventKafkaMessageConverter;
@@ -59,6 +62,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.io.File;
+import java.time.Duration;
+import java.time.temporal.TemporalAmount;
 import java.util.Collections;
 import java.util.Map;
 
@@ -77,7 +82,8 @@ import static org.mockito.Mockito.*;
 class KafkaAutoConfigurationIntegrationTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(KafkaAutoConfiguration.class));
+            .withConfiguration(AutoConfigurations.of(KafkaAutoConfiguration.class))
+            .withPropertyValues("axon.axonserver.enabled=false");
 
     @Test
     void testAutoConfigurationWithoutProperties() {
@@ -596,6 +602,25 @@ class KafkaAutoConfigurationIntegrationTest {
                         CloudEventDeserializer.class, consumerConfigs.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG)
                 );
             });
+    }
+
+    @Test
+    void setTokenStoreClaimTimeout() {
+        this.contextRunner.withUserConfiguration(TestConfiguration.class)
+                          .withPropertyValues(
+                                  "axon.kafka.producer.event-processor-mode=POOLED_STREAMING",
+                                  "axon.eventhandling.tokenstore.claim-timeout=1m"
+                          )
+                          .run(context -> {
+                              Map<String, TokenStore> tokenStores =
+                                      context.getBeansOfType(TokenStore.class);
+                              assertTrue(tokenStores.containsKey("tokenStore"));
+                              TokenStore tokenStore = tokenStores.get("tokenStore");
+                              TemporalAmount tokenClaimInterval = ReflectionUtils.getFieldValue(
+                                      KafkaTokenStore.class.getDeclaredField("claimTimeout"), tokenStore
+                              );
+                              assertEquals(Duration.ofMinutes(1L), tokenClaimInterval);
+                          });
     }
 
     @Configuration
