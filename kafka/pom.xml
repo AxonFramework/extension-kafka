@@ -32,7 +32,7 @@
 
     <properties>
         <jmh-core.version>1.36</jmh-core.version>
-        <test-containers.version>1.18.1</test-containers.version>
+        <test-containers.version>1.18.2</test-containers.version>
         <maven-enforcer-plugin.version>3.3.0</maven-enforcer-plugin.version>
         <findbugs-jsr305.version>3.0.2</findbugs-jsr305.version>
         <cloudevents.version>2.4.0</cloudevents.version>
