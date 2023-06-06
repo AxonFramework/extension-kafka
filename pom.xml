@@ -54,7 +54,7 @@
         </sonar.coverage.jacoco.xmlReportPaths>
         <!-- Main -->
         <axon.version>4.8.0-SNAPSHOT</axon.version>
-        <kafka.version>3.4.0</kafka.version>
+        <kafka.version>3.4.1</kafka.version>
         <!-- Spring -->
         <spring.boot.version>2.7.12</spring.boot.version>
         <!-- Logging -->
