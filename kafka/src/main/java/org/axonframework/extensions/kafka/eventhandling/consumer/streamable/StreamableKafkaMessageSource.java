@@ -30,6 +30,10 @@ import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerSeekUtil;
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
+import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaBuilderSubscriber;
+import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaSubscriber;
+import org.axonframework.extensions.kafka.eventhandling.consumer.ListKafkaSubscriber;
+import org.axonframework.extensions.kafka.eventhandling.consumer.subscribable.SubscribableKafkaMessageSource;
 import org.axonframework.messaging.StreamableMessageSource;
 import org.axonframework.serialization.Serializer;
 import org.axonframework.serialization.xml.CompactDriver;
@@ -39,7 +43,6 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.invoke.MethodHandles;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -69,7 +72,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
 
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-    private final List<String> topics;
+    private final KafkaSubscriber subscriber;
     private final ConsumerFactory<K, V> consumerFactory;
     private final Fetcher<K, V, KafkaEventMessage> fetcher;
     private final KafkaMessageConverter<K, V> messageConverter;
@@ -85,7 +88,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
      */
     protected StreamableKafkaMessageSource(Builder<K, V> builder) {
         builder.validate();
-        this.topics = Collections.unmodifiableList(builder.topics);
+        this.subscriber = builder.getSubscriber();
         this.consumerFactory = builder.consumerFactory;
         this.fetcher = builder.fetcher;
         this.messageConverter = builder.messageConverter;
@@ -120,7 +123,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
         KafkaTrackingToken token = KafkaTrackingToken.from(trackingToken);
         TrackingRecordConverter<K, V> recordConverter = new TrackingRecordConverter<>(messageConverter, token);
 
-        logger.debug("Will start consuming from topics [{}]", topics);
+        logger.debug("Will start consuming from topics [{}]", subscriber);
         Consumer<K, V> consumer = consumerFactory.createConsumer(null);
         ConsumerSeekUtil.seekToCurrentPositions(consumer, recordConverter::currentToken, topics);
 
@@ -156,9 +159,8 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
      * @param <K> the key of the {@link ConsumerRecords} to consume, fetch and convert
      * @param <V> the value type of {@link ConsumerRecords} to consume, fetch and convert
      */
-    public static class Builder<K, V> {
+    public static class Builder<K, V> extends KafkaBuilderSubscriber<Builder<K, V>> {
 
-        private List<String> topics = Collections.singletonList("Axon.Events");
         private ConsumerFactory<K, V> consumerFactory;
         private Fetcher<K, V, KafkaEventMessage> fetcher;
         private KafkaMessageConverter<K, V> messageConverter;
@@ -178,29 +180,8 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
             return this;
         }
 
-        /**
-         * Set the Kafka {@code topics} to read {@link org.axonframework.eventhandling.EventMessage}s from. Defaults to
-         * {@code Axon.Events}.
-         *
-         * @param topics the Kafka {@code topics} to read {@link org.axonframework.eventhandling.EventMessage}s from
-         * @return the current Builder instance, for fluent interfacing
-         */
-        public Builder<K, V> topics(List<String> topics) {
-            assertThat(topics, topicList -> Objects.nonNull(topicList) && !topicList.isEmpty(),
-                       "The topics may not be null or empty");
-            this.topics = new ArrayList<>(topics);
-            return this;
-        }
-
-        /**
-         * Add a Kafka {@code topic} to read {@link org.axonframework.eventhandling.EventMessage}s from.
-         *
-         * @param topic the Kafka {@code topic} to add to the list of topics
-         * @return the current Builder instance, for fluent interfacing
-         */
-        public Builder<K, V> addTopic(String topic) {
-            assertThat(topic, name -> Objects.nonNull(name) && !"".equals(name), "The topic may not be null or empty");
-            topics.add(topic);
+        @Override
+        protected Builder<K, V> self() {
             return this;
         }
 

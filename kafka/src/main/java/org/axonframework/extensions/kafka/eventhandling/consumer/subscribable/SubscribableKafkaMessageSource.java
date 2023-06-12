@@ -27,15 +27,18 @@ import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
+import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaBuilderSubscriber;
 import org.axonframework.extensions.kafka.eventhandling.consumer.RuntimeErrorHandler;
 import org.axonframework.messaging.SubscribableMessageSource;
+import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaSubscriber;
+import org.axonframework.extensions.kafka.eventhandling.consumer.ListKafkaSubscriber;
+import org.axonframework.extensions.kafka.eventhandling.consumer.PatternKafkaSubscriber;
 import org.axonframework.serialization.Serializer;
 import org.axonframework.serialization.xml.CompactDriver;
 import org.axonframework.serialization.xml.XStreamSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -75,8 +78,7 @@ import static org.axonframework.common.BuilderUtils.assertThat;
 public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessageSource<EventMessage<?>> {
 
     private static final Logger logger = LoggerFactory.getLogger(SubscribableKafkaMessageSource.class);
-
-    private final SubscriberBuilder subscriber;
+    private final KafkaSubscriber subscriber;
     private final String groupId;
     private final ConsumerFactory<K, V> consumerFactory;
     private final Fetcher<K, V, EventMessage<?>> fetcher;
@@ -99,7 +101,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
     @SuppressWarnings("WeakerAccess")
     protected SubscribableKafkaMessageSource(Builder<K, V> builder) {
         builder.validate();
-        this.subscriber = builder.subscriber;
+        this.subscriber = builder.getSubscriber();
         this.groupId = builder.groupId;
         this.consumerFactory = builder.consumerFactory;
         this.fetcher = builder.fetcher;
@@ -212,38 +214,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
         inProgress.set(false);
     }
 
-    private interface SubscriberBuilder {
-        void subscribeTopics(Consumer consumer);
-    }
-    private static class ListSubscriberBuilder implements SubscriberBuilder {
-        private final Collection<String> topics;
 
-        public ListSubscriberBuilder(Collection<String> topics) {
-            this.topics = topics;
-        }
-
-        public void addTopic(String topic) {
-            this.topics.add(topic);
-        }
-
-        @Override
-        public void subscribeTopics(Consumer consumer) {
-            consumer.subscribe(topics);
-        }
-    }
-
-    private static class PatternSubscriberBuilder implements SubscriberBuilder {
-        private Pattern pattern = Pattern.compile("Axon.Events");
-
-        public PatternSubscriberBuilder(Pattern pattern) {
-            this.pattern = pattern;
-        }
-
-        @Override
-        public void subscribeTopics(Consumer consumer) {
-            consumer.subscribe(pattern);
-        }
-    }
 
     /**
      * Builder class to instantiate an {@link SubscribableKafkaMessageSource}.
@@ -256,9 +227,8 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
      * @param <K> the key of the {@link ConsumerRecords} to consume, fetch and convert
      * @param <V> the value type of {@link ConsumerRecords} to consume, fetch and convert
      */
-    public static class Builder<K, V> {
+    public static class Builder<K, V> extends KafkaBuilderSubscriber<Builder<K, V>> {
 
-        private SubscriberBuilder subscriber = new ListSubscriberBuilder(Collections.singletonList("Axon.Events"));
         private String groupId;
         private ConsumerFactory<K, V> consumerFactory;
         private Fetcher<K, V, EventMessage<?>> fetcher;
@@ -278,57 +248,6 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
             assertNonNull(serializer, "The Serializer may not be null");
             this.serializer = () -> serializer;
             return this;
-        }
-
-        /**
-         * Set the Kafka {@code pattern} to read {@link org.axonframework.eventhandling.EventMessage}s from. Defaults to
-         * {@code Axon.Events}.
-         *
-         * @param pattern the Kafka {@code pattern} to read {@link org.axonframework.eventhandling.EventMessage}s from
-         * @return the current Builder instance, for fluent interfacing
-         */
-        public Builder<K, V> topicPattern(Pattern pattern) {
-            this.subscriber = new PatternSubscriberBuilder(pattern);
-            return this;
-        }
-
-        /**
-         * Set the Kafka {@code topics} to read {@link org.axonframework.eventhandling.EventMessage}s from. Defaults to
-         * {@code Axon.Events}.
-         *
-         * @param topics the Kafka {@code topics} to read {@link org.axonframework.eventhandling.EventMessage}s from
-         * @return the current Builder instance, for fluent interfacing
-         */
-        public Builder<K, V> topics(List<String> topics) {
-            assertThat(topics, topicList -> Objects.nonNull(topicList) && !topicList.isEmpty(),
-                       "The topics may not be null or empty");
-            this.subscriber = new ListSubscriberBuilder(topics);
-            return this;
-        }
-
-        /**
-         * Add a Kafka {@code topic} to read {@link org.axonframework.eventhandling.EventMessage}s from.
-         *
-         * @param topic the Kafka {@code topic} to add to the list of topics
-         * @return the current Builder instance, for fluent interfacing
-         */
-        public Builder<K, V> addTopic(String topic) {
-            assertThat(topic, name -> Objects.nonNull(name) && !"".equals(name), "The topic may not be null or empty");
-            if (isListBasedSubscription()) {
-                ((ListSubscriberBuilder) subscriber).addTopic(topic);
-            } else {
-                throw new IllegalStateException("Cannot add topic to a pattern subscriber");
-            }
-            return this;
-        }
-
-
-        /**
-         * Return the type of subscription being used.
-         * @return if the current subscription is based on a list of topics or a pattern
-         */
-        public boolean isListBasedSubscription() {
-            return subscriber instanceof ListSubscriberBuilder;
         }
 
         /**
@@ -466,6 +385,11 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
                                                                                              .serializer(serializer.get())
                                                                                              .build();
             }
+        }
+
+        @Override
+        protected Builder<K, V> self() {
+            return this;
         }
     }
 }
