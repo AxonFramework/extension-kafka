@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
+import static org.axonframework.common.BuilderUtils.assertNonNull;
 import static org.axonframework.common.BuilderUtils.assertThat;
 
 /**
@@ -74,13 +75,13 @@ public abstract class KafkaSubscriberBuilder<T extends KafkaSubscriberBuilder<T>
         return self();
     }
     /**
-     * Set the Kafka {@code pattern} to read {@link org.axonframework.eventhandling.EventMessage}s from. Defaults to
-     * {@code Axon.Events}.
+     * Set the Kafka {@code pattern} to read {@link org.axonframework.eventhandling.EventMessage}s from.
      *
      * @param pattern the Kafka {@code pattern} to read {@link org.axonframework.eventhandling.EventMessage}s from
      * @return the current Builder instance, for fluent interfacing
      */
     public T topicPattern(Pattern pattern) {
+        assertNonNull(pattern, "The pattern may not be null");
         this.subscriber = new PatternKafkaSubscriber(pattern);
         return self();
     }

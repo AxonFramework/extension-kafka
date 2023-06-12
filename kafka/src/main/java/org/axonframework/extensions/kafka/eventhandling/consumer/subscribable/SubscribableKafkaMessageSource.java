@@ -109,7 +109,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
     /**
      * Instantiate a Builder to be able to create a {@link SubscribableKafkaMessageSource}.
      * <p>
-     * The {@code topics} list is defaulted to single entry of {@code "Axon.Events"} and the {@link
+     * The topics subscribed to is defaulted to {@code "Axon.Events"} and the {@link
      * KafkaMessageConverter} to a {@link DefaultKafkaMessageConverter} using the {@link XStreamSerializer}. The {@code
      * groupId}, {@link ConsumerFactory} and {@link Fetcher} are <b>hard requirements</b> and as such should be
      * provided.
@@ -215,7 +215,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
     /**
      * Builder class to instantiate an {@link SubscribableKafkaMessageSource}.
      * <p>
-     * The {@code topics} list is defaulted to single entry of {@code "Axon.Events"} and the {@link
+     * The topics subscribed to is defaulted to {@code "Axon.Events"} and the {@link
      * KafkaMessageConverter} to a {@link DefaultKafkaMessageConverter} using the {@link XStreamSerializer}. The {@code
      * groupId}, {@link ConsumerFactory} and {@link Fetcher} are <b>hard requirements</b> and as such should be
      * provided.

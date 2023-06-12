@@ -94,7 +94,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
     /**
      * Instantiate a Builder to be able to create a {@link StreamableKafkaMessageSource}.
      * <p>
-     * The {@code topics} list is defaulted to single entry of {@code "Axon.Events"}, {@code groupIdPrefix} defaults to
+     * The topics subscribed to is defaulted to {@code "Axon.Events"}, {@code groupIdPrefix} defaults to
      * {@code "Axon.Streamable.Consumer-"} and it's {@code groupIdSuffixFactory} to a {@link UUID#randomUUID()}
      * operation, the {@link KafkaMessageConverter} to a {@link DefaultKafkaMessageConverter} using the
      * {@link XStreamSerializer} and the {@code bufferFactory} the {@link SortedKafkaMessageBuffer} constructor. The
@@ -146,7 +146,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
     /**
      * Builder class to instantiate a {@link StreamableKafkaMessageSource}.
      * <p>
-     * The {@code topics} list is defaulted to single entry of {@code "Axon.Events"}, {@code groupIdPrefix} defaults to
+     * The topics subscribed to is defaulted to {@code "Axon.Events"}, {@code groupIdPrefix} defaults to
      * {@code "Axon.Streamable.Consumer-"} and it's {@code groupIdSuffixFactory} to a {@link UUID#randomUUID()}
      * operation, the {@link KafkaMessageConverter} to a {@link DefaultKafkaMessageConverter} using the
      * {@link XStreamSerializer} and the {@code bufferFactory} the {@link SortedKafkaMessageBuffer} constructor. The
