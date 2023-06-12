@@ -125,7 +125,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
 
         logger.debug("Will start consuming from topics [{}]", subscriber);
         Consumer<K, V> consumer = consumerFactory.createConsumer(null);
-        ConsumerSeekUtil.seekToCurrentPositions(consumer, recordConverter::currentToken, topics);
+        ConsumerSeekUtil.seekToCurrentPositions(consumer, recordConverter::currentToken, subscriber);
 
         Buffer<KafkaEventMessage> buffer = bufferFactory.get();
         Registration closeHandler = fetcher.poll(consumer, recordConverter, buffer::putAll, buffer::setException);
@@ -136,14 +136,14 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
     public TrackingToken createHeadToken() {
         return KafkaTrackingToken.newInstance(ConsumerPositionsUtil.getHeadPositions(
                 consumerFactory.createConsumer(null),
-                topics));
+                subscriber));
     }
 
     @Override
     public TrackingToken createTokenAt(Instant dateTime) {
         return KafkaTrackingToken.newInstance(ConsumerPositionsUtil.getPositionsBasedOnTime(
                 consumerFactory.createConsumer(null),
-                topics,
+                subscriber,
                 dateTime));
     }
 

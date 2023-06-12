@@ -21,7 +21,7 @@ import org.apache.kafka.clients.consumer.Consumer;
  * Using the {@link Consumer#subscribe(Pattern)} method.
  *
  * @author Ben Kornmeier
- * @since 4.8
+ * @since 4.8.0
  */
 public class PatternKafkaSubscriber implements KafkaSubscriber {
     private Pattern pattern = Pattern.compile("Axon.Events");
@@ -33,5 +33,10 @@ public class PatternKafkaSubscriber implements KafkaSubscriber {
     @Override
     public void subscribeTopics(Consumer consumer) {
         consumer.subscribe(pattern);
+    }
+
+    @Override
+    public boolean subscribesToTopicName(String topic) {
+        return pattern.matcher(topic).matches();
     }
 }

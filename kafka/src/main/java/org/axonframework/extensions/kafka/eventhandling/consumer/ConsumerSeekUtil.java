@@ -50,11 +50,11 @@ public class ConsumerSeekUtil {
      *
      * @param consumer      a Kafka consumer instance
      * @param tokenSupplier a function that returns the current {@link KafkaTrackingToken}
-     * @param topics        a list of topics that will be assigned to the consumer
+     * @param subscriber    a {@link KafkaSubscriber} that contains the topics to subscribe to.
      */
     public static void seekToCurrentPositions(Consumer<?, ?> consumer, Supplier<KafkaTrackingToken> tokenSupplier,
-                                              List<String> topics) {
-        List<TopicPartition> all = topicPartitions(consumer, topics);
+                                              KafkaSubscriber subscriber) {
+        List<TopicPartition> all = topicPartitions(consumer, subscriber);
         consumer.assign(all);
         KafkaTrackingToken currentToken = tokenSupplier.get();
         Map<TopicPartition, Long> tokenPartitionPositions = currentToken.getPositions();
@@ -72,14 +72,14 @@ public class ConsumerSeekUtil {
     /**
      * Get all the {@link TopicPartition topicPartitions} belonging to the given {@code topics}.
      *
-     * @param consumer a Kafka {@link Consumer}
-     * @param topics   a list with topics
+     * @param consumer      a Kafka {@link Consumer}
+     * @param subscriber    a {@link KafkaSubscriber} that contains the topics to subscribe to.
      * @return a list of all the {@link TopicPartition topicPartitions}
      */
-    public static List<TopicPartition> topicPartitions(Consumer<?, ?> consumer, List<String> topics) {
+    public static List<TopicPartition> topicPartitions(Consumer<?, ?> consumer, KafkaSubscriber subscriber) {
         return consumer.listTopics().entrySet()
                        .stream()
-                       .filter(e -> topics.contains(e.getKey()))
+                       .filter(e -> subscriber.subscribesToTopicName(e.getKey()))
                        .flatMap(e -> e.getValue().stream())
                        .map(partitionInfo -> new TopicPartition(partitionInfo.topic(),
                                                                 partitionInfo.partition()))

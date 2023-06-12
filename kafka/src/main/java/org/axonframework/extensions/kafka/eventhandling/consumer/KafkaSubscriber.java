@@ -23,8 +23,9 @@ import org.apache.kafka.clients.consumer.Consumer;
  * to topic(s).
  *
  * @author Ben Kornmeier
- * @since 4.8
+ * @since 4.8.0
  */
 public interface KafkaSubscriber {
     void subscribeTopics(Consumer consumer);
+    boolean subscribesToTopicName(String topic);
 }

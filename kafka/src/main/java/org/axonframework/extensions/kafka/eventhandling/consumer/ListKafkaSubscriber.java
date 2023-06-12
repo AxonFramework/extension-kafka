@@ -24,7 +24,7 @@ import java.util.Collection;
  * Using the {@link Consumer#subscribe(Collection)} method. This was standard behavior prior to 4.8.
  *
  * @author Ben Kornmeier
- * @since 4.8
+ * @since 4.8.0
  */
 public class ListKafkaSubscriber implements KafkaSubscriber {
     private final Collection<String> topics;
@@ -40,5 +40,10 @@ public class ListKafkaSubscriber implements KafkaSubscriber {
     @Override
     public void subscribeTopics(Consumer consumer) {
         consumer.subscribe(topics);
+    }
+
+    @Override
+    public boolean subscribesToTopicName(String topic) {
+        return topics.contains(topic);
     }
 }

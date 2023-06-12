@@ -19,6 +19,7 @@ package org.axonframework.extensions.kafka.eventhandling.consumer.streamable;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.OffsetAndTimestamp;
 import org.apache.kafka.common.TopicPartition;
+import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaSubscriber;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -43,10 +44,10 @@ class ConsumerPositionsUtil {
 
     static Map<TopicPartition, Long> getPositionsBasedOnTime(
             @Nonnull Consumer<?, ?> consumer,
-            @Nonnull List<String> topics,
+            @Nonnull KafkaSubscriber subscriber,
             @Nonnull Instant rawDefaultAt
     ) {
-        List<TopicPartition> all = topicPartitions(consumer, topics);
+        List<TopicPartition> all = topicPartitions(consumer, subscriber);
         Map<TopicPartition, Long> positions = new HashMap<>();
         OffsetSupplier offsetSupplier = new OffsetSupplier(consumer, rawDefaultAt, all);
         all.forEach(assignedPartition -> {
@@ -61,9 +62,9 @@ class ConsumerPositionsUtil {
 
     static Map<TopicPartition, Long> getHeadPositions(
             @Nonnull Consumer<?, ?> consumer,
-            @Nonnull List<String> topics
+            @Nonnull KafkaSubscriber subscriber
     ) {
-        List<TopicPartition> all = topicPartitions(consumer, topics);
+        List<TopicPartition> all = topicPartitions(consumer, subscriber);
         Map<TopicPartition, Long> positions = new HashMap<>();
         Map<TopicPartition, Long> endOffsets = consumer.endOffsets(all);
         endOffsets.forEach((assignedPartition, offset) -> {

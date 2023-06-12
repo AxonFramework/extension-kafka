@@ -21,6 +21,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
+import org.axonframework.extensions.kafka.eventhandling.consumer.ListKafkaSubscriber;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaContainerTest;
@@ -95,9 +96,9 @@ class ConsumerPositionsUtilIntegrationTest extends KafkaContainerTest {
         String topic = "testPositionsUtil";
 
         Consumer<?, ?> testConsumer = consumerFactory.createConsumer(null);
-        List<String> topics = Collections.singletonList(topic);
-        assertTrue(ConsumerPositionsUtil.getHeadPositions(testConsumer, topics).isEmpty());
-        assertTrue(ConsumerPositionsUtil.getPositionsBasedOnTime(testConsumer, topics, Instant.now()).isEmpty());
+        ListKafkaSubscriber subscriber = new ListKafkaSubscriber(Collections.singletonList(topic));
+        assertTrue(ConsumerPositionsUtil.getHeadPositions(testConsumer, subscriber).isEmpty());
+        assertTrue(ConsumerPositionsUtil.getPositionsBasedOnTime(testConsumer, subscriber, Instant.now()).isEmpty());
 
         int recordsPerPartitions = 5;
         Producer<String, String> producer = producerFactory.createProducer();
@@ -106,13 +107,13 @@ class ConsumerPositionsUtilIntegrationTest extends KafkaContainerTest {
         Instant now = Instant.now();
         publishRecordsOnPartitions(producer, topic, recordsPerPartitions, 5);
 
-        Map<TopicPartition, Long> headPositions = ConsumerPositionsUtil.getHeadPositions(testConsumer, topics);
+        Map<TopicPartition, Long> headPositions = ConsumerPositionsUtil.getHeadPositions(testConsumer, subscriber);
         assertFalse(headPositions.isEmpty());
         assertEquals(5, headPositions.keySet().size());
         headPositions.values().forEach(p -> assertEquals(9, p));
 
         Map<TopicPartition, Long> positionsBasedOnTime =
-                ConsumerPositionsUtil.getPositionsBasedOnTime(testConsumer, topics, now);
+                ConsumerPositionsUtil.getPositionsBasedOnTime(testConsumer, subscriber, now);
         assertFalse(positionsBasedOnTime.isEmpty());
         assertEquals(5, positionsBasedOnTime.keySet().size());
         positionsBasedOnTime.values().forEach(p -> assertEquals(4, p));
