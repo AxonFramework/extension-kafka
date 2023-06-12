@@ -123,7 +123,7 @@ class ConsumerSeekUtilIntegrationTest extends KafkaContainerTest {
         KafkaTrackingToken testToken = KafkaTrackingToken.newInstance(emptyMap());
 
         Consumer<?, ?> testConsumer = consumerFactory.createConsumer(null);
-        ConsumerSeekUtil.seekToCurrentPositions(testConsumer, () -> testToken, Collections.singletonList(topic));
+        ConsumerSeekUtil.seekToCurrentPositions(testConsumer, () -> testToken, new ListKafkaSubscriber(Collections.singletonList(topic)));
 
         getRecords(testConsumer).forEach(record -> {
             assertEquals(0, record.offset());
@@ -155,7 +155,7 @@ class ConsumerSeekUtilIntegrationTest extends KafkaContainerTest {
         int numberOfRecordsToConsume = 26;
 
         Consumer<?, ?> testConsumer = consumerFactory.createConsumer(null);
-        ConsumerSeekUtil.seekToCurrentPositions(testConsumer, () -> testToken, Collections.singletonList(topic));
+        ConsumerSeekUtil.seekToCurrentPositions(testConsumer, () -> testToken, new ListKafkaSubscriber(Collections.singletonList(topic)));
 
         List<ConsumerRecord<byte[], byte[]>> resultRecords = pollUntilAtLeastNumRecords(
                 (KafkaConsumer<byte[], byte[]>) testConsumer, numberOfRecordsToConsume, 2500
@@ -190,7 +190,7 @@ class ConsumerSeekUtilIntegrationTest extends KafkaContainerTest {
         int numberOfRecordsToConsume = 26;
 
         Consumer<?, ?> testConsumer = consumerFactory.createConsumer(null);
-        ConsumerSeekUtil.seekToCurrentPositions(testConsumer, () -> testToken, Collections.singletonList(topic));
+        ConsumerSeekUtil.seekToCurrentPositions(testConsumer, () -> testToken, new ListKafkaSubscriber(Collections.singletonList(topic)));
 
         //noinspection unchecked
         List<ConsumerRecord<byte[], byte[]>> resultRecords = pollUntilAtLeastNumRecords(

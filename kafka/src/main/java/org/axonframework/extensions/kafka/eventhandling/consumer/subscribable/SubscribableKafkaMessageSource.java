@@ -157,7 +157,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
     }
 
     /**
-     * Start polling the {@code topics} configured through {@link Builder#topics(List)}/{@link Builder#addTopic(String)}
+     * Start polling the topics configured through {@link Builder#topics(List)} or {@link Builder#addTopic(String)}
      * with a {@link Consumer} build by the {@link ConsumerFactory}.
      * <p>
      * This operation should be called <b>only</b> if all desired Event Processors have been subscribed (through the

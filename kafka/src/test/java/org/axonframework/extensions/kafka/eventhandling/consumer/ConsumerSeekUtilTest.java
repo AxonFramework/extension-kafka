@@ -63,7 +63,7 @@ class ConsumerSeekUtilTest {
         testAssignedPartitions.add(testPartitionTwo);
         doReturn(listTopics(testAssignedPartitions)).when(consumer).listTopics();
 
-        ConsumerSeekUtil.seekToCurrentPositions(consumer, () -> testToken, Collections.singletonList(TEST_TOPIC));
+        ConsumerSeekUtil.seekToCurrentPositions(consumer, () -> testToken, new ListKafkaSubscriber(Collections.singletonList(TEST_TOPIC)));
 
         // Offset is incremented by one, to proceed with the following record instead of the last one
         verify(consumer).seek(testPartitionZero, testOffsetForPartitionZero + 1);
@@ -84,7 +84,7 @@ class ConsumerSeekUtilTest {
         testAssignedPartitions.add(testPartitionTwo);
         doReturn(listTopics(testAssignedPartitions)).when(consumer).listTopics();
 
-        ConsumerSeekUtil.seekToCurrentPositions(consumer, () -> testToken, Collections.singletonList(TEST_TOPIC));
+        ConsumerSeekUtil.seekToCurrentPositions(consumer, () -> testToken, new ListKafkaSubscriber(Collections.singletonList(TEST_TOPIC)));
 
         // Offset is incremented by one, to proceed with the following record instead of the last one
         verify(consumer).seek(testPartitionZero, 0);
