@@ -314,7 +314,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
          */
         public Builder<K, V> addTopic(String topic) {
             assertThat(topic, name -> Objects.nonNull(name) && !"".equals(name), "The topic may not be null or empty");
-            if(isListBasedSubscription()) {
+            if (isListBasedSubscription()) {
                 ((ListSubscriberBuilder) subscriber).addTopic(topic);
             } else {
                 throw new IllegalStateException("Cannot add topic to a pattern subscriber");
