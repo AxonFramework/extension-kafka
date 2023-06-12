@@ -30,10 +30,8 @@ import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerSeekUtil;
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
-import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaBuilderSubscriber;
+import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaSubscriberBuilder;
 import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaSubscriber;
-import org.axonframework.extensions.kafka.eventhandling.consumer.ListKafkaSubscriber;
-import org.axonframework.extensions.kafka.eventhandling.consumer.subscribable.SubscribableKafkaMessageSource;
 import org.axonframework.messaging.StreamableMessageSource;
 import org.axonframework.serialization.Serializer;
 import org.axonframework.serialization.xml.CompactDriver;
@@ -43,8 +41,6 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.invoke.MethodHandles;
 import java.time.Instant;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -159,7 +155,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
      * @param <K> the key of the {@link ConsumerRecords} to consume, fetch and convert
      * @param <V> the value type of {@link ConsumerRecords} to consume, fetch and convert
      */
-    public static class Builder<K, V> extends KafkaBuilderSubscriber<Builder<K, V>> {
+    public static class Builder<K, V> extends KafkaSubscriberBuilder<Builder<K, V>> {
 
         private ConsumerFactory<K, V> consumerFactory;
         private Fetcher<K, V, KafkaEventMessage> fetcher;

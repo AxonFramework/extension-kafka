@@ -32,7 +32,7 @@ import static org.axonframework.common.BuilderUtils.assertThat;
  * @author Ben Kornmeier
  * @since 4.8
  */
-public abstract class KafkaBuilderSubscriber<T extends KafkaBuilderSubscriber<T>> {
+public abstract class KafkaSubscriberBuilder<T extends KafkaSubscriberBuilder<T>> {
     protected KafkaSubscriber subscriber = new ListKafkaSubscriber(Collections.singletonList("Axon.Events"));
 
     /**

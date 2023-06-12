@@ -27,19 +27,16 @@ import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
-import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaBuilderSubscriber;
+import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaSubscriberBuilder;
 import org.axonframework.extensions.kafka.eventhandling.consumer.RuntimeErrorHandler;
 import org.axonframework.messaging.SubscribableMessageSource;
 import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaSubscriber;
-import org.axonframework.extensions.kafka.eventhandling.consumer.ListKafkaSubscriber;
-import org.axonframework.extensions.kafka.eventhandling.consumer.PatternKafkaSubscriber;
 import org.axonframework.serialization.Serializer;
 import org.axonframework.serialization.xml.CompactDriver;
 import org.axonframework.serialization.xml.XStreamSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -51,7 +48,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-import java.util.regex.Pattern;
 
 import static org.axonframework.common.BuilderUtils.assertNonNull;
 import static org.axonframework.common.BuilderUtils.assertThat;
@@ -227,7 +223,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
      * @param <K> the key of the {@link ConsumerRecords} to consume, fetch and convert
      * @param <V> the value type of {@link ConsumerRecords} to consume, fetch and convert
      */
-    public static class Builder<K, V> extends KafkaBuilderSubscriber<Builder<K, V>> {
+    public static class Builder<K, V> extends KafkaSubscriberBuilder<Builder<K, V>> {
 
         private String groupId;
         private ConsumerFactory<K, V> consumerFactory;
