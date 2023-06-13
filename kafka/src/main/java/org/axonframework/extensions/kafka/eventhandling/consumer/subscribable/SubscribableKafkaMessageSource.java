@@ -30,7 +30,7 @@ import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
 import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaSubscriberBuilder;
 import org.axonframework.extensions.kafka.eventhandling.consumer.RuntimeErrorHandler;
 import org.axonframework.messaging.SubscribableMessageSource;
-import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaSubscriber;
+import org.axonframework.extensions.kafka.eventhandling.consumer.TopicSubscriber;
 import org.axonframework.serialization.Serializer;
 import org.axonframework.serialization.xml.CompactDriver;
 import org.axonframework.serialization.xml.XStreamSerializer;
@@ -74,7 +74,7 @@ import static org.axonframework.common.BuilderUtils.assertThat;
 public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessageSource<EventMessage<?>> {
 
     private static final Logger logger = LoggerFactory.getLogger(SubscribableKafkaMessageSource.class);
-    private final KafkaSubscriber subscriber;
+    private final TopicSubscriber subscriber;
     private final String groupId;
     private final ConsumerFactory<K, V> consumerFactory;
     private final Fetcher<K, V, EventMessage<?>> fetcher;

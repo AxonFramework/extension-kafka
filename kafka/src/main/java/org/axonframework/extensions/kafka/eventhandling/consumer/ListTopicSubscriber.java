@@ -16,32 +16,48 @@
 
 package org.axonframework.extensions.kafka.eventhandling.consumer;
 import org.apache.kafka.clients.consumer.Consumer;
+import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.StreamableKafkaMessageSource;
 
 import java.util.Collection;
 
 /**
- * Implementation of {@link KafkaSubscriber} that subscribes a {@link Consumer} to a list of topics.
+ * Implementation of {@link TopicSubscriber} that subscribes a {@link Consumer} to a list of topics.
  * Using the {@link Consumer#subscribe(Collection)} method. This was standard behavior prior to 4.8.
  *
  * @author Ben Kornmeier
  * @since 4.8.0
  */
-public class ListKafkaSubscriber implements KafkaSubscriber {
+public class ListTopicSubscriber implements TopicSubscriber {
     private final Collection<String> topics;
-
-    public ListKafkaSubscriber(Collection<String> topics) {
+    /**
+     * Instantiate a {@link ListTopicSubscriber} that is backed by a list of specific topics.
+     * @param topics
+     */
+    public ListTopicSubscriber(Collection<String> topics) {
         this.topics = topics;
     }
-
+    /**
+     * Adds a topic to the list of topics.
+     * @param topic
+     */
     public void addTopic(String topic) {
         this.topics.add(topic);
     }
 
+    /**
+     * Subscribes the given {@link Consumer} to the topic(s) using the {@link Consumer#subscribe(Collection)} method.
+     * @param consumer
+     */
     @Override
     public void subscribeTopics(Consumer consumer) {
         consumer.subscribe(topics);
     }
 
+    /**
+     * Checks if this {@link TopicSubscriber} is responsible for the given topic. Using the {@link Collection#contains(Object)} method.
+     * @param topic
+     * @return true if the topic is contained in the list of topics
+     */
     @Override
     public boolean subscribesToTopicName(String topic) {
         return topics.contains(topic);

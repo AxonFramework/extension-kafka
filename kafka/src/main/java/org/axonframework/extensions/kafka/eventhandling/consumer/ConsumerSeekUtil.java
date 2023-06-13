@@ -53,7 +53,7 @@ public class ConsumerSeekUtil {
      */
     public static void seekToCurrentPositions(Consumer<?, ?> consumer, Supplier<KafkaTrackingToken> tokenSupplier,
                                               List<String> topics) {
-        seekToCurrentPositions(consumer, tokenSupplier, new ListKafkaSubscriber(topics));
+        seekToCurrentPositions(consumer, tokenSupplier, new ListTopicSubscriber(topics));
     }
 
     /**
@@ -64,10 +64,10 @@ public class ConsumerSeekUtil {
      *
      * @param consumer      a Kafka consumer instance
      * @param tokenSupplier a function that returns the current {@link KafkaTrackingToken}
-     * @param subscriber    a {@link KafkaSubscriber} that contains the topics to subscribe to.
+     * @param subscriber    a {@link TopicSubscriber} that contains the topics to subscribe to.
      */
     public static void seekToCurrentPositions(Consumer<?, ?> consumer, Supplier<KafkaTrackingToken> tokenSupplier,
-                                              KafkaSubscriber subscriber) {
+                                              TopicSubscriber subscriber) {
         List<TopicPartition> all = topicPartitions(consumer, subscriber);
         consumer.assign(all);
         KafkaTrackingToken currentToken = tokenSupplier.get();
@@ -91,17 +91,17 @@ public class ConsumerSeekUtil {
      * @return a list of all the {@link TopicPartition topicPartitions}
      */
     public static List<TopicPartition> topicPartitions(Consumer<?, ?> consumer, List<String> topics) {
-        return topicPartitions(consumer, new ListKafkaSubscriber(topics));
+        return topicPartitions(consumer, new ListTopicSubscriber(topics));
     }
 
     /**
      * Get all the {@link TopicPartition topicPartitions} belonging to the given {@code subscriber}.
      *
      * @param consumer      a Kafka {@link Consumer}
-     * @param subscriber    a {@link KafkaSubscriber} that contains the topics to subscribe to.
+     * @param subscriber    a {@link TopicSubscriber} that contains the topics to subscribe to.
      * @return a list of all the {@link TopicPartition topicPartitions}
      */
-    public static List<TopicPartition> topicPartitions(Consumer<?, ?> consumer, KafkaSubscriber subscriber) {
+    public static List<TopicPartition> topicPartitions(Consumer<?, ?> consumer, TopicSubscriber subscriber) {
         return consumer.listTopics().entrySet()
                        .stream()
                        .filter(e -> subscriber.subscribesToTopicName(e.getKey()))

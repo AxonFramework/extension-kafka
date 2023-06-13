@@ -31,7 +31,7 @@ import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerSeekUti
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
 import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaSubscriberBuilder;
-import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaSubscriber;
+import org.axonframework.extensions.kafka.eventhandling.consumer.TopicSubscriber;
 import org.axonframework.messaging.StreamableMessageSource;
 import org.axonframework.serialization.Serializer;
 import org.axonframework.serialization.xml.CompactDriver;
@@ -68,7 +68,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
 
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-    private final KafkaSubscriber subscriber;
+    private final TopicSubscriber subscriber;
     private final ConsumerFactory<K, V> consumerFactory;
     private final Fetcher<K, V, KafkaEventMessage> fetcher;
     private final KafkaMessageConverter<K, V> messageConverter;

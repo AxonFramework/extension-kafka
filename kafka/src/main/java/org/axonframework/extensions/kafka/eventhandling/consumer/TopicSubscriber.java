@@ -25,7 +25,17 @@ import org.apache.kafka.clients.consumer.Consumer;
  * @author Ben Kornmeier
  * @since 4.8.0
  */
-public interface KafkaSubscriber {
+public interface TopicSubscriber {
+    /**
+     * Subscribes the given {@link Consumer} to the topic(s) this {@link TopicSubscriber} is responsible for.
+     * @param consumer
+     */
     void subscribeTopics(Consumer consumer);
+
+    /**
+     * Checks if this {@link TopicSubscriber} is responsible for the given topic.
+     * @param topic
+     * @return true if this {@link TopicSubscriber} is responsible for the given topic, false otherwise.
+     */
     boolean subscribesToTopicName(String topic);
 }

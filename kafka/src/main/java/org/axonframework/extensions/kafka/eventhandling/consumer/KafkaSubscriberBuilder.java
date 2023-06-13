@@ -28,13 +28,13 @@ import static org.axonframework.common.BuilderUtils.assertThat;
 
 /**
  * Used by {@link org.axonframework.extensions.kafka.eventhandling.consumer.streamable.StreamableKafkaMessageSource.Builder} and {@link org.axonframework.extensions.kafka.eventhandling.consumer.subscribable.SubscribableKafkaMessageSource.Builder}
- * to provide a {@link KafkaSubscriber} to subscribe a {@link Consumer} to topic(s).
+ * to provide a {@link TopicSubscriber} to subscribe a {@link Consumer} to topic(s).
  *
  * @author Ben Kornmeier
  * @since 4.8
  */
 public abstract class KafkaSubscriberBuilder<T extends KafkaSubscriberBuilder<T>> {
-    protected KafkaSubscriber subscriber = new ListKafkaSubscriber(Collections.singletonList("Axon.Events"));
+    protected TopicSubscriber subscriber = new ListTopicSubscriber(Collections.singletonList("Axon.Events"));
 
     /**
      * Allows methods defined in this class to return the concrete class for fluent api usage.
@@ -42,7 +42,7 @@ public abstract class KafkaSubscriberBuilder<T extends KafkaSubscriberBuilder<T>
      */
     protected abstract T self();
 
-    public KafkaSubscriber getSubscriber() {
+    public TopicSubscriber getSubscriber() {
         return subscriber;
     }
 
@@ -56,7 +56,7 @@ public abstract class KafkaSubscriberBuilder<T extends KafkaSubscriberBuilder<T>
     public T topics(List<String> topics) {
         assertThat(topics, topicList -> Objects.nonNull(topicList) && !topicList.isEmpty(),
                 "The topics may not be null or empty");
-        this.subscriber = new ListKafkaSubscriber(topics);
+        this.subscriber = new ListTopicSubscriber(topics);
         return self();
     }
     /**
@@ -68,7 +68,7 @@ public abstract class KafkaSubscriberBuilder<T extends KafkaSubscriberBuilder<T>
     public T addTopic(String topic) {
         assertThat(topic, name -> Objects.nonNull(name) && !"".equals(name), "The topic may not be null or empty");
         if (isListBasedSubscription()) {
-            ((ListKafkaSubscriber) subscriber).addTopic(topic);
+            ((ListTopicSubscriber) subscriber).addTopic(topic);
         } else {
             throw new IllegalStateException("Cannot add topic to a pattern subscriber");
         }
@@ -82,7 +82,7 @@ public abstract class KafkaSubscriberBuilder<T extends KafkaSubscriberBuilder<T>
      */
     public T topicPattern(Pattern pattern) {
         assertNonNull(pattern, "The pattern may not be null");
-        this.subscriber = new PatternKafkaSubscriber(pattern);
+        this.subscriber = new PatternTopicSubscriber(pattern);
         return self();
     }
 
@@ -91,7 +91,7 @@ public abstract class KafkaSubscriberBuilder<T extends KafkaSubscriberBuilder<T>
      * @return if the current subscription is based on a list of topics or a pattern
      */
     private boolean isListBasedSubscription() {
-        return subscriber instanceof ListKafkaSubscriber;
+        return subscriber instanceof ListTopicSubscriber;
     }
 }
 
