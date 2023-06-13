@@ -31,7 +31,7 @@ import static org.axonframework.common.BuilderUtils.assertThat;
  * to provide a {@link TopicSubscriber} to subscribe a {@link Consumer} to topic(s).
  *
  * @author Ben Kornmeier
- * @since 4.8
+ * @since 4.8.0
  */
 public abstract class KafkaSubscriberBuilder<T extends KafkaSubscriberBuilder<T>> {
     protected TopicSubscriber subscriber = new ListTopicSubscriber(Collections.singletonList("Axon.Events"));
