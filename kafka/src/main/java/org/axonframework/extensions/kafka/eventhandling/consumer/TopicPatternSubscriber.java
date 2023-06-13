@@ -58,4 +58,12 @@ public class TopicPatternSubscriber implements TopicSubscriber {
     public boolean subscribesToTopicName(String topic) {
         return pattern.matcher(topic).matches();
     }
+
+    /**
+     * Returns a description of the pattern {@link TopicSubscriber} is responsible for.
+     * @return
+     */
+    public String describe() {
+        return "pattern=[" + pattern + "]";
+    }
 }

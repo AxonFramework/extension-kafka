@@ -40,4 +40,10 @@ public interface TopicSubscriber {
      * @return true if this {@link TopicSubscriber} is responsible for the given topic, false otherwise.
      */
     boolean subscribesToTopicName(String topic);
+
+    /**
+     * Returns a description of the topic(s) this {@link TopicSubscriber} is responsible for.
+     * @return
+     */
+    String describe();
 }

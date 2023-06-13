@@ -119,7 +119,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
         KafkaTrackingToken token = KafkaTrackingToken.from(trackingToken);
         TrackingRecordConverter<K, V> recordConverter = new TrackingRecordConverter<>(messageConverter, token);
 
-        logger.debug("Will start consuming from topics [{}]", subscriber);
+        logger.debug("Will start consuming from topics: ", subscriber.describe());
         Consumer<K, V> consumer = consumerFactory.createConsumer(null);
         ConsumerSeekUtil.seekToCurrentPositions(consumer, recordConverter::currentToken, subscriber);
 

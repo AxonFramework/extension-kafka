@@ -69,4 +69,12 @@ public class TopicListSubscriber implements TopicSubscriber {
     public boolean subscribesToTopicName(String topic) {
         return topics.contains(topic);
     }
+
+    /**
+     * Returns a description of the topic(s) this {@link TopicSubscriber} is responsible for.
+     * @return
+     */
+    public String describe() {
+        return "topics=[" + String.join(", ", topics) + "]";
+    }
 }
