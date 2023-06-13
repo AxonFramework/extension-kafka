@@ -209,9 +209,6 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
         fetcherRegistrations.clear();
         inProgress.set(false);
     }
-
-
-
     /**
      * Builder class to instantiate an {@link SubscribableKafkaMessageSource}.
      * <p>
