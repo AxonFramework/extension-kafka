@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 package org.axonframework.extensions.kafka.eventhandling.consumer;
-import java.util.regex.Pattern;
+
 import org.apache.kafka.clients.consumer.Consumer;
+
+import java.util.regex.Pattern;
+
 /**
  * Implementation of {@link TopicSubscriber} that subscribes a {@link Consumer} a pattern of topics.
  * Using the {@link Consumer#subscribe(Pattern)} method.
@@ -24,9 +27,11 @@ import org.apache.kafka.clients.consumer.Consumer;
  * @since 4.8.0
  */
 public class PatternTopicSubscriber implements TopicSubscriber {
-    private Pattern pattern = Pattern.compile("Axon.Events");
+    private final Pattern pattern;
+
     /**
      * Instantiate a {@link PatternTopicSubscriber} that uses {@link Pattern} to subscribe to topics as well as check if it is responsible for a given topic.
+     *
      * @param pattern
      */
     public PatternTopicSubscriber(Pattern pattern) {
@@ -35,6 +40,7 @@ public class PatternTopicSubscriber implements TopicSubscriber {
 
     /**
      * Subscribes the given {@link Consumer} to the topic(s) using the {@link Consumer#subscribe(Pattern)} method.
+     *
      * @param consumer
      */
     @Override
@@ -44,6 +50,7 @@ public class PatternTopicSubscriber implements TopicSubscriber {
 
     /**
      * Checks if this {@link TopicSubscriber} is responsible for the given topic. Using the {@link Pattern#matcher(CharSequence)} method.
+     *
      * @param topic
      * @return true if the topic matches the pattern
      */

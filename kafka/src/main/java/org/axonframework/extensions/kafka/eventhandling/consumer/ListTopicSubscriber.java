@@ -15,8 +15,8 @@
  */
 
 package org.axonframework.extensions.kafka.eventhandling.consumer;
+
 import org.apache.kafka.clients.consumer.Consumer;
-import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.StreamableKafkaMessageSource;
 
 import java.util.Collection;
 
@@ -29,15 +29,19 @@ import java.util.Collection;
  */
 public class ListTopicSubscriber implements TopicSubscriber {
     private final Collection<String> topics;
+
     /**
      * Instantiate a {@link ListTopicSubscriber} that is backed by a list of specific topics.
+     *
      * @param topics
      */
     public ListTopicSubscriber(Collection<String> topics) {
         this.topics = topics;
     }
+
     /**
      * Adds a topic to the list of topics.
+     *
      * @param topic
      */
     public void addTopic(String topic) {
@@ -46,6 +50,7 @@ public class ListTopicSubscriber implements TopicSubscriber {
 
     /**
      * Subscribes the given {@link Consumer} to the topic(s) using the {@link Consumer#subscribe(Collection)} method.
+     *
      * @param consumer
      */
     @Override
@@ -55,6 +60,7 @@ public class ListTopicSubscriber implements TopicSubscriber {
 
     /**
      * Checks if this {@link TopicSubscriber} is responsible for the given topic. Using the {@link Collection#contains(Object)} method.
+     *
      * @param topic
      * @return true if the topic is contained in the list of topics
      */
