@@ -32,7 +32,7 @@ import static org.axonframework.common.BuilderUtils.assertThat;
  *
  * @param <T> The actual type of the builder. Mainly used to return the correct type in fluent interfaces.
  * @author Ben Kornmeier
- * @since 4.8
+ * @since 4.8.0
  */
 public abstract class TopicSubscriberBuilder<T extends TopicSubscriberBuilder<T>> {
     protected TopicSubscriber subscriber = new TopicListSubscriber(Collections.singletonList("Axon.Events"));
