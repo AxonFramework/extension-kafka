@@ -41,6 +41,20 @@ public class ConsumerSeekUtil {
     private ConsumerSeekUtil() {
         //prevent instantiation
     }
+    /**
+     * Assigns the correct {@link TopicPartition partitions} to the consumer, and seeks to the correct offset, using the
+     * {@link KafkaTrackingToken}, defaulting to the head of the partition. So for each {@link TopicPartition partition}
+     * that belongs to the {@code topics}, either it will start reading from the next record of the partition, if
+     * included in the token, or else from the start.
+     *
+     * @param consumer      a Kafka consumer instance
+     * @param tokenSupplier a function that returns the current {@link KafkaTrackingToken}
+     * @param topics        a list of topics that will be assigned to the consumer
+     */
+    public static void seekToCurrentPositions(Consumer<?, ?> consumer, Supplier<KafkaTrackingToken> tokenSupplier,
+                                              List<String> topics) {
+        seekToCurrentPositions(consumer, tokenSupplier, new ListKafkaSubscriber(topics));
+    }
 
     /**
      * Assigns the correct {@link TopicPartition partitions} to the consumer, and seeks to the correct offset, using the
@@ -71,6 +85,17 @@ public class ConsumerSeekUtil {
 
     /**
      * Get all the {@link TopicPartition topicPartitions} belonging to the given {@code topics}.
+     *
+     * @param consumer      a Kafka {@link Consumer}
+     * @param topics        a list with topics
+     * @return a list of all the {@link TopicPartition topicPartitions}
+     */
+    public static List<TopicPartition> topicPartitions(Consumer<?, ?> consumer, List<String> topics) {
+        return topicPartitions(consumer, new ListKafkaSubscriber(topics));
+    }
+
+    /**
+     * Get all the {@link TopicPartition topicPartitions} belonging to the given {@code subscriber}.
      *
      * @param consumer      a Kafka {@link Consumer}
      * @param subscriber    a {@link KafkaSubscriber} that contains the topics to subscribe to.
