@@ -30,7 +30,7 @@ import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerSeekUtil;
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
-import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaSubscriberBuilder;
+import org.axonframework.extensions.kafka.eventhandling.consumer.TopicSubscriberBuilder;
 import org.axonframework.extensions.kafka.eventhandling.consumer.TopicSubscriber;
 import org.axonframework.messaging.StreamableMessageSource;
 import org.axonframework.serialization.Serializer;
@@ -155,7 +155,7 @@ public class StreamableKafkaMessageSource<K, V> implements StreamableMessageSour
      * @param <K> the key of the {@link ConsumerRecords} to consume, fetch and convert
      * @param <V> the value type of {@link ConsumerRecords} to consume, fetch and convert
      */
-    public static class Builder<K, V> extends KafkaSubscriberBuilder<Builder<K, V>> {
+    public static class Builder<K, V> extends TopicSubscriberBuilder<Builder<K, V>> {
 
         private ConsumerFactory<K, V> consumerFactory;
         private Fetcher<K, V, KafkaEventMessage> fetcher;

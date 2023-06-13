@@ -30,18 +30,25 @@ import static org.axonframework.common.BuilderUtils.assertThat;
  * Used by {@link org.axonframework.extensions.kafka.eventhandling.consumer.streamable.StreamableKafkaMessageSource.Builder} and {@link org.axonframework.extensions.kafka.eventhandling.consumer.subscribable.SubscribableKafkaMessageSource.Builder}
  * to provide a {@link TopicSubscriber} to subscribe a {@link Consumer} to topic(s).
  *
+ * @param <T> The actual type of the builder. Mainly used to return the correct type in fluent interfaces.
  * @author Ben Kornmeier
  * @since 4.8
  */
-public abstract class KafkaSubscriberBuilder<T extends KafkaSubscriberBuilder<T>> {
-    protected TopicSubscriber subscriber = new ListTopicSubscriber(Collections.singletonList("Axon.Events"));
+public abstract class TopicSubscriberBuilder<T extends TopicSubscriberBuilder<T>> {
+    protected TopicSubscriber subscriber = new TopicListSubscriber(Collections.singletonList("Axon.Events"));
 
     /**
      * Allows methods defined in this class to return the concrete class for fluent api usage.
+     *
      * @return the current instance of the T
      */
     protected abstract T self();
 
+    /**
+     * Returns the {@link TopicSubscriber} that is used to subscribe a {@link Consumer} to topic(s).
+     *
+     * @return the {@link TopicSubscriber}
+     */
     public TopicSubscriber getSubscriber() {
         return subscriber;
     }
@@ -56,9 +63,10 @@ public abstract class KafkaSubscriberBuilder<T extends KafkaSubscriberBuilder<T>
     public T topics(List<String> topics) {
         assertThat(topics, topicList -> Objects.nonNull(topicList) && !topicList.isEmpty(),
                 "The topics may not be null or empty");
-        this.subscriber = new ListTopicSubscriber(topics);
+        this.subscriber = new TopicListSubscriber(topics);
         return self();
     }
+
     /**
      * Add a Kafka {@code topic} to read {@link org.axonframework.eventhandling.EventMessage}s from.
      *
@@ -68,12 +76,13 @@ public abstract class KafkaSubscriberBuilder<T extends KafkaSubscriberBuilder<T>
     public T addTopic(String topic) {
         assertThat(topic, name -> Objects.nonNull(name) && !"".equals(name), "The topic may not be null or empty");
         if (isListBasedSubscription()) {
-            ((ListTopicSubscriber) subscriber).addTopic(topic);
+            ((TopicListSubscriber) subscriber).addTopic(topic);
         } else {
             throw new IllegalStateException("Cannot add topic to a pattern subscriber");
         }
         return self();
     }
+
     /**
      * Set the Kafka {@code pattern} to read {@link org.axonframework.eventhandling.EventMessage}s from.
      *
@@ -82,18 +91,11 @@ public abstract class KafkaSubscriberBuilder<T extends KafkaSubscriberBuilder<T>
      */
     public T topicPattern(Pattern pattern) {
         assertNonNull(pattern, "The pattern may not be null");
-        this.subscriber = new PatternTopicSubscriber(pattern);
+        this.subscriber = new TopicPatternSubscriber(pattern);
         return self();
     }
 
-    /**
-     * Return the type of subscription being used.
-     * @return if the current subscription is based on a list of topics or a pattern
-     */
     private boolean isListBasedSubscription() {
-        return subscriber instanceof ListTopicSubscriber;
+        return subscriber instanceof TopicListSubscriber;
     }
 }
-
-
-

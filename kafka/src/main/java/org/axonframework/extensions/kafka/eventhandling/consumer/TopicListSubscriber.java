@@ -22,20 +22,20 @@ import java.util.Collection;
 
 /**
  * Implementation of {@link TopicSubscriber} that subscribes a {@link Consumer} to a list of topics.
- * Using the {@link Consumer#subscribe(Collection)} method. This was standard behavior prior to 4.8.
+ * Using the {@link Consumer#subscribe(Collection)} method. This was standard behavior prior to 4.8.0
  *
  * @author Ben Kornmeier
  * @since 4.8.0
  */
-public class ListTopicSubscriber implements TopicSubscriber {
+public class TopicListSubscriber implements TopicSubscriber {
     private final Collection<String> topics;
 
     /**
-     * Instantiate a {@link ListTopicSubscriber} that is backed by a list of specific topics.
+     * Instantiate a {@link TopicListSubscriber} that is backed by a list of specific topics.
      *
      * @param topics
      */
-    public ListTopicSubscriber(Collection<String> topics) {
+    public TopicListSubscriber(Collection<String> topics) {
         this.topics = topics;
     }
 
@@ -45,7 +45,8 @@ public class ListTopicSubscriber implements TopicSubscriber {
      * @param topic
      */
     public void addTopic(String topic) {
-        this.topics.add(topic);
+        if(topic != null && !topic.isEmpty())
+            this.topics.add(topic);
     }
 
     /**

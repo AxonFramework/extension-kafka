@@ -53,7 +53,7 @@ public class ConsumerSeekUtil {
      */
     public static void seekToCurrentPositions(Consumer<?, ?> consumer, Supplier<KafkaTrackingToken> tokenSupplier,
                                               List<String> topics) {
-        seekToCurrentPositions(consumer, tokenSupplier, new ListTopicSubscriber(topics));
+        seekToCurrentPositions(consumer, tokenSupplier, new TopicListSubscriber(topics));
     }
 
     /**
@@ -91,7 +91,7 @@ public class ConsumerSeekUtil {
      * @return a list of all the {@link TopicPartition topicPartitions}
      */
     public static List<TopicPartition> topicPartitions(Consumer<?, ?> consumer, List<String> topics) {
-        return topicPartitions(consumer, new ListTopicSubscriber(topics));
+        return topicPartitions(consumer, new TopicListSubscriber(topics));
     }
 
     /**

@@ -24,7 +24,7 @@ import org.axonframework.eventhandling.EventMessage;
 import org.axonframework.extensions.kafka.eventhandling.consumer.AsyncFetcher;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
-import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaSubscriberBuilder;
+import org.axonframework.extensions.kafka.eventhandling.consumer.TopicSubscriberBuilder;
 import org.junit.jupiter.api.*;
 
 import java.lang.reflect.Field;
@@ -66,7 +66,7 @@ class SubscribableKafkaMessageSourceTest {
     private Consumer<String, String> mockConsumer;
 
     abstract class SubscribableKafkaMessageSourceTestFixture {
-        abstract <T extends KafkaSubscriberBuilder<T>> T setTopic(KafkaSubscriberBuilder<T> builder);
+        abstract <T extends TopicSubscriberBuilder<T>> T setTopic(TopicSubscriberBuilder<T> builder);
         void testStartBuildsConsumersUpToConsumerCount(int expectedNumberOfConsumers) {
 
             when(fetcher.poll(eq(mockConsumer), any(), any(), any())).thenReturn(NO_OP_FETCHER_REGISTRATION);
@@ -151,7 +151,7 @@ class SubscribableKafkaMessageSourceTest {
 
     class ListSubscribableKafkaMessageSourceTestFixture extends SubscribableKafkaMessageSourceTestFixture {
         @Override
-        <T extends KafkaSubscriberBuilder<T>> T setTopic(KafkaSubscriberBuilder<T> builder) {
+        <T extends TopicSubscriberBuilder<T>> T setTopic(TopicSubscriberBuilder<T> builder) {
             return builder.topics(Collections.singletonList(TEST_TOPIC));
         }
     }
@@ -164,7 +164,7 @@ class SubscribableKafkaMessageSourceTest {
 
         }
         @Override
-        <T extends KafkaSubscriberBuilder<T>> T setTopic(KafkaSubscriberBuilder<T> builder) {
+        <T extends TopicSubscriberBuilder<T>> T setTopic(TopicSubscriberBuilder<T> builder) {
             return builder.topicPattern(pattern);
         }
     }

@@ -21,7 +21,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
-import org.axonframework.extensions.kafka.eventhandling.consumer.ListTopicSubscriber;
+import org.axonframework.extensions.kafka.eventhandling.consumer.TopicListSubscriber;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaContainerTest;
@@ -95,7 +95,7 @@ class ConsumerPositionsUtilIntegrationTest extends KafkaContainerTest {
         String topic = "testPositionsUtil";
 
         Consumer<?, ?> testConsumer = consumerFactory.createConsumer(null);
-        ListTopicSubscriber subscriber = new ListTopicSubscriber(Collections.singletonList(topic));
+        TopicListSubscriber subscriber = new TopicListSubscriber(Collections.singletonList(topic));
         assertTrue(ConsumerPositionsUtil.getHeadPositions(testConsumer, subscriber).isEmpty());
         assertTrue(ConsumerPositionsUtil.getPositionsBasedOnTime(testConsumer, subscriber, Instant.now()).isEmpty());
 

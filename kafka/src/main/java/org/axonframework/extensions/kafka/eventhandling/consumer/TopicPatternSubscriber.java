@@ -20,21 +20,21 @@ import org.apache.kafka.clients.consumer.Consumer;
 import java.util.regex.Pattern;
 
 /**
- * Implementation of {@link TopicSubscriber} that subscribes a {@link Consumer} a pattern of topics.
+ * Implementation of {@link TopicSubscriber} that subscribes a {@link Consumer} to a pattern of topics.
  * Using the {@link Consumer#subscribe(Pattern)} method.
  *
  * @author Ben Kornmeier
  * @since 4.8.0
  */
-public class PatternTopicSubscriber implements TopicSubscriber {
+public class TopicPatternSubscriber implements TopicSubscriber {
     private final Pattern pattern;
 
     /**
-     * Instantiate a {@link PatternTopicSubscriber} that uses {@link Pattern} to subscribe to topics as well as check if it is responsible for a given topic.
+     * Instantiate a {@link TopicPatternSubscriber} that uses {@link Pattern} to subscribe to topics as well as check if it is responsible for a given topic.
      *
      * @param pattern
      */
-    public PatternTopicSubscriber(Pattern pattern) {
+    public TopicPatternSubscriber(Pattern pattern) {
         this.pattern = pattern;
     }
 

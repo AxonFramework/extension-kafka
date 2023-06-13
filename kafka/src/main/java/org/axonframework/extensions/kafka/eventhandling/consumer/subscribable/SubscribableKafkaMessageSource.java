@@ -27,7 +27,7 @@ import org.axonframework.extensions.kafka.eventhandling.KafkaMessageConverter;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.DefaultConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.Fetcher;
-import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaSubscriberBuilder;
+import org.axonframework.extensions.kafka.eventhandling.consumer.TopicSubscriberBuilder;
 import org.axonframework.extensions.kafka.eventhandling.consumer.RuntimeErrorHandler;
 import org.axonframework.messaging.SubscribableMessageSource;
 import org.axonframework.extensions.kafka.eventhandling.consumer.TopicSubscriber;
@@ -223,7 +223,7 @@ public class SubscribableKafkaMessageSource<K, V> implements SubscribableMessage
      * @param <K> the key of the {@link ConsumerRecords} to consume, fetch and convert
      * @param <V> the value type of {@link ConsumerRecords} to consume, fetch and convert
      */
-    public static class Builder<K, V> extends KafkaSubscriberBuilder<Builder<K, V>> {
+    public static class Builder<K, V> extends TopicSubscriberBuilder<Builder<K, V>> {
 
         private String groupId;
         private ConsumerFactory<K, V> consumerFactory;
