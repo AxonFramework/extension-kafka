@@ -22,18 +22,27 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.axonframework.extensions.kafka.eventhandling.consumer.ConsumerFactory;
 import org.axonframework.extensions.kafka.eventhandling.consumer.TopicListSubscriber;
+import org.axonframework.extensions.kafka.eventhandling.consumer.TopicPatternSubscriber;
+import org.axonframework.extensions.kafka.eventhandling.consumer.TopicSubscriber;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaContainerTest;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.consumerFactory;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.producerFactory;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /***
  * Integration tests spinning up a Kafka Broker to verify whether the {@link ConsumerPositionsUtil}
@@ -44,6 +53,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ConsumerPositionsUtilIntegrationTest extends KafkaContainerTest {
 
+    private static final String TEST_TOPIC = "testPositionsUtil";
     private static final String RECORD_BODY = "foo";
 
     private static final String[] TOPICS = {"testPositionsUtil"};
@@ -90,21 +100,18 @@ class ConsumerPositionsUtilIntegrationTest extends KafkaContainerTest {
         producerFactory.shutDown();
     }
 
-    @Test
-    void positionsTest() {
-        String topic = "testPositionsUtil";
+    <T extends TopicSubscriber> void _positionsTest(T subscriber) {
 
         Consumer<?, ?> testConsumer = consumerFactory.createConsumer(null);
-        TopicListSubscriber subscriber = new TopicListSubscriber(Collections.singletonList(topic));
         assertTrue(ConsumerPositionsUtil.getHeadPositions(testConsumer, subscriber).isEmpty());
         assertTrue(ConsumerPositionsUtil.getPositionsBasedOnTime(testConsumer, subscriber, Instant.now()).isEmpty());
 
         int recordsPerPartitions = 5;
         Producer<String, String> producer = producerFactory.createProducer();
-        publishRecordsOnPartitions(producer, topic, recordsPerPartitions, 5);
+        publishRecordsOnPartitions(producer, TEST_TOPIC, recordsPerPartitions, 5);
 
         Instant now = Instant.now();
-        publishRecordsOnPartitions(producer, topic, recordsPerPartitions, 5);
+        publishRecordsOnPartitions(producer, TEST_TOPIC, recordsPerPartitions, 5);
 
         Map<TopicPartition, Long> headPositions = ConsumerPositionsUtil.getHeadPositions(testConsumer, subscriber);
         assertFalse(headPositions.isEmpty());
@@ -116,5 +123,16 @@ class ConsumerPositionsUtilIntegrationTest extends KafkaContainerTest {
         assertFalse(positionsBasedOnTime.isEmpty());
         assertEquals(5, positionsBasedOnTime.keySet().size());
         positionsBasedOnTime.values().forEach(p -> assertEquals(4, p));
+
+    }
+
+    @Test
+    void positionsTestForListSubscriber() {
+        _positionsTest(new TopicListSubscriber(Collections.singletonList(TEST_TOPIC)));
+    }
+
+    @Test
+    void positionsTestForPatternSubscriber() {
+        _positionsTest(new TopicPatternSubscriber(Pattern.compile(TEST_TOPIC)));
     }
 }
