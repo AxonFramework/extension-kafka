@@ -21,6 +21,8 @@ import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.axonframework.extensions.kafka.eventhandling.consumer.streamable.KafkaTrackingToken;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -45,7 +48,16 @@ class ConsumerSeekUtilTest {
     public static final String TEST_TOPIC = "some-topic";
     private final Consumer<?, ?> consumer = mock(Consumer.class);
 
-    <T extends TopicSubscriber> void _testOnPartitionsAssignedUsesTokenOffsetsUponConsumerSeek(T subscriber) {
+    private static Stream<TopicSubscriber> getTopicSubscribers() {
+        return Stream.of(
+                new TopicListSubscriber(Collections.singletonList(TEST_TOPIC)),
+                new TopicPatternSubscriber(Pattern.compile(TEST_TOPIC))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("getTopicSubscribers")
+    void testOnPartitionsAssignedUsesTokenOffsetsUponConsumerSeek(TopicSubscriber subscriber) {
         long testOffsetForPartitionZero = 5L;
         long testOffsetForPartitionOne = 10L;
         long testOffsetForPartitionTwo = 15L;
@@ -77,17 +89,9 @@ class ConsumerSeekUtilTest {
 
     }
 
-    @Test
-    void testOnPartitionsAssignedUsesTokenOffsetsUponConsumerSeekTopicListSubscriber() {
-        _testOnPartitionsAssignedUsesTokenOffsetsUponConsumerSeek(new TopicListSubscriber(Collections.singletonList(TEST_TOPIC)));
-    }
-
-    @Test
-    void testOnPartitionsAssignedUsesTokenOffsetsUponConsumerSeekTopicPatternSubscriber() {
-        _testOnPartitionsAssignedUsesTokenOffsetsUponConsumerSeek(new TopicPatternSubscriber(Pattern.compile(TEST_TOPIC)));
-    }
-
-    <T extends TopicSubscriber> void _testOnPartitionsAssignedUsesOffsetsOfZeroForEmptyTokenUponConsumerSeek(T subscriber) {
+    @ParameterizedTest
+    @MethodSource("getTopicSubscribers")
+    void testOnPartitionsAssignedUsesOffsetsOfZeroForEmptyTokenUponConsumerSeek(TopicSubscriber subscriber) {
         KafkaTrackingToken testToken = KafkaTrackingToken.emptyToken();
 
         TopicPartition testPartitionZero = new TopicPartition(TEST_TOPIC, 0);
@@ -104,16 +108,6 @@ class ConsumerSeekUtilTest {
         verify(consumer).seek(testPartitionZero, 0);
         verify(consumer).seek(testPartitionOne, 0);
         verify(consumer).seek(testPartitionTwo, 0);
-    }
-
-    @Test
-    void testOnPartitionsAssignedUsesOffsetsOfZeroForEmptyTokenUponConsumerSeekUsingListSubscriber() {
-        _testOnPartitionsAssignedUsesOffsetsOfZeroForEmptyTokenUponConsumerSeek(new TopicListSubscriber(Collections.singletonList(TEST_TOPIC)));
-    }
-
-    @Test
-    void testOnPartitionsAssignedUsesOffsetsOfZeroForEmptyTokenUponConsumerSeekUsingPatternSubscriber() {
-        _testOnPartitionsAssignedUsesOffsetsOfZeroForEmptyTokenUponConsumerSeek(new TopicPatternSubscriber(Pattern.compile(TEST_TOPIC)));
     }
 
     private Map<String, List<PartitionInfo>> listTopics(List<TopicPartition> partitions) {

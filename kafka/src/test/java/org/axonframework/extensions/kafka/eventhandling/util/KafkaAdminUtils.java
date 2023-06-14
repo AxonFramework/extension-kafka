@@ -29,14 +29,18 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.PrimitiveIterator;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -133,6 +137,7 @@ public abstract class KafkaAdminUtils {
             topics.forEach(topic -> logger.info("Completed topic deletion: {}", topic));
         }
     }
+
 
     private static <T> void waitForCompletion(KafkaFuture<T> kafkaFuture) {
         try {

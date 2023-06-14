@@ -31,12 +31,17 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import static org.axonframework.extensions.kafka.eventhandling.util.ConsumerConfigUtil.consumerFactory;
 import static org.axonframework.extensions.kafka.eventhandling.util.ProducerConfigUtil.producerFactory;
@@ -51,27 +56,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @author Gerard Klijs
  */
 
+@TestMethodOrder(MethodOrderer.Alphanumeric.class)
 class ConsumerPositionsUtilIntegrationTest extends KafkaContainerTest {
 
     private static final String TEST_TOPIC = "testPositionsUtil";
+    private static final String[] TOPICS = {TEST_TOPIC};
     private static final String RECORD_BODY = "foo";
 
-    private static final String[] TOPICS = {"testPositionsUtil"};
     private static final Integer NR_PARTITIONS = 5;
 
     private ProducerFactory<String, String> producerFactory;
     private ConsumerFactory<String, String> consumerFactory;
-
-    @BeforeAll
-    static void before() {
-        KafkaAdminUtils.createTopics(getBootstrapServers(), TOPICS);
-        KafkaAdminUtils.createPartitions(getBootstrapServers(), NR_PARTITIONS, TOPICS);
-    }
-
-    @AfterAll
-    public static void after() {
-        KafkaAdminUtils.deleteTopics(getBootstrapServers(), TOPICS);
-    }
 
     private static void publishRecordsOnPartitions(Producer<String, String> producer,
                                                    String topic,
@@ -91,17 +86,28 @@ class ConsumerPositionsUtilIntegrationTest extends KafkaContainerTest {
 
     @BeforeEach
     void setUp() {
+        // Retry a bit more, to give the topic time to cleanup
+        KafkaAdminUtils.createTopics(getBootstrapServers(), 15, TOPICS);
+        KafkaAdminUtils.createPartitions(getBootstrapServers(), NR_PARTITIONS, TOPICS);
         producerFactory = producerFactory(getBootstrapServers());
         consumerFactory = consumerFactory(getBootstrapServers());
     }
 
     @AfterEach
-    void tearDown() {
+    void tearDown() throws InterruptedException {
         producerFactory.shutDown();
+        KafkaAdminUtils.deleteTopics(getBootstrapServers(), TOPICS);
     }
 
-    <T extends TopicSubscriber> void _positionsTest(T subscriber) {
-
+    private static Stream<TopicSubscriber> getTopicSubscribers() {
+        return Stream.of(
+                new TopicListSubscriber(Collections.singletonList(TEST_TOPIC)),
+                new TopicPatternSubscriber(Pattern.compile(TEST_TOPIC))
+        );
+    }
+    @ParameterizedTest
+    @MethodSource("getTopicSubscribers")
+    void positionsTest(TopicSubscriber subscriber) {
         Consumer<?, ?> testConsumer = consumerFactory.createConsumer(null);
         assertTrue(ConsumerPositionsUtil.getHeadPositions(testConsumer, subscriber).isEmpty());
         assertTrue(ConsumerPositionsUtil.getPositionsBasedOnTime(testConsumer, subscriber, Instant.now()).isEmpty());
@@ -124,15 +130,5 @@ class ConsumerPositionsUtilIntegrationTest extends KafkaContainerTest {
         assertEquals(5, positionsBasedOnTime.keySet().size());
         positionsBasedOnTime.values().forEach(p -> assertEquals(4, p));
 
-    }
-
-    @Test
-    void positionsTestForListSubscriber() {
-        _positionsTest(new TopicListSubscriber(Collections.singletonList(TEST_TOPIC)));
-    }
-
-    @Test
-    void positionsTestForPatternSubscriber() {
-        _positionsTest(new TopicPatternSubscriber(Pattern.compile(TEST_TOPIC)));
     }
 }

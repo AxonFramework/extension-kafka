@@ -68,7 +68,6 @@ class SubscribableKafkaMessageSourceTest {
     abstract class SubscribableKafkaMessageSourceTestFixture {
         abstract <T extends TopicSubscriberBuilder<T>> T setTopic(TopicSubscriberBuilder<T> builder);
         void testStartBuildsConsumersUpToConsumerCount(int expectedNumberOfConsumers) {
-
             when(fetcher.poll(eq(mockConsumer), any(), any(), any())).thenReturn(NO_OP_FETCHER_REGISTRATION);
 
             SubscribableKafkaMessageSource<String, String> testSubject =
