@@ -32,37 +32,23 @@ public class TopicPatternSubscriber implements TopicSubscriber {
     /**
      * Instantiate a {@link TopicPatternSubscriber} that uses {@link Pattern} to subscribe to topics as well as check if it is responsible for a given topic.
      *
-     * @param pattern
+     * @param pattern {@link Pattern} to use to subscribe to topics with and check if it is responsible for a given topic.
      */
     public TopicPatternSubscriber(Pattern pattern) {
         this.pattern = pattern;
     }
 
-    /**
-     * Subscribes the given {@link Consumer} to the topic(s) using the {@link Consumer#subscribe(Pattern)} method.
-     *
-     * @param consumer
-     */
     @Override
     public void subscribeTopics(Consumer consumer) {
         consumer.subscribe(pattern);
     }
 
-    /**
-     * Checks if this {@link TopicSubscriber} is responsible for the given topic. Using the {@link Pattern#matcher(CharSequence)} method.
-     *
-     * @param topic
-     * @return true if the topic matches the pattern
-     */
     @Override
     public boolean subscribesToTopicName(String topic) {
         return pattern.matcher(topic).matches();
     }
 
-    /**
-     * Returns a description of the pattern {@link TopicSubscriber} is responsible for.
-     * @return
-     */
+    @Override
     public String describe() {
         return "pattern=[" + pattern + "]";
     }

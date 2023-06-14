@@ -59,7 +59,7 @@ public class ConsumerSeekUtil {
     /**
      * Assigns the correct {@link TopicPartition partitions} to the consumer, and seeks to the correct offset, using the
      * {@link KafkaTrackingToken}, defaulting to the head of the partition. So for each {@link TopicPartition partition}
-     * that belongs to the {@code topics}, either it will start reading from the next record of the partition, if
+     * that belongs to the {@code subscriber}, either it will start reading from the next record of the partition, if
      * included in the token, or else from the start.
      *
      * @param consumer      a Kafka consumer instance

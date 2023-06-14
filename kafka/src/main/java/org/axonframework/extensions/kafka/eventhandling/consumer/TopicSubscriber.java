@@ -29,21 +29,21 @@ public interface TopicSubscriber {
     /**
      * Subscribes the given {@link Consumer} to the topic(s) this {@link TopicSubscriber} is responsible for.
      *
-     * @param consumer
+     * @param consumer The {@link Consumer} to subscribe to the topic(s) this {@link TopicSubscriber} is responsible for.
      */
     void subscribeTopics(Consumer consumer);
 
     /**
      * Checks if this {@link TopicSubscriber} is responsible for the given topic.
      *
-     * @param topic
+     * @param topic The topic to check if this {@link TopicSubscriber} is responsible for.
      * @return true if this {@link TopicSubscriber} is responsible for the given topic, false otherwise.
      */
     boolean subscribesToTopicName(String topic);
 
     /**
      * Returns a description of the topic(s) this {@link TopicSubscriber} is responsible for.
-     * @return
+     * @return The description of the topic(s) this {@link TopicSubscriber} is responsible for.
      */
     String describe();
 }

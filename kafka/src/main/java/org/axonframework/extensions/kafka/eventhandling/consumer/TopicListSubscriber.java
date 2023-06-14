@@ -33,7 +33,7 @@ public class TopicListSubscriber implements TopicSubscriber {
     /**
      * Instantiate a {@link TopicListSubscriber} that is backed by a list of specific topics.
      *
-     * @param topics
+     * @param topics the topics to subscribe to
      */
     public TopicListSubscriber(Collection<String> topics) {
         this.topics = topics;
@@ -42,38 +42,24 @@ public class TopicListSubscriber implements TopicSubscriber {
     /**
      * Adds a topic to the list of topics.
      *
-     * @param topic
+     * @param topic the topic to add
      */
     public void addTopic(String topic) {
         if(topic != null && !topic.isEmpty())
             this.topics.add(topic);
     }
 
-    /**
-     * Subscribes the given {@link Consumer} to the topic(s) using the {@link Consumer#subscribe(Collection)} method.
-     *
-     * @param consumer
-     */
     @Override
     public void subscribeTopics(Consumer consumer) {
         consumer.subscribe(topics);
     }
 
-    /**
-     * Checks if this {@link TopicSubscriber} is responsible for the given topic. Using the {@link Collection#contains(Object)} method.
-     *
-     * @param topic
-     * @return true if the topic is contained in the list of topics
-     */
     @Override
     public boolean subscribesToTopicName(String topic) {
         return topics.contains(topic);
     }
 
-    /**
-     * Returns a description of the topic(s) this {@link TopicSubscriber} is responsible for.
-     * @return
-     */
+    @Override
     public String describe() {
         return "topics=[" + String.join(", ", topics) + "]";
     }
