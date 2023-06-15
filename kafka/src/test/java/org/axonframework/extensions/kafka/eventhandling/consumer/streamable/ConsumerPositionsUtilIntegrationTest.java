@@ -35,6 +35,7 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.time.Instant;
@@ -59,8 +60,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.Alphanumeric.class)
 class ConsumerPositionsUtilIntegrationTest extends KafkaContainerTest {
 
-    private static final String TEST_TOPIC = "testPositionsUtil";
-    private static final String[] TOPICS = {TEST_TOPIC};
     private static final String RECORD_BODY = "foo";
 
     private static final Integer NR_PARTITIONS = 5;
@@ -84,40 +83,43 @@ class ConsumerPositionsUtilIntegrationTest extends KafkaContainerTest {
         return new ProducerRecord<>(topic, partition, null, null, RECORD_BODY);
     }
 
-    @BeforeEach
-    void setUp() {
+    void setUp(String topic) {
         // Retry a bit more, to give the topic time to cleanup
-        KafkaAdminUtils.createTopics(getBootstrapServers(), 15, TOPICS);
-        KafkaAdminUtils.createPartitions(getBootstrapServers(), NR_PARTITIONS, TOPICS);
+        KafkaAdminUtils.createTopics(getBootstrapServers(), 15, new String[]{topic});
+        KafkaAdminUtils.createPartitions(getBootstrapServers(), NR_PARTITIONS, new String[]{topic});
         producerFactory = producerFactory(getBootstrapServers());
         consumerFactory = consumerFactory(getBootstrapServers());
     }
 
-    @AfterEach
-    void tearDown() throws InterruptedException {
+    void tearDown(String topic) {
         producerFactory.shutDown();
-        KafkaAdminUtils.deleteTopics(getBootstrapServers(), TOPICS);
+        KafkaAdminUtils.deleteTopics(getBootstrapServers(), new String[]{topic});
     }
 
-    private static Stream<TopicSubscriber> getTopicSubscribers() {
+    private static Stream<Arguments> getTopicSubscribers() {
         return Stream.of(
-                new TopicListSubscriber(Collections.singletonList(TEST_TOPIC)),
-                new TopicPatternSubscriber(Pattern.compile(TEST_TOPIC))
+                Arguments.of(
+                        new TopicListSubscriber(Collections.singletonList("testPositionsUtil-TopicListSubscriber")),
+                        "testPositionsUtil-TopicListSubscriber"),
+                Arguments.of(
+                        new TopicPatternSubscriber(Pattern.compile("testPositionsUtil-TopicPatternSubscriber")),
+                        "testPositionsUtil-TopicPatternSubscriber")
         );
     }
     @ParameterizedTest
     @MethodSource("getTopicSubscribers")
-    void positionsTest(TopicSubscriber subscriber) {
+    void positionsTest(TopicSubscriber subscriber, String topic) {
+        setUp(topic);
         Consumer<?, ?> testConsumer = consumerFactory.createConsumer(null);
         assertTrue(ConsumerPositionsUtil.getHeadPositions(testConsumer, subscriber).isEmpty());
         assertTrue(ConsumerPositionsUtil.getPositionsBasedOnTime(testConsumer, subscriber, Instant.now()).isEmpty());
 
         int recordsPerPartitions = 5;
         Producer<String, String> producer = producerFactory.createProducer();
-        publishRecordsOnPartitions(producer, TEST_TOPIC, recordsPerPartitions, 5);
+        publishRecordsOnPartitions(producer, topic, recordsPerPartitions, 5);
 
         Instant now = Instant.now();
-        publishRecordsOnPartitions(producer, TEST_TOPIC, recordsPerPartitions, 5);
+        publishRecordsOnPartitions(producer, topic, recordsPerPartitions, 5);
 
         Map<TopicPartition, Long> headPositions = ConsumerPositionsUtil.getHeadPositions(testConsumer, subscriber);
         assertFalse(headPositions.isEmpty());
@@ -129,6 +131,7 @@ class ConsumerPositionsUtilIntegrationTest extends KafkaContainerTest {
         assertFalse(positionsBasedOnTime.isEmpty());
         assertEquals(5, positionsBasedOnTime.keySet().size());
         positionsBasedOnTime.values().forEach(p -> assertEquals(4, p));
+        tearDown(topic);
 
     }
 }
