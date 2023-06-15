@@ -41,7 +41,6 @@ public class ConsumerSeekUtil {
     private ConsumerSeekUtil() {
         //prevent instantiation
     }
-
     /**
      * Assigns the correct {@link TopicPartition partitions} to the consumer, and seeks to the correct offset, using the
      * {@link KafkaTrackingToken}, defaulting to the head of the partition. So for each {@link TopicPartition partition}
@@ -54,7 +53,22 @@ public class ConsumerSeekUtil {
      */
     public static void seekToCurrentPositions(Consumer<?, ?> consumer, Supplier<KafkaTrackingToken> tokenSupplier,
                                               List<String> topics) {
-        List<TopicPartition> all = topicPartitions(consumer, topics);
+        seekToCurrentPositions(consumer, tokenSupplier, new TopicListSubscriber(topics));
+    }
+
+    /**
+     * Assigns the correct {@link TopicPartition partitions} to the consumer, and seeks to the correct offset, using the
+     * {@link KafkaTrackingToken}, defaulting to the head of the partition. So for each {@link TopicPartition partition}
+     * that belongs to the {@code subscriber}, either it will start reading from the next record of the partition, if
+     * included in the token, or else from the start.
+     *
+     * @param consumer      a Kafka consumer instance
+     * @param tokenSupplier a function that returns the current {@link KafkaTrackingToken}
+     * @param subscriber    a {@link TopicSubscriber} that contains the topics to subscribe to.
+     */
+    public static void seekToCurrentPositions(Consumer<?, ?> consumer, Supplier<KafkaTrackingToken> tokenSupplier,
+                                              TopicSubscriber subscriber) {
+        List<TopicPartition> all = topicPartitions(consumer, subscriber);
         consumer.assign(all);
         KafkaTrackingToken currentToken = tokenSupplier.get();
         Map<TopicPartition, Long> tokenPartitionPositions = currentToken.getPositions();
@@ -72,14 +86,25 @@ public class ConsumerSeekUtil {
     /**
      * Get all the {@link TopicPartition topicPartitions} belonging to the given {@code topics}.
      *
-     * @param consumer a Kafka {@link Consumer}
-     * @param topics   a list with topics
+     * @param consumer      a Kafka {@link Consumer}
+     * @param topics        a list with topics
      * @return a list of all the {@link TopicPartition topicPartitions}
      */
     public static List<TopicPartition> topicPartitions(Consumer<?, ?> consumer, List<String> topics) {
+        return topicPartitions(consumer, new TopicListSubscriber(topics));
+    }
+
+    /**
+     * Get all the {@link TopicPartition topicPartitions} belonging to the given {@code subscriber}.
+     *
+     * @param consumer      a Kafka {@link Consumer}
+     * @param subscriber    a {@link TopicSubscriber} that contains the topics to subscribe to.
+     * @return a list of all the {@link TopicPartition topicPartitions}
+     */
+    public static List<TopicPartition> topicPartitions(Consumer<?, ?> consumer, TopicSubscriber subscriber) {
         return consumer.listTopics().entrySet()
                        .stream()
-                       .filter(e -> topics.contains(e.getKey()))
+                       .filter(e -> subscriber.subscribesToTopicName(e.getKey()))
                        .flatMap(e -> e.getValue().stream())
                        .map(partitionInfo -> new TopicPartition(partitionInfo.topic(),
                                                                 partitionInfo.partition()))
