@@ -135,7 +135,7 @@ class FetchEventsTaskTest {
 
 
         assertWithin(Duration.ofMillis(TIMEOUT_MILLIS), () -> assertTrue(expectedToBeClosed.get()));
-        verify(testConsumer).close();
+        verify(testConsumer, timeout(TIMEOUT_MILLIS)).close();
     }
 
     @Test
