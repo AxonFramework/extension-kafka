@@ -20,11 +20,11 @@
     <parent>
         <groupId>org.axonframework.extensions.kafka</groupId>
         <artifactId>axon-kafka-parent</artifactId>
-        <version>4.8.0</version>
+        <version>4.8.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>kafka-axon-example</artifactId>
-    <version>4.8.0</version>
+    <version>4.8.1-SNAPSHOT</version>
 
     <name>Axon Framework Kafka Extension - Spring Boot Example</name>
     <description>Example module for the Kafka Extension of Axon Framework</description>
