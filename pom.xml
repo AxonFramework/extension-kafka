@@ -190,7 +190,7 @@
                 <artifactId>spring-boot-starter</artifactId>
                 <version>${spring.boot.version}</version>
             </dependency>
-            <!-- Test -->
+            <!-- Testing -->
             <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
