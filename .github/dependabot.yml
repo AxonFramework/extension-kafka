@@ -9,7 +9,8 @@ updates:
     - "Type: Dependency Upgrade"
     - "Priority 1: Must"
   reviewers:
-    - "gklijs" # Main
+    - "CodeDrivenMitch"
+    - "gklijs"
     - "smcvb"
   milestone: 14
 - package-ecosystem: maven
@@ -21,6 +22,7 @@ updates:
     - "Type: Dependency Upgrade"
     - "Priority 1: Must"
   reviewers:
-    - "gklijs" # Main
+    - "CodeDrivenMitch"
+    - "gklijs"
     - "smcvb"
   milestone: 14
