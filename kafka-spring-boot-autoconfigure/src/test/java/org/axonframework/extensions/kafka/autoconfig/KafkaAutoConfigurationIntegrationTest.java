@@ -48,6 +48,7 @@ import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducer
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
+import org.axonframework.extensions.kafka.eventhandling.producer.TopicResolver;
 import org.axonframework.extensions.kafka.eventhandling.tokenstore.KafkaTokenStore;
 import org.axonframework.monitoring.MessageMonitor;
 import org.axonframework.monitoring.NoOpMessageMonitor;
@@ -92,6 +93,7 @@ class KafkaAutoConfigurationIntegrationTest {
                               // Required bean assertions
                               assertNotNull(context.getBeanNamesForType(KafkaMessageConverter.class));
                               assertNotNull(context.getBeanNamesForType(ProducerFactory.class));
+                              assertNotNull(context.getBeanNamesForType(TopicResolver.class));
                               assertNotNull(context.getBeanNamesForType(KafkaPublisher.class));
                               assertNotNull(context.getBeanNamesForType(KafkaEventPublisher.class));
                               assertNotNull(context.getBeanNamesForType(ConsumerFactory.class));
@@ -156,6 +158,7 @@ class KafkaAutoConfigurationIntegrationTest {
                 // Required bean assertions
                 assertNotNull(context.getBeanNamesForType(KafkaMessageConverter.class));
                 assertNotNull(context.getBeanNamesForType(ProducerFactory.class));
+                assertNotNull(context.getBeanNamesForType(TopicResolver.class));
                 assertNotNull(context.getBeanNamesForType(KafkaPublisher.class));
                 assertNotNull(context.getBeanNamesForType(KafkaEventPublisher.class));
                 assertNotNull(context.getBeanNamesForType(ConsumerFactory.class));
@@ -217,6 +220,7 @@ class KafkaAutoConfigurationIntegrationTest {
                 // Required bean assertions
                 assertNotNull(context.getBeanNamesForType(KafkaMessageConverter.class));
                 assertEquals(0, context.getBeanNamesForType(ProducerFactory.class).length);
+                assertEquals(0, context.getBeanNamesForType(TopicResolver.class).length);
                 assertEquals(0, context.getBeanNamesForType(KafkaPublisher.class).length);
                 assertEquals(0, context.getBeanNamesForType(KafkaEventPublisher.class).length);
                 assertNotNull(context.getBeanNamesForType(ConsumerFactory.class));
@@ -262,6 +266,7 @@ class KafkaAutoConfigurationIntegrationTest {
                 // Required bean assertions
                 assertNotNull(context.getBeanNamesForType(KafkaMessageConverter.class));
                 assertNotNull(context.getBeanNamesForType(ProducerFactory.class));
+                assertNotNull(context.getBeanNamesForType(TopicResolver.class));
                 assertNotNull(context.getBeanNamesForType(KafkaPublisher.class));
                 assertNotNull(context.getBeanNamesForType(KafkaEventPublisher.class));
                 assertEquals(0, context.getBeanNamesForType(ConsumerFactory.class).length);
@@ -301,6 +306,7 @@ class KafkaAutoConfigurationIntegrationTest {
                 // Required bean assertions
                 assertEquals(0, context.getBeanNamesForType(KafkaMessageConverter.class).length);
                 assertEquals(0, context.getBeanNamesForType(ProducerFactory.class).length);
+                assertEquals(0, context.getBeanNamesForType(TopicResolver.class).length);
                 assertEquals(0, context.getBeanNamesForType(KafkaPublisher.class).length);
                 assertEquals(0, context.getBeanNamesForType(KafkaEventPublisher.class).length);
                 assertEquals(0, context.getBeanNamesForType(ConsumerFactory.class).length);
