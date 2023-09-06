@@ -36,6 +36,7 @@ import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducer
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
+import org.axonframework.extensions.kafka.eventhandling.producer.TopicResolver;
 import org.axonframework.extensions.kafka.eventhandling.tokenstore.KafkaTokenStore;
 import org.axonframework.serialization.Serializer;
 import org.axonframework.serialization.upcasting.event.EventUpcasterChain;
@@ -152,6 +153,14 @@ public class KafkaAutoConfiguration {
         return s != null && !s.equals("");
     }
 
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnBean({ProducerFactory.class, KafkaMessageConverter.class})
+    @ConditionalOnProperty(name = "axon.kafka.publisher.enabled", havingValue = "true", matchIfMissing = true)
+    public TopicResolver topicResolver() {
+        return m -> Optional.of(properties.getDefaultTopic());
+    }
+
     @ConditionalOnMissingBean
     @Bean(destroyMethod = "shutDown")
     @ConditionalOnBean({ProducerFactory.class, KafkaMessageConverter.class})
@@ -161,13 +170,14 @@ public class KafkaAutoConfiguration {
             @Qualifier("eventSerializer") Serializer eventSerializer,
             ProducerFactory<K, V> axonKafkaProducerFactory,
             KafkaMessageConverter<K, V> kafkaMessageConverter,
-            org.axonframework.config.Configuration configuration) {
+            org.axonframework.config.Configuration configuration,
+            TopicResolver topicResolver) {
         return KafkaPublisher.<K, V>builder()
                              .serializer(eventSerializer)
                              .producerFactory(axonKafkaProducerFactory)
                              .messageConverter(kafkaMessageConverter)
                              .messageMonitor(configuration.messageMonitor(KafkaPublisher.class, "kafkaPublisher"))
-                             .topicResolver(m -> Optional.of(properties.getDefaultTopic()))
+                             .topicResolver(topicResolver)
                              .build();
     }
 
