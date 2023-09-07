@@ -20,6 +20,7 @@ import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.eventhandling.EventMessage;
 import org.axonframework.eventhandling.EventMessageHandler;
 
+import static org.axonframework.common.BuilderUtils.assertNonEmpty;
 import static org.axonframework.common.BuilderUtils.assertNonNull;
 
 /**
@@ -70,7 +71,7 @@ public class KafkaEventPublisher<K, V> implements EventMessageHandler {
      */
     protected KafkaEventPublisher(Builder<K, V> builder) {
         builder.validate();
-        this.processingGroup = builder.processingGroup != null ? builder.processingGroup : DEFAULT_PROCESSING_GROUP;
+        this.processingGroup = builder.processingGroup;
         this.kafkaPublisher = builder.kafkaPublisher;
     }
 
@@ -103,7 +104,7 @@ public class KafkaEventPublisher<K, V> implements EventMessageHandler {
      */
     public static class Builder<K, V> {
 
-        private String processingGroup;
+        private String processingGroup = DEFAULT_PROCESSING_GROUP;
         private KafkaPublisher<K, V> kafkaPublisher;
 
         /**
@@ -114,7 +115,7 @@ public class KafkaEventPublisher<K, V> implements EventMessageHandler {
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder<K, V> processingGroup(String processingGroup) {
-            assertNonNull(processingGroup, "ProcessingGroup may not be null");
+            assertNonEmpty(processingGroup, "ProcessingGroup may not be null or empty");
             this.processingGroup = processingGroup;
             return this;
         }
