@@ -40,6 +40,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher.DEFAULT_PROCESSING_GROUP;
+
 /**
  * Configuration properties for Axon for Apache Kafka.
  * <p>
@@ -227,6 +229,11 @@ public class KafkaProperties {
          */
         private ConfirmationMode confirmationMode = ConfirmationMode.NONE;
 
+        /**
+         * The Kafka Event Handler processing group. Defaults to {@code "__axon-kafka-event-publishing-group"}
+         */
+        private String processingGroup = DEFAULT_PROCESSING_GROUP;
+
         public boolean isEnabled() {
             return enabled;
         }
@@ -241,6 +248,14 @@ public class KafkaProperties {
 
         public void setConfirmationMode(ConfirmationMode confirmationMode) {
             this.confirmationMode = confirmationMode;
+        }
+
+        public String getProcessingGroup() {
+            return processingGroup;
+        }
+
+        public void setProcessingGroup(String processingGroup) {
+            this.processingGroup = processingGroup;
         }
     }
 

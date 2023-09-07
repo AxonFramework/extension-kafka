@@ -517,6 +517,35 @@ class KafkaAutoConfigurationIntegrationTest {
     }
 
     @Test
+    void testKafkaPropertiesPublisherProcessingGroup() {
+        final String processingGroup = "__custom_processing_group_name";
+        this.contextRunner.withUserConfiguration(TestConfiguration.class)
+                          .withPropertyValues(
+                                  // Minimal Required Properties
+                                  "axon.kafka.producer.transaction-id-prefix=foo",
+                                  // Event Producing Mode
+                                  "axon.kafka.producer.event-processor-mode=TRACKING",
+                                  // Kafka Event Publisher Processing Group
+                                  "axon.kafka.publisher.processing-group=" + processingGroup
+                          ).run(context -> {
+                KafkaProperties kafkaProperties = context.getBean(KafkaProperties.class);
+                assertEquals(
+                        KafkaProperties.EventProcessorMode.TRACKING,
+                        kafkaProperties.getProducer().getEventProcessorMode()
+                );
+                assertNotNull(context.getBean(KafkaEventPublisher.class));
+                assertNotNull(context.getBean(KafkaTokenStore.class));
+
+                EventProcessingConfigurer eventProcessingConfigurer = context.getBean(EventProcessingConfigurer.class);
+                verify(eventProcessingConfigurer).registerEventHandler(any());
+                verify(eventProcessingConfigurer)
+                        .registerListenerInvocationErrorHandler(eq(processingGroup), any());
+                verify(eventProcessingConfigurer).assignHandlerTypesMatching(eq(processingGroup), any());
+                verify(eventProcessingConfigurer).registerTrackingEventProcessor(processingGroup);
+            });
+    }
+
+    @Test
     void testKafkaPropertiesTrackingConsumerMode() {
         this.contextRunner.withUserConfiguration(TestConfiguration.class)
                           .withPropertyValues(

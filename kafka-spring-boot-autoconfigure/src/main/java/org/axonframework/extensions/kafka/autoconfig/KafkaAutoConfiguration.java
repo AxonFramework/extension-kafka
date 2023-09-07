@@ -62,8 +62,6 @@ import java.lang.invoke.MethodHandles;
 import java.util.Collections;
 import java.util.Optional;
 
-import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher.DEFAULT_PROCESSING_GROUP;
-
 /**
  * Auto configuration for the Axon Kafka Extension as an Event Message distribution solution.
  *
@@ -192,6 +190,7 @@ public class KafkaAutoConfiguration {
             EventProcessingConfigurer eventProcessingConfigurer) {
         KafkaEventPublisher<K, V> kafkaEventPublisher = KafkaEventPublisher
                 .<K, V>builder()
+                .processingGroup(properties.getPublisher().getProcessingGroup())
                 .kafkaPublisher(kafkaPublisher)
                 .build();
 
@@ -203,20 +202,20 @@ public class KafkaAutoConfiguration {
          */
         eventProcessingConfigurer.registerEventHandler(configuration -> kafkaEventPublisher)
                                  .registerListenerInvocationErrorHandler(
-                                         DEFAULT_PROCESSING_GROUP, configuration -> PropagatingErrorHandler.instance()
+                                         kafkaEventPublisher.getProcessingGroup(), configuration -> PropagatingErrorHandler.instance()
                                  )
                                  .assignHandlerTypesMatching(
-                                         DEFAULT_PROCESSING_GROUP,
+                                         kafkaEventPublisher.getProcessingGroup(),
                                          clazz -> clazz.isAssignableFrom(KafkaEventPublisher.class)
                                  );
 
         KafkaProperties.EventProcessorMode processorMode = kafkaProperties.getProducer().getEventProcessorMode();
         if (processorMode == KafkaProperties.EventProcessorMode.SUBSCRIBING) {
-            eventProcessingConfigurer.registerSubscribingEventProcessor(DEFAULT_PROCESSING_GROUP);
+            eventProcessingConfigurer.registerSubscribingEventProcessor(kafkaEventPublisher.getProcessingGroup());
         } else if (processorMode == KafkaProperties.EventProcessorMode.TRACKING) {
-            eventProcessingConfigurer.registerTrackingEventProcessor(DEFAULT_PROCESSING_GROUP);
+            eventProcessingConfigurer.registerTrackingEventProcessor(kafkaEventPublisher.getProcessingGroup());
         } else if (processorMode == KafkaProperties.EventProcessorMode.POOLED_STREAMING) {
-            eventProcessingConfigurer.registerPooledStreamingEventProcessor(DEFAULT_PROCESSING_GROUP);
+            eventProcessingConfigurer.registerPooledStreamingEventProcessor(kafkaEventPublisher.getProcessingGroup());
         } else {
             throw new AxonConfigurationException("Unknown Event Processor Mode [" + processorMode + "] detected");
         }
