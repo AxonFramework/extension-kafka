@@ -412,11 +412,11 @@ class KafkaPublisherIntegrationTest extends KafkaContainerTest {
                 .registerEventHandler(config -> kafkaEventPublisher)
 
                 .registerListenerInvocationErrorHandler(
-                        DEFAULT_PROCESSING_GROUP, config -> PropagatingErrorHandler.instance()
+                        kafkaEventPublisher.getProcessingGroup(), config -> PropagatingErrorHandler.instance()
                 )
-                .registerSubscribingEventProcessor(DEFAULT_PROCESSING_GROUP)
+                .registerSubscribingEventProcessor(kafkaEventPublisher.getProcessingGroup())
                 .assignHandlerInstancesMatching(
-                        DEFAULT_PROCESSING_GROUP,
+                        kafkaEventPublisher.getProcessingGroup(),
                         eventHandler -> eventHandler.getClass().equals(KafkaEventPublisher.class)
                 )
         ).start();

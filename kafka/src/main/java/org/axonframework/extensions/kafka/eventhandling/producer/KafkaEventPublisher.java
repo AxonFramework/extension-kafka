@@ -44,6 +44,7 @@ public class KafkaEventPublisher<K, V> implements EventMessageHandler {
     public static final String DEFAULT_PROCESSING_GROUP = "__axon-kafka-event-publishing-group";
     private static final boolean DOES_NOT_SUPPORT_RESET = false;
 
+    private final String processingGroup;
     private final KafkaPublisher<K, V> kafkaPublisher;
 
     /**
@@ -69,6 +70,7 @@ public class KafkaEventPublisher<K, V> implements EventMessageHandler {
      */
     protected KafkaEventPublisher(Builder<K, V> builder) {
         builder.validate();
+        this.processingGroup = builder.processingGroup != null ? builder.processingGroup : DEFAULT_PROCESSING_GROUP;
         this.kafkaPublisher = builder.kafkaPublisher;
     }
 
@@ -84,6 +86,14 @@ public class KafkaEventPublisher<K, V> implements EventMessageHandler {
     }
 
     /**
+     * Returns configured Processing Group name
+     * @return Processing Group name
+     */
+    public String getProcessingGroup() {
+        return this.processingGroup;
+    }
+
+    /**
      * Builder class to instantiate a {@link KafkaEventPublisher}.
      * <p>
      * The {@link KafkaPublisher} is a <b>hard requirements</b> and as such should be provided.
@@ -93,7 +103,21 @@ public class KafkaEventPublisher<K, V> implements EventMessageHandler {
      */
     public static class Builder<K, V> {
 
+        private String processingGroup;
         private KafkaPublisher<K, V> kafkaPublisher;
+
+        /**
+         * Sets the Kafka Event Handler processing group to be used by this {@link EventMessageHandler}
+         *
+         * @param processingGroup the Kafka Event Handler processing group to be used by this
+         *                        {@link EventMessageHandler}
+         * @return the current Builder instance, for fluent interfacing
+         */
+        public Builder<K, V> processingGroup(String processingGroup) {
+            assertNonNull(processingGroup, "ProcessingGroup may not be null");
+            this.processingGroup = processingGroup;
+            return this;
+        }
 
         /**
          * Sets the {@link KafkaPublisher} to be used by this {@link EventMessageHandler} to publish {@link
