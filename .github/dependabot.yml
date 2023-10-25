@@ -12,7 +12,7 @@ updates:
     - "CodeDrivenMitch"
     - "gklijs"
     - "smcvb"
-  milestone: 14
+  milestone: 15
 - package-ecosystem: maven
   directory: "/"
   schedule:
@@ -25,4 +25,4 @@ updates:
     - "CodeDrivenMitch"
     - "gklijs"
     - "smcvb"
-  milestone: 14
+  milestone: 15
