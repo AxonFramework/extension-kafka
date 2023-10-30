@@ -65,7 +65,7 @@
         <jackson.version>2.13.4</jackson.version>
         <javax.inject.version>1</javax.inject.version>
         <jaxb-api.version>2.3.1</jaxb-api.version>
-        <junit.jupiter.version>5.9.1</junit.jupiter.version>
+        <junit.jupiter.version>5.10.0</junit.jupiter.version>
         <mockito.version>4.11.0</mockito.version>
         <awaitility.version>4.2.0</awaitility.version>
         <!-- Plugins -->
