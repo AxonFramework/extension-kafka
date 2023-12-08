@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher.DEFAULT_PROCESSING_GROUP;
+import static org.axonframework.extensions.kafka.eventhandling.producer.KafkaEventPublisher.DOES_NOT_SUPPORT_RESET;
 
 /**
  * Configuration properties for Axon for Apache Kafka.
@@ -234,6 +235,11 @@ public class KafkaProperties {
          */
         private String processingGroup = DEFAULT_PROCESSING_GROUP;
 
+        /**
+         * If true the Kafka Event Handler will support reset and replay. Defaults to {@code false}
+         */
+        private boolean supportsReset = DOES_NOT_SUPPORT_RESET;
+
         public boolean isEnabled() {
             return enabled;
         }
@@ -256,6 +262,14 @@ public class KafkaProperties {
 
         public void setProcessingGroup(String processingGroup) {
             this.processingGroup = processingGroup;
+        }
+
+        public boolean isSupportsReset() {
+            return supportsReset;
+        }
+
+        public void setSupportsReset(boolean supportsReset) {
+            this.supportsReset = supportsReset;
         }
     }
 

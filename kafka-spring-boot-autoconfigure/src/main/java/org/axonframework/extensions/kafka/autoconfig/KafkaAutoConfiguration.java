@@ -191,6 +191,7 @@ public class KafkaAutoConfiguration {
         KafkaEventPublisher<K, V> kafkaEventPublisher = KafkaEventPublisher
                 .<K, V>builder()
                 .processingGroup(properties.getPublisher().getProcessingGroup())
+                .supportsReset(properties.getPublisher().isSupportsReset())
                 .kafkaPublisher(kafkaPublisher)
                 .build();
 

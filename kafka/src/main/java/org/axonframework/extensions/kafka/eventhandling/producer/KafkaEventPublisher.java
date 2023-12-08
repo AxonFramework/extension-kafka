@@ -43,9 +43,10 @@ public class KafkaEventPublisher<K, V> implements EventMessageHandler {
      * {@link KafkaEventPublisher}.
      */
     public static final String DEFAULT_PROCESSING_GROUP = "__axon-kafka-event-publishing-group";
-    private static final boolean DOES_NOT_SUPPORT_RESET = false;
+    public static final boolean DOES_NOT_SUPPORT_RESET = false;
 
     private final String processingGroup;
+    private final boolean supportsReset;
     private final KafkaPublisher<K, V> kafkaPublisher;
 
     /**
@@ -72,6 +73,7 @@ public class KafkaEventPublisher<K, V> implements EventMessageHandler {
     protected KafkaEventPublisher(Builder<K, V> builder) {
         builder.validate();
         this.processingGroup = builder.processingGroup;
+        this.supportsReset = builder.supportsReset;
         this.kafkaPublisher = builder.kafkaPublisher;
     }
 
@@ -83,7 +85,7 @@ public class KafkaEventPublisher<K, V> implements EventMessageHandler {
 
     @Override
     public boolean supportsReset() {
-        return DOES_NOT_SUPPORT_RESET;
+        return this.supportsReset;
     }
 
     /**
@@ -105,6 +107,7 @@ public class KafkaEventPublisher<K, V> implements EventMessageHandler {
     public static class Builder<K, V> {
 
         private String processingGroup = DEFAULT_PROCESSING_GROUP;
+        private boolean supportsReset = DOES_NOT_SUPPORT_RESET;
         private KafkaPublisher<K, V> kafkaPublisher;
 
         /**
@@ -117,6 +120,18 @@ public class KafkaEventPublisher<K, V> implements EventMessageHandler {
         public Builder<K, V> processingGroup(String processingGroup) {
             assertNonEmpty(processingGroup, "ProcessingGroup may not be null or empty");
             this.processingGroup = processingGroup;
+            return this;
+        }
+
+        /**
+         * Sets the Kafka Event Handler supports reset flag to be used by this {@link EventMessageHandler}
+         *
+         * @param supportsReset the Kafka Event Handler supports reset flag to be used by this
+         *                      {@link EventMessageHandler}
+         * @return the current Builder instance, for fluent interfacing
+         */
+        public Builder<K, V> supportsReset(boolean supportsReset) {
+            this.supportsReset = supportsReset;
             return this;
         }
 
