@@ -92,6 +92,7 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
     private final Function<EventMessage<?>, Optional<String>> subjectSupplier;
     private final Function<EventMessage<?>, Optional<String>> dataContentTypeSupplier;
     private final Function<EventMessage<?>, Optional<URI>> dataSchemaSupplier;
+    private final boolean ignoreInvalidExtensionNames;
 
     /**
      * Instantiate a {@link CloudEventKafkaMessageConverter} based on the fields contained in the {@link Builder}.
@@ -127,6 +128,7 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
         this.subjectSupplier = builder.subjectSupplier;
         this.dataContentTypeSupplier = builder.dataContentTypeSupplier;
         this.dataSchemaSupplier = builder.dataSchemaSupplier;
+        this.ignoreInvalidExtensionNames = builder.ignoreInvalidExtensionNames;
     }
 
     /**
@@ -177,7 +179,7 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
         builder.withSource(sourceSupplier.apply(message));
         builder.withType(serializedObject.getType().getName());
         builder.withTime(message.getTimestamp().atOffset(ZoneOffset.UTC));
-        setExtensions(builder, message, serializedObject, extensionNameResolver);
+        setExtensions(builder, message, serializedObject, extensionNameResolver, ignoreInvalidExtensionNames);
         return builder.build();
     }
 
@@ -302,7 +304,9 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
      * {@code sourceSupplier} is defaulted to the class of the message. The {@code subjectSupplier} is defaulted to
      * getting the subject from the 'cloud-event-subject' metadata. The {@code dataContentTypeSupplier} is defaulted to
      * getting the subject from the 'cloud-event-data-content-type' metadata. The {@code dataSchemaSupplier} is
-     * defaulted to getting the subject from the 'cloud-event-data-schema' metadata.
+     * defaulted to getting the subject from the 'cloud-event-data-schema' metadata. The
+     * {@code ignoreInvalidExtensionNames} is defaulted to not ignore extensions with invalid names thus leading
+     * to throwing an {@link InvalidMetaDataException}
      */
     public static class Builder {
 
@@ -314,6 +318,7 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
         private Function<EventMessage<?>, Optional<String>> subjectSupplier = defaultSubjectSupplier();
         private Function<EventMessage<?>, Optional<String>> dataContentTypeSupplier = defaultDataContentTypeSupplier();
         private Function<EventMessage<?>, Optional<URI>> dataSchemaSupplier = defaultDataSchemaSupplier();
+        private boolean ignoreInvalidExtensionNames = false;
 
         /**
          * Creates a new map, to convert the two metadata properties used for tracing, which are incompatible with cloud
@@ -446,6 +451,17 @@ public class CloudEventKafkaMessageConverter implements KafkaMessageConverter<St
         public Builder dataSchemaSupplier(Function<EventMessage<?>, Optional<URI>> dataSchemaSupplier) {
             assertNonNull(dataSchemaSupplier, "dataSchemaSupplier must not be null");
             this.dataSchemaSupplier = dataSchemaSupplier;
+            return this;
+        }
+
+        /**
+         * if {@code true} than invalid extension names will not be added to {@link CloudEvent} message
+         *
+         * @param ignoreInvalidExtensionNames the ignore invalid extension names flag
+         * @return the current Builder instance, for fluent interfacing
+         */
+        public Builder ignoreInvalidExtensionNames(boolean ignoreInvalidExtensionNames) {
+            this.ignoreInvalidExtensionNames = ignoreInvalidExtensionNames;
             return this;
         }
 

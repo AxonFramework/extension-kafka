@@ -290,6 +290,22 @@ class CloudEventKafkaMessageConverterTest {
     }
 
     @Test
+    void whenMetadataContainsWrongName_thenIgnoreIt() {
+        testSubject = CloudEventKafkaMessageConverter.builder()
+                .serializer(serializer)
+                .ignoreInvalidExtensionNames(true)
+                .build();
+
+        EventMessage<Object> eventMessage =
+                asEventMessage("SomePayload").withMetaData(MetaData.with("_KEY", "value").and("key", "foo"));
+
+        ProducerRecord<String, CloudEvent> senderMessage = testSubject.createKafkaMessage(eventMessage, SOME_TOPIC);
+
+        assertEquals("foo", senderMessage.value().getExtension("key"));
+        assertNull(senderMessage.value().getExtension("_KEY"));
+    }
+
+    @Test
     void whenMetadataContainsUnsupportedValue_thenThrowAnError() {
         EventMessage<Object> eventMessage = asEventMessage("SomePayload")
                 .withMetaData(MetaData.with("key", Collections.singletonList("value")));
