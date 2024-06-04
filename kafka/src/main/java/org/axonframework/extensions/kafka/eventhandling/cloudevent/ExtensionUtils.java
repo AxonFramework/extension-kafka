@@ -79,17 +79,20 @@ public class ExtensionUtils {
      * Adds extension values to the {@link CloudEvent} based on the {@link EventMessage} and {@link SerializedObject}
      * using the {@code extensionNameResolver} map to resolve the extension names.
      *
-     * @param builder               a {@link CloudEventBuilder} to add the values to
-     * @param message               an {@link EventMessage} that might contain information that needs to be added as
-     *                              extension
-     * @param serializedObject      a {@link SerializedObject} that might contain a revision
-     * @param extensionNameResolver a {@link Map} used to convert metadata keys to extension names
+     * @param builder                     a {@link CloudEventBuilder} to add the values to
+     * @param message                     an {@link EventMessage} that might contain information that needs to be added as
+     *                                    extension
+     * @param serializedObject            a {@link SerializedObject} that might contain a revision
+     * @param extensionNameResolver       a {@link Map} used to convert metadata keys to extension names
+     * @param ignoreInvalidExtensionNames if {@code true} than invalid extension names will not be added to
+     *                                    {@link CloudEvent} message
      */
     public static void setExtensions(
             CloudEventBuilder builder,
             EventMessage<?> message,
             SerializedObject<byte[]> serializedObject,
-            Map<String, String> extensionNameResolver
+            Map<String, String> extensionNameResolver,
+            boolean ignoreInvalidExtensionNames
     ) {
         if (!isNull(serializedObject.getType().getRevision())) {
             builder.withExtension(MESSAGE_REVISION, serializedObject.getType().getRevision());
@@ -105,7 +108,8 @@ public class ExtensionUtils {
                .filter(reservedMetadataFilter())
                .forEach(entry -> setExtension(builder,
                                               resolveExtensionName(entry.getKey(), extensionNameResolver),
-                                              entry.getValue()));
+                                              entry.getValue(),
+                                              ignoreInvalidExtensionNames));
     }
 
     /**
@@ -145,7 +149,12 @@ public class ExtensionUtils {
         return NON_METADATA_EXTENSIONS.contains(extensionName);
     }
 
-    private static void setExtension(CloudEventBuilder builder, String extensionName, Object value) {
+    private static void setExtension(
+            CloudEventBuilder builder,
+            String extensionName,
+            Object value,
+            boolean ignoreInvalidExtensionNames
+    ) {
         if (isNonMetadataExtension(extensionName)) {
             throw new InvalidMetaDataException(
                     String.format("Metadata property '%s' is already reserved to be used for Axon",
@@ -153,10 +162,15 @@ public class ExtensionUtils {
             );
         }
         if (!isValidExtensionName(extensionName)) {
-            throw new InvalidMetaDataException(
-                    String.format("Metadata property '%s' is not a valid extension name",
-                                  extensionName)
-            );
+            if (ignoreInvalidExtensionNames) {
+                logger.warn("Metadata property: '{}' is not a valid extension name and will be ignored", extensionName);
+                return;
+            } else {
+                throw new InvalidMetaDataException(
+                        String.format("Metadata property '%s' is not a valid extension name",
+                                extensionName)
+                );
+            }
         }
         if (value instanceof String) {
             builder.withExtension(extensionName, (String) value);
