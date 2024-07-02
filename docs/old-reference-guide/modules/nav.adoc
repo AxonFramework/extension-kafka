@@ -1,1 +1,5 @@
 * xref:ROOT:index.adoc[]
+** xref:ROOT:publishing.adoc[]
+** xref:ROOT:consuming.adoc[]
+** xref:ROOT:message-format.adoc[]
+** xref:ROOT:springboot-configuration.adoc[]

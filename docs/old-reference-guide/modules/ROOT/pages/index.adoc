@@ -1,0 +1,14 @@
+:navtitle: Kafka Extension Guide
+= Kafka Extension
+
+Apache Kafka is a popular system for publishing and consuming events. Its architecture is fundamentally different from most messaging systems and combines speed with reliability.
+
+Axon provides an extension dedicated to _publishing_ and _receiving_ event messages from Kafka. The Kafka Extension should be regarded as an alternative approach to distributing events, besides (the default) Axon Server. It's also possible to use the extension to stream events from Kafka to Axon server, or the other way around.
+
+The implementation of the extension can be found link:https://github.com/AxonFramework/extension-kafka[here,window=_blank,role=extenral]. The shared repository also contains a link:https://github.com/AxonFramework/extension-kafka/tree/master/kafka-axon-example[sample project,window=_blank,role=extenral] using the extension.
+
+To use the Kafka Extension components from Axon, make sure the `axon-kafka` module is available on the classpath. Using the extension requires setting up and configuring Kafka following your project's requirements. How this is achieved is outside of the scope of this reference guide and should be found in link:https://kafka.apache.org/[Kafka's documentation,window=_blank,role=extenral].
+
+NOTE: Note that Kafka is a perfectly fine event distribution mechanism, but it is not an event store. Along those lines this extension only provides the means to distributed Axon's events through Kafka. Due to this the extension cannot be used to event source aggregates, as this requires an event store implementation. We recommend using a built-for-purpose event store like link:https://www.axoniq.io/products/axon-server[Axon Server,window=_blank,role=extenral], or alternatively an RDBMS based (the JPA or JDBC implementations for example).
+
+

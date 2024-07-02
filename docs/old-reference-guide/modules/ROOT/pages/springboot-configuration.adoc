@@ -1,0 +1,101 @@
+:navtitle: Configuration in SpringBoot
+= Configuration in SpringBoot
+
+This extension can be added as a Spring Boot starter dependency to your project using group id `org.axonframework.extensions.kafka` and artifact id `axon-kafka-spring-boot-starter`. When using the auto configuration, the following components will be created for you automatically:
+
+== Generic components
+
+=== `DefaultKafkaMessageConverter`
+A using the configured `eventSerializer` (which defaults to `XStreamSerializer`), which is used by default to convert between Axon Event messages and Kafka records.
+
+Uses a `String` for the keys and a `byte[]` for the record's values.
+
+When the property `axon.kafka.message-converter-mode` is set to `cloud_event` a `CloudEventKafkaMessageConverter` will be used instead. This will use `String` for the keys and `CloudEvent`.
+
+For each the matching Kafka (de)serializers will also be set as default.
+
+== Producer components
+
+=== `DefaultProducerFactory`
+
+A `DefaultProducerFactory` using a `String` for the keys and a `byte[]` for the record's values.
+
+This creates a `ProducerFactory` in confirmation mode "NONE", as is specified xref:publishing.adoc[here].
+
+The `axon.kafka.publisher.confirmation-mode` should be adjusted to change this mode,
+where the "TRANSACTIONAL" mode requires `axon.kafka.producer.transaction-id-prefix` property to be provided.
+
+If the `axon.kafka.producer.transaction-id-prefix` is non-null and non-empty,it is assumed a "TRANSACTIONAL" confirmation mode is desired.
+
+=== `KafkaPublisher`
+
+Uses a `Producer` instance from the `ProducerFactory` to publish events to the configured Kafka topic.
+
+=== `KafkaEventPublisher`
+
+Used to provide events to the `KafkaPublisher` and to assign a processor name and processing group called `__axon-kafka-event-publishing-group` to it. Defaults to a `SubscribingEventProcessor`.
+
+If a `TrackingEventProcessor` is desired, the `axon.kafka.producer.event-processor-mode` should be set to `tracking`.
+
+== Consumer components
+
+=== `DefaultConsumerFactory`
+
+A `DefaultConsumerFactory` using a `String` for the keys and a `byte[]` for the record's values
+
+=== `AsyncFetcher`
+
+An `AsyncFetcher`. To adjust the `Fetcher` poll timeout, the `axon.kafka.fetcher.poll-timeout` can be set.
+
+=== `StreamableKafkaMessageSource`
+
+A `StreamableKafkaMessageSource` which can be used for `TrackingEventProcessor` instances
+
+== Properties file configuration
+
+When using the Spring Boot auto-configuration be mindful to provide an `application.properties` file. The Kafka extension configuration specifics should be placed under prefix `axon.kafka`. On this level, the `bootstrapServers` (defaults to `localhost:9092`) and `default-topic` used by the producing and consuming side can be defined.
+
+The `DefaultProducerFactory` and `DefaultConsumerFactory` expects a `Map` of configuration properties, which correspond to Kafka `Producer` and `Consumer` specific properties respectively. As such, Axon itself passes along these properties without using them directly itself. The `application.properties` file provides a number of named properties under the `axon.kafka.producer.` and `axon.kafka.consumer.` prefixes. If the property you are looking for is not predefined in Axon `KafkaProperties` file, you are always able to introduce properties in a map style.
+
+[source,yaml]
+----
+# This is a sample properties file to configure the Kafka Extension
+axon:
+  kafka:
+    bootstrap-servers: localhost:9092
+    client-id: kafka-axon-example
+    default-topic: local.event
+    properties:
+      security.protocol: PLAINTEXT
+
+    publisher:
+      confirmation-mode: transactional
+
+    producer:
+      transaction-id-prefix: kafka-sample
+      retries: 0
+      event-processor-mode: subscribing
+      # For additional unnamed properties, add them to the `properties` map like so
+      properties:
+        some-key: [some-value]
+
+    fetcher:
+      poll-timeout: 3000
+
+    consumer:
+      enable-auto-commit: true
+      auto-commit-interval: 3000
+      event-processor-mode: tracking
+      # For additional unnamed properties, add them to the `properties` map like so
+      properties:
+        some-key: [some-value]
+----
+
+[NOTE]
+.Auto configuring a `SubscribableKafkaMessageSource`
+====
+
+The auto configured `StreamableKafkaMessageSource` can be toggled off by setting the `axon.kafka.consumer.event-processing-mode` to `subscribing`.
+
+Note that this *does not* create a `SubscribableKafkaMessageSource` for you out of the box. To set up a subscribable message, we recommend to read xref:consuming.adoc#subscribable-message-source[this] section.
+====
