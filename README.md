@@ -21,8 +21,9 @@ For more information on anything Axon, please visit our website, [http://axoniq.
 
 ## Getting started
 
-The [reference guide](https://docs.axoniq.io) contains a separate chapter for all the extensions.
-The Kafka extension description can be found [here](https://docs.axoniq.io/reference-guide/extensions/kafka).
+The [AxonIQ Library](https://library.axoniq.io) contains a section for the guides of all the Axon Framework extensions.
+The Kafka extension guide can be found [here](https://library.axoniq.io/home/guides/axon-framework.html).
+
 This extension should be regarded as a partial replacement of [Axon Server](https://axoniq.io/product-overview/axon-server),
  since it only cover the event routing part.
 
@@ -32,10 +33,10 @@ Are you having trouble using the extension?
 We'd like to help you out the best we can!
 There are a couple of things to consider when you're traversing anything Axon:
 
-* Checking the [reference guide](https://docs.axoniq.io/reference-guide/extensions/kafka) should be your first stop,
- as the majority of possible scenarios you might encounter when using Axon should be covered there.
+* Checking the [reference guide](https://library.axoniq.io/axon_framework_old_ref/) should be your first stop,
+  as the majority of possible scenarios you might encounter when using Axon should be covered there.
 * If the Reference Guide does not cover a specific topic you would've expected,
- we'd appreciate if you could file an [issue](https://github.com/AxonIQ/reference-guide/issues) about it for us. 
+  we'd appreciate if you could post a [new thread/topic on our library fourms describing the problem](https://discuss.axoniq.io/c/26).
 * There is a [forum](https://discuss.axoniq.io/) to support you in the case the reference guide did not sufficiently answer your question.
 Axon Framework and Server developers will help out on a best effort basis.
 Know that any support from contributors on posted question is very much appreciated on the forum.
