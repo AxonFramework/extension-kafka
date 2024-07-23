@@ -25,7 +25,7 @@
     </parent>
 
     <artifactId>axon-kafka-spring-boot-starter</artifactId>
-    <version>4.9.1-SNAPSHOT</version>
+    <version>4.10.0-SNAPSHOT</version>
 
     <name>Axon Framework Kafka Extension - Spring Boot Starter</name>
     <description>Spring Boot Starter module for the Axon Kafka Extension</description>
