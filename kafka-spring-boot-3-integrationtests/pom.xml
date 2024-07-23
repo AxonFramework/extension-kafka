@@ -38,7 +38,7 @@
     <packaging>jar</packaging>
 
     <properties>
-        <axon.version>4.8.0</axon.version>
+        <axon.version>4.10.0</axon.version>
     </properties>
 
     <dependencies>
