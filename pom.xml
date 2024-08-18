@@ -76,7 +76,7 @@
         <maven-deploy.version>3.1.2</maven-deploy.version>
         <maven-enforcer.version>3.5.0</maven-enforcer.version>
         <maven-failsafe.version>3.3.1</maven-failsafe.version>
-        <maven-gpg.version>3.2.4</maven-gpg.version>
+        <maven-gpg.version>3.2.5</maven-gpg.version>
         <maven-install-plugin.version>3.1.2</maven-install-plugin.version>
         <maven-jar.version>3.4.2</maven-jar.version>
         <maven-javadoc.version>3.8.0</maven-javadoc.version>
