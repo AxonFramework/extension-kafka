@@ -234,6 +234,12 @@ public class KafkaProperties {
          */
         private String processingGroup = DEFAULT_PROCESSING_GROUP;
 
+        /**
+         * The publisher acknowledge timeout in milliseconds specifying how long to wait for a publisher to
+         * acknowledge a message has been sent. Defaults to {@code 1000} milliseconds.
+         */
+        private long ackTimeout = 1000;
+
         public boolean isEnabled() {
             return enabled;
         }
@@ -256,6 +262,14 @@ public class KafkaProperties {
 
         public void setProcessingGroup(String processingGroup) {
             this.processingGroup = processingGroup;
+        }
+
+        public long getAckTimeout() {
+            return ackTimeout;
+        }
+
+        public void setAckTimeout(long ackTimeout) {
+            this.ackTimeout = ackTimeout;
         }
     }
 
