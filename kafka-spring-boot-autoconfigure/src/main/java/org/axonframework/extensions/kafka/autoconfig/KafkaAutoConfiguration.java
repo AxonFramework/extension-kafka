@@ -176,6 +176,7 @@ public class KafkaAutoConfiguration {
                              .messageConverter(kafkaMessageConverter)
                              .messageMonitor(configuration.messageMonitor(KafkaPublisher.class, "kafkaPublisher"))
                              .topicResolver(topicResolver)
+                             .publisherAckTimeout(properties.getPublisher().getAckTimeout())
                              .build();
     }
 
