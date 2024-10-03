@@ -4,7 +4,7 @@ This folder contains the docs related to the Kafka Extension for Axon Framework.
 
 The following are the current documentation sources (folders):
 
-- `extension-guide` : [The Kafka Extension Guide](https://library.axoniq.io/kafka_extension_guide/index.html)
+- `extension-guide` : [The Kafka Extension Guide](https://library.axoniq.io/kafka-extension-reference/index.html)
 
 ## Contributing to the docs.
 
