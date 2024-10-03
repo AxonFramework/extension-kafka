@@ -1,0 +1,14 @@
+name: kafka-extension-reference
+title: Kafka Extension Reference
+version: true
+prerelease: true
+start_page: ROOT:index.adoc
+
+asciidoc:
+  attributes:
+    component_description: Extension adding Kafka integration for event streaming
+    type: extension-reference
+    group: axon-framework
+
+nav:
+  - modules/nav.adoc

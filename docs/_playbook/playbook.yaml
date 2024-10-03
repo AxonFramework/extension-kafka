@@ -1,6 +1,6 @@
 site:
   title: Axon Kafka Extension docs PREVIEW
-  start_page: kafka_extension_guide::index.adoc
+  start_page: kafka-extension-reference::index.adoc
 
 content:
   sources:
