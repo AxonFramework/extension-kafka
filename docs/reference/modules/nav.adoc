@@ -3,3 +3,4 @@
 ** xref:ROOT:consuming.adoc[]
 ** xref:ROOT:message-format.adoc[]
 ** xref:ROOT:springboot-configuration.adoc[]
+** xref:ROOT:release-notes.adoc[]
