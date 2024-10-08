@@ -1,0 +1,13 @@
+= Release Notes Kafka Extension
+:navtitle: Release notes
+
+You can find the release notes for the Kafka Extension of version 4.10.0 below.
+For earlier releases, please go to the link:https://legacydocs.axoniq.io/reference-guide/release-notes/rn-extensions/rn-kafka[legacy documentation].
+
+== Release 4.10
+
+. Upgrades the Kafka Extension to be compatible with Axon Framework 4.10.0
+. Updates various dependencies
+. Adds the ability to ignore metadata keys
+
+See the link:https://github.com/AxonFramework/extension-kafka/releases/tag/axon-kafka-4.10.0[GitHub release notes] for an exhaustive list of all changes.
