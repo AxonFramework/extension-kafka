@@ -79,7 +79,7 @@
         <maven-gpg.version>3.2.7</maven-gpg.version>
         <maven-install-plugin.version>3.1.3</maven-install-plugin.version>
         <maven-jar.version>3.4.2</maven-jar.version>
-        <maven-javadoc.version>3.11.1</maven-javadoc.version>
+        <maven-javadoc.version>3.11.2</maven-javadoc.version>
         <maven-release.version>3.1.1</maven-release.version>
         <maven-resources.version>3.3.1</maven-resources.version>
         <maven-source.version>3.3.1</maven-source.version>
