@@ -22,7 +22,7 @@ For more information on anything Axon, please visit our website, [http://axoniq.
 ## Getting started
 
 The [AxonIQ Docs](https://docs.axoniq.io/home/) contain a section for the guides of all the Axon Framework extensions.
-The Kafka extension guide can be found [here](https://docs.axoniq.io/kafka-extension-reference/4.10/).
+The Kafka extension guide can be found [here](https://docs.axoniq.io/kafka-extension-reference/latest/).
 
 This extension should be regarded as a partial replacement of [Axon Server](https://axoniq.io/product-overview/axon-server),
  since it only cover the event routing part.
