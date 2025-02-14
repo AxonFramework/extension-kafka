@@ -1,10 +1,22 @@
 = Release Notes Kafka Extension
 :navtitle: Release notes
 
-You can find the release notes for the Kafka Extension of version 4.10.0 below.
+You can find the release notes for the Kafka Extension of version 4.10.0 and up, below.
 For earlier releases, please go to the link:https://legacydocs.axoniq.io/reference-guide/release-notes/rn-extensions/rn-kafka[legacy documentation].
 
-== Release 4.10
+== Release 4.11.0
+
+=== _Features_
+
+- KafkaPublisher Ack timeout can be set via properties and autoconfiguration link:https://github.com/AxonFramework/extension-kafka/pull/528[#528]
+
+=== _Contributors_
+
+We'd like to thank all the contributors who worked on this release!
+
+- link:https://github.com/aupodogov[@aupodogov]
+
+== Release 4.10.0
 
 . Upgrades the Kafka Extension to be compatible with Axon Framework 4.10.0
 . Updates various dependencies
