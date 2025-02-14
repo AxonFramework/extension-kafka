@@ -3,7 +3,7 @@ title: Kafka Extension Reference
 version:
   axon-kafka-(?<version>+({0..9}).+({0..9})).*: $<version>
   master: development
-prerelease: true
+prerelease: false
 start_page: ROOT:index.adoc
 
 asciidoc:
