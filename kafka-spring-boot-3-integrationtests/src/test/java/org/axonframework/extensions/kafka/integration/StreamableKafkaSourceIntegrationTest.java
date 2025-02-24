@@ -29,7 +29,7 @@ import org.springframework.jmx.support.RegistrationPolicy;
 import org.springframework.test.context.ContextConfiguration;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.redpanda.RedpandaContainer;
+import org.testcontainers.kafka.KafkaContainer;
 
 import java.time.Duration;
 
@@ -41,8 +41,9 @@ import static org.junit.jupiter.api.Assertions.*;
 class StreamableKafkaSourceIntegrationTest {
 
     @Container
-    private static final RedpandaContainer REDPANDA_CONTAINER = new RedpandaContainer(
-            "docker.redpanda.com/vectorized/redpanda:v22.2.1");
+    private static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer("apache/kafka-native")
+            .withEnv("KAFKA_LISTENERS", "PLAINTEXT://:9092,BROKER://:9093,CONTROLLER://:9094");
+
     private ApplicationContextRunner testApplicationContext;
 
     @BeforeEach
@@ -56,15 +57,18 @@ class StreamableKafkaSourceIntegrationTest {
                 .withPropertyValues("axon.axonserver.enabled=false")
                 .withPropertyValues("axon.kafka.fetcher.enabled=true")
                 .withPropertyValues("axon.kafka.consumer.event-processor-mode=tracking")
-                .withPropertyValues("axon.kafka.producer.bootstrap-servers=" + REDPANDA_CONTAINER.getBootstrapServers())
-                .withPropertyValues("axon.kafka.consumer.bootstrap-servers=" + REDPANDA_CONTAINER.getBootstrapServers())
+                .withPropertyValues("axon.kafka.producer.bootstrap-servers=" + KAFKA_CONTAINER.getBootstrapServers())
+                .withPropertyValues("axon.kafka.consumer.bootstrap-servers=" + KAFKA_CONTAINER.getBootstrapServers())
                 .withUserConfiguration(DefaultContext.class)
                 .run(context -> {
                     EventGateway eventGateway = context.getBean(EventGateway.class);
                     assertNotNull(eventGateway);
                     publishEvent(eventGateway);
-                    StreamableKafkaMessageSource<String, byte[]> messageSource = context.getBean(
-                            StreamableKafkaMessageSource.class);
+
+                    //noinspection unchecked
+                    StreamableKafkaMessageSource<String, byte[]> messageSource =
+                            context.getBean(StreamableKafkaMessageSource.class);
+
                     assertNotNull(messageSource);
                     receiveMessage(messageSource);
                 });
@@ -75,8 +79,10 @@ class StreamableKafkaSourceIntegrationTest {
         eventGateway.publish(event);
     }
 
-    private void receiveMessage(StreamableKafkaMessageSource<String, byte[]> messageSource)
-            throws InterruptedException {
+    private void receiveMessage(
+            StreamableKafkaMessageSource<String, byte[]> messageSource
+    ) throws InterruptedException {
+        //noinspection resource
         BlockingStream<TrackedEventMessage<?>> stream = messageSource.openStream(null);
         await().atMost(Duration.ofSeconds(5L)).until(stream::hasNextAvailable);
         TrackedEventMessage<?> message = stream.nextAvailable();

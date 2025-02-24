@@ -39,7 +39,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.test.context.ContextConfiguration;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.redpanda.RedpandaContainer;
+import org.testcontainers.kafka.KafkaContainer;
 
 import java.net.URI;
 import java.time.Duration;
@@ -56,10 +56,10 @@ import static org.junit.jupiter.api.Assertions.*;
 class TokenReplayIntegrationTest {
 
     @Container
-    private static final RedpandaContainer REDPANDA_CONTAINER = new RedpandaContainer(
-            "docker.redpanda.com/vectorized/redpanda:v22.2.1");
-    private ApplicationContextRunner testApplicationContext;
+    private static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer("apache/kafka-native")
+            .withEnv("KAFKA_LISTENERS", "PLAINTEXT://:9092,BROKER://:9093,CONTROLLER://:9094");
 
+    private ApplicationContextRunner testApplicationContext;
 
     @BeforeEach
     void setUp() {
@@ -69,19 +69,19 @@ class TokenReplayIntegrationTest {
                 .withPropertyValues("axon.kafka.publisher.enabled=false")
                 .withPropertyValues("axon.kafka.message-converter-mode=cloud_event")
                 .withPropertyValues("axon.kafka.consumer.event-processor-mode=tracking")
-                .withPropertyValues("axon.kafka.consumer.bootstrap-servers=" + REDPANDA_CONTAINER.getBootstrapServers())
+                .withPropertyValues("axon.kafka.consumer.bootstrap-servers=" + KAFKA_CONTAINER.getBootstrapServers())
                 .withUserConfiguration(DefaultContext.class);
     }
 
     @Test
     void afterResetShouldOnlyProcessTenEventsIfTimeSetMidway() {
         testApplicationContext
-                .withPropertyValues("axon.kafka.default-topic=counterfeed-1")
+                .withPropertyValues("axon.kafka.default-topic=counter-feed-1")
                 .run(context -> {
                     Counter counter = context.getBean(Counter.class);
                     assertNotNull(counter);
                     assertEquals(0, counter.getCount());
-                    Instant between = addRecords("counterfeed-1");
+                    Instant between = addRecords("counter-feed-1");
                     await().atMost(Duration.ofSeconds(5L)).untilAsserted(
                             () -> assertEquals(20, counter.getCount())
                     );
@@ -89,7 +89,7 @@ class TokenReplayIntegrationTest {
                     assertNotNull(processingConfiguration);
                     processingConfiguration
                             .eventProcessorByProcessingGroup(
-                                    "counterfeedprocessor",
+                                    "counter-feed-processor",
                                     TrackingEventProcessor.class
                             )
                             .ifPresent(tep -> {
@@ -107,12 +107,12 @@ class TokenReplayIntegrationTest {
     @Test
     void afterResetShouldOnlyProcessNewMessages() {
         testApplicationContext
-                .withPropertyValues("axon.kafka.default-topic=counterfeed-2")
+                .withPropertyValues("axon.kafka.default-topic=counter-feed-2")
                 .run(context -> {
                     Counter counter = context.getBean(Counter.class);
                     assertNotNull(counter);
                     assertEquals(0, counter.getCount());
-                    addRecords("counterfeed-2");
+                    addRecords("counter-feed-2");
                     await().atMost(Duration.ofSeconds(5L)).untilAsserted(
                             () -> assertEquals(20, counter.getCount())
                     );
@@ -120,7 +120,7 @@ class TokenReplayIntegrationTest {
                     assertNotNull(processingConfiguration);
                     processingConfiguration
                             .eventProcessorByProcessingGroup(
-                                    "counterfeedprocessor",
+                                    "counter-feed-processor",
                                     TrackingEventProcessor.class
                             )
                             .ifPresent(tep -> {
@@ -129,7 +129,7 @@ class TokenReplayIntegrationTest {
                                 assertEquals(0, counter.getCount());
                                 tep.start();
                             });
-                    addRecords("counterfeed-2");
+                    addRecords("counter-feed-2");
                     await().atMost(Duration.ofSeconds(5L)).untilAsserted(
                             () -> assertEquals(20, counter.getCount())
                     );
@@ -137,7 +137,7 @@ class TokenReplayIntegrationTest {
     }
 
     private Instant addRecords(String topic) {
-        Producer<String, CloudEvent> producer = newProducer(REDPANDA_CONTAINER.getBootstrapServers());
+        Producer<String, CloudEvent> producer = newProducer(KAFKA_CONTAINER.getBootstrapServers());
         sendTenMessages(producer, topic);
         Instant now = Instant.now();
         sendTenMessages(producer, topic);
@@ -146,12 +146,11 @@ class TokenReplayIntegrationTest {
     }
 
     private void sendMessage(Producer<String, CloudEvent> producer, String topic) {
-        CloudEvent event = new CloudEventBuilder()
-                .withId(UUID.randomUUID().toString())
-                .withSource(URI.create("source"))
-                .withData("Payload".getBytes())
-                .withType("java.util.String")
-                .build();
+        CloudEvent event = new CloudEventBuilder().withId(UUID.randomUUID().toString())
+                                                  .withSource(URI.create("source"))
+                                                  .withData("Payload".getBytes())
+                                                  .withType("java.util.String")
+                                                  .build();
         ProducerRecord<String, CloudEvent> record = new ProducerRecord<>(topic, 0, null, null, event);
         producer.send(record);
     }
@@ -182,7 +181,7 @@ class TokenReplayIntegrationTest {
                 StreamableKafkaMessageSource<?, ?> streamableKafkaMessageSource
         ) {
             configurer.eventProcessing()
-                      .registerTrackingEventProcessor("counterfeedprocessor", c -> streamableKafkaMessageSource);
+                      .registerTrackingEventProcessor("counter-feed-processor", c -> streamableKafkaMessageSource);
         }
     }
 
@@ -205,7 +204,7 @@ class TokenReplayIntegrationTest {
 
     @SuppressWarnings("unused")
     @Component
-    @ProcessingGroup("counterfeedprocessor")
+    @ProcessingGroup("counter-feed-processor")
     private static class KafkaEventHandler {
 
         private final Counter counter;
