@@ -41,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class StreamableKafkaSourceIntegrationTest {
 
     @Container
-    private static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer("apache/kafka-native");
+    private static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer("apache/kafka");
 
     private ApplicationContextRunner testApplicationContext;
 
