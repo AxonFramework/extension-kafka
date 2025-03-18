@@ -56,6 +56,7 @@ public class AsyncFetcher<K, V, E> implements Fetcher<K, V, E> {
     private final ExecutorService executorService;
     private final boolean requirePoolShutdown;
     private final Set<FetchEventsTask<K, V, E>> activeFetchers = ConcurrentHashMap.newKeySet();
+    private final boolean commitOnProcessed;
 
     /**
      * Instantiate a Builder to be able to create a {@link AsyncFetcher}.
@@ -85,6 +86,7 @@ public class AsyncFetcher<K, V, E> implements Fetcher<K, V, E> {
         this.pollTimeout = builder.pollTimeout;
         this.executorService = builder.executorService;
         this.requirePoolShutdown = builder.requirePoolShutdown;
+        this.commitOnProcessed = builder.commitOnProcessed;
     }
 
     /**
@@ -110,7 +112,8 @@ public class AsyncFetcher<K, V, E> implements Fetcher<K, V, E> {
                                       recordConverter,
                                       eventConsumer,
                                       activeFetchers::remove,
-                                      runtimeErrorHandler);
+                                      runtimeErrorHandler,
+                                      commitOnProcessed);
 
         activeFetchers.add(fetcherTask);
         executorService.execute(fetcherTask);
@@ -148,6 +151,7 @@ public class AsyncFetcher<K, V, E> implements Fetcher<K, V, E> {
         private Duration pollTimeout = Duration.ofMillis(DEFAULT_POLL_TIMEOUT_MS);
         private ExecutorService executorService = Executors.newCachedThreadPool(new AxonThreadFactory("AsyncFetcher"));
         private boolean requirePoolShutdown = true;
+        private boolean commitOnProcessed = false;
 
         /**
          * Set the {@code pollTimeout} in milliseconds for polling records from a topic. Defaults to {@code 5000}
@@ -160,6 +164,19 @@ public class AsyncFetcher<K, V, E> implements Fetcher<K, V, E> {
             assertThat(timeoutMillis, timeout -> timeout > 0,
                        "The poll timeout may not be negative [" + timeoutMillis + "]");
             this.pollTimeout = Duration.ofMillis(timeoutMillis);
+            return this;
+        }
+
+        /**
+         * Set the {@code commitOnProcessed}, if false expects auto commit to be used,
+         * if true will commit the offsets after processing all the records in the poll.
+         * Defaults to {@code false}
+         *
+         * @param commitOnProcessed boolean flag to commit the offsets after processing all the records in the poll
+         * @return the current Builder instance, for fluent interfacing
+         */
+        public AsyncFetcher.Builder<K, V, E> commitOnProcessed(boolean commitOnProcessed) {
+            this.commitOnProcessed = commitOnProcessed;
             return this;
         }
 

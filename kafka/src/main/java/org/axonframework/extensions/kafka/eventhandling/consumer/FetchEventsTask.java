@@ -52,6 +52,7 @@ class FetchEventsTask<K, V, E> implements Runnable {
     private final EventConsumer<E> eventConsumer;
     private final java.util.function.Consumer<FetchEventsTask<K, V, E>> closeHandler;
     private final RuntimeErrorHandler runtimeErrorHandler;
+    private final boolean commitOnProcessed;
 
 
     /**
@@ -72,7 +73,8 @@ class FetchEventsTask<K, V, E> implements Runnable {
                     RecordConverter<K, V, E> recordConverter,
                     EventConsumer<E> eventConsumer,
                     java.util.function.Consumer<FetchEventsTask<K, V, E>> closeHandler,
-                    RuntimeErrorHandler runtimeErrorHandler) {
+                    RuntimeErrorHandler runtimeErrorHandler,
+                    boolean commitOnProcessed) {
         this.consumer = nonNull(consumer, () -> "Consumer may not be null");
         assertThat(pollTimeout, time -> !time.isNegative(),
                    "The poll timeout may not be negative [" + pollTimeout + "]");
@@ -81,6 +83,7 @@ class FetchEventsTask<K, V, E> implements Runnable {
         this.eventConsumer = eventConsumer;
         this.closeHandler = getOrDefault(closeHandler, task -> { /* no-op */ });
         this.runtimeErrorHandler = nonNull(runtimeErrorHandler, () -> "Runtime error handler may not be null");
+        this.commitOnProcessed = commitOnProcessed;
     }
 
     @Override
@@ -109,6 +112,10 @@ class FetchEventsTask<K, V, E> implements Runnable {
         try {
             if (!convertedMessages.isEmpty()) {
                 eventConsumer.consume(convertedMessages);
+                if (commitOnProcessed) {
+                    consumer.commitSync();
+                    logger.debug("Committed offsets after processing {} messages", convertedMessages.size());
+                }
             }
         } catch (InterruptedException e) {
             logger.debug("Event Consumer thread was interrupted. Shutting down", e);
