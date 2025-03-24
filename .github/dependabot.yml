@@ -43,3 +43,5 @@ updates:
         versions: [ "[5.0.0,)" ]
       - dependency-name: "org.springframework.boot:*"
         versions: [ "[3.0.0,)" ]
+      - dependency-name: "org.apache.kafka:kafka-clients"
+        versions: [ "[3.9.0,)" ]
