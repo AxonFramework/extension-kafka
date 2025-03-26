@@ -52,7 +52,7 @@ class FetchEventsTask<K, V, E> implements Runnable {
     private final EventConsumer<E> eventConsumer;
     private final java.util.function.Consumer<FetchEventsTask<K, V, E>> closeHandler;
     private final RuntimeErrorHandler runtimeErrorHandler;
-    private final boolean commitOnProcessed;
+    private final OffsetCommitType offsetCommitType;
 
 
     /**
@@ -74,7 +74,7 @@ class FetchEventsTask<K, V, E> implements Runnable {
                     EventConsumer<E> eventConsumer,
                     java.util.function.Consumer<FetchEventsTask<K, V, E>> closeHandler,
                     RuntimeErrorHandler runtimeErrorHandler,
-                    boolean commitOnProcessed) {
+                    OffsetCommitType offsetCommitType) {
         this.consumer = nonNull(consumer, () -> "Consumer may not be null");
         assertThat(pollTimeout, time -> !time.isNegative(),
                    "The poll timeout may not be negative [" + pollTimeout + "]");
@@ -83,7 +83,7 @@ class FetchEventsTask<K, V, E> implements Runnable {
         this.eventConsumer = eventConsumer;
         this.closeHandler = getOrDefault(closeHandler, task -> { /* no-op */ });
         this.runtimeErrorHandler = nonNull(runtimeErrorHandler, () -> "Runtime error handler may not be null");
-        this.commitOnProcessed = commitOnProcessed;
+        this.offsetCommitType = offsetCommitType;
     }
 
     @Override
@@ -112,15 +112,24 @@ class FetchEventsTask<K, V, E> implements Runnable {
         try {
             if (!convertedMessages.isEmpty()) {
                 eventConsumer.consume(convertedMessages);
-                if (commitOnProcessed) {
-                    consumer.commitSync();
-                    logger.debug("Committed offsets after processing {} messages", convertedMessages.size());
-                }
+                handleOffsetsIfRequired(convertedMessages.size());
             }
         } catch (InterruptedException e) {
             logger.debug("Event Consumer thread was interrupted. Shutting down", e);
             running.set(false);
             Thread.currentThread().interrupt();
+        }
+    }
+
+    private void handleOffsetsIfRequired(int messageCount) {
+        if (OffsetCommitType.COMMIT_SYNC == offsetCommitType) {
+            consumer.commitSync();
+            logger.debug("Committed offsets synchronously for {} messages", messageCount);
+        } else if (OffsetCommitType.COMMIT_ASYNC == offsetCommitType) {
+            consumer.commitAsync();
+            logger.debug("Committed offsets asynchronously for {} messages", messageCount);
+        } else {
+            logger.debug("Consumer will commit offsets in background");
         }
     }
 

@@ -56,7 +56,7 @@ public class AsyncFetcher<K, V, E> implements Fetcher<K, V, E> {
     private final ExecutorService executorService;
     private final boolean requirePoolShutdown;
     private final Set<FetchEventsTask<K, V, E>> activeFetchers = ConcurrentHashMap.newKeySet();
-    private final boolean commitOnProcessed;
+    private final OffsetCommitType offsetCommitType;
 
     /**
      * Instantiate a Builder to be able to create a {@link AsyncFetcher}.
@@ -86,7 +86,7 @@ public class AsyncFetcher<K, V, E> implements Fetcher<K, V, E> {
         this.pollTimeout = builder.pollTimeout;
         this.executorService = builder.executorService;
         this.requirePoolShutdown = builder.requirePoolShutdown;
-        this.commitOnProcessed = builder.commitOnProcessed;
+        this.offsetCommitType = builder.offsetCommitType;
     }
 
     /**
@@ -113,7 +113,7 @@ public class AsyncFetcher<K, V, E> implements Fetcher<K, V, E> {
                                       eventConsumer,
                                       activeFetchers::remove,
                                       runtimeErrorHandler,
-                                      commitOnProcessed);
+                                      offsetCommitType);
 
         activeFetchers.add(fetcherTask);
         executorService.execute(fetcherTask);
@@ -151,7 +151,7 @@ public class AsyncFetcher<K, V, E> implements Fetcher<K, V, E> {
         private Duration pollTimeout = Duration.ofMillis(DEFAULT_POLL_TIMEOUT_MS);
         private ExecutorService executorService = Executors.newCachedThreadPool(new AxonThreadFactory("AsyncFetcher"));
         private boolean requirePoolShutdown = true;
-        private boolean commitOnProcessed = false;
+        private OffsetCommitType offsetCommitType = OffsetCommitType.AUTO;
 
         /**
          * Set the {@code pollTimeout} in milliseconds for polling records from a topic. Defaults to {@code 5000}
@@ -168,15 +168,17 @@ public class AsyncFetcher<K, V, E> implements Fetcher<K, V, E> {
         }
 
         /**
-         * Set the {@code commitOnProcessed}, if false expects auto commit to be used,
-         * if true will commit the offsets after processing all the records in the poll.
-         * Defaults to {@code false}
+         * Set the {@code offsetCommitType}, options are:
+         * {@link OffsetCommitType#AUTO} let the Kafka consumer commit offsets automatically in background
+         * {@link OffsetCommitType#COMMIT_SYNC} let the Kafka consumer commit offsets synchronously after processing
+         * {@link OffsetCommitType#COMMIT_ASYNC} let the Kafka consumer commit offsets asynchronously after processing
+         * Defaults to {@code OffsetCommitType#AUTO}
          *
-         * @param commitOnProcessed boolean flag to commit the offsets after processing all the records in the poll
+         * @param offsetCommitType {@link OffsetCommitType} enum to specify the offset commit type
          * @return the current Builder instance, for fluent interfacing
          */
-        public AsyncFetcher.Builder<K, V, E> commitOnProcessed(boolean commitOnProcessed) {
-            this.commitOnProcessed = commitOnProcessed;
+        public AsyncFetcher.Builder<K, V, E> offsetCommitType(OffsetCommitType offsetCommitType) {
+            this.offsetCommitType = offsetCommitType;
             return this;
         }
 
