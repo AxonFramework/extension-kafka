@@ -77,7 +77,7 @@ class FetchEventsTaskTest {
                 testEventConsumer,
                 testCloseHandler,
                 runtimeErrorHandler,
-                false
+                OffsetCommitType.AUTO
         );
 
         when(testConsumer.poll(testPollTimeout)).thenReturn(consumerRecords);
@@ -97,7 +97,7 @@ class FetchEventsTaskTest {
                         testEventConsumer,
                         testCloseHandler,
                         runtimeErrorHandler,
-                        false
+                        OffsetCommitType.AUTO
                 )
         );
     }
@@ -114,7 +114,7 @@ class FetchEventsTaskTest {
                         testEventConsumer,
                         testCloseHandler,
                         runtimeErrorHandler,
-                        false
+                        OffsetCommitType.AUTO
                 )
         );
     }
@@ -131,7 +131,7 @@ class FetchEventsTaskTest {
                 failingEventConsumer,
                 testCloseHandler,
                 runtimeErrorHandler,
-                false
+                OffsetCommitType.AUTO
         );
 
         Thread taskRunner = new Thread(testSubjectWithFailingEventConsumer);
@@ -153,6 +153,7 @@ class FetchEventsTaskTest {
         verify(testRecordConverter, atLeastOnceWithTimeout).convert(consumerRecords);
         verify(testEventConsumer, atLeastOnceWithTimeout).consume(Collections.singletonList(kafkaEventMessage));
         verify(testConsumer, never()).commitSync();
+        verify(testConsumer, never()).commitAsync();
 
         taskRunner.interrupt();
     }
@@ -169,6 +170,7 @@ class FetchEventsTaskTest {
         verify(testRecordConverter, atLeastOnceWithTimeout).convert(consumerRecords);
         verifyNoMoreInteractions(testEventConsumer);
         verify(testConsumer, never()).commitSync();
+        verify(testConsumer, never()).commitAsync();
 
         taskRunner.interrupt();
     }
@@ -185,7 +187,7 @@ class FetchEventsTaskTest {
     }
 
     @Test
-    void testFetchEventsTaskPollsConvertsAndConsumesRecordsAndCommitOffsets() throws InterruptedException {
+    void testFetchEventsTaskPollsConvertsAndConsumesRecordsAndCommitOffsetsSync() throws InterruptedException {
         VerificationMode atLeastOnceWithTimeout = timeout(TIMEOUT_MILLIS).atLeastOnce();
 
         FetchEventsTask<String, String, KafkaEventMessage> testSubjectWithCommitOffsets = new FetchEventsTask<>(
@@ -195,7 +197,7 @@ class FetchEventsTaskTest {
                 testEventConsumer,
                 testCloseHandler,
                 runtimeErrorHandler,
-                true
+                OffsetCommitType.COMMIT_SYNC
         );
 
         Thread taskRunner = new Thread(testSubjectWithCommitOffsets);
@@ -205,6 +207,31 @@ class FetchEventsTaskTest {
         verify(testRecordConverter, atLeastOnceWithTimeout).convert(consumerRecords);
         verify(testEventConsumer, atLeastOnceWithTimeout).consume(Collections.singletonList(kafkaEventMessage));
         verify(testConsumer, atLeastOnceWithTimeout).commitSync();
+
+        taskRunner.interrupt();
+    }
+
+    @Test
+    void testFetchEventsTaskPollsConvertsAndConsumesRecordsAndCommitOffsetsAsync() throws InterruptedException {
+        VerificationMode atLeastOnceWithTimeout = timeout(TIMEOUT_MILLIS).atLeastOnce();
+
+        FetchEventsTask<String, String, KafkaEventMessage> testSubjectWithCommitOffsets = new FetchEventsTask<>(
+                testConsumer,
+                testPollTimeout,
+                testRecordConverter,
+                testEventConsumer,
+                testCloseHandler,
+                runtimeErrorHandler,
+                OffsetCommitType.COMMIT_ASYNC
+        );
+
+        Thread taskRunner = new Thread(testSubjectWithCommitOffsets);
+        taskRunner.start();
+
+        verify(testConsumer, atLeastOnceWithTimeout).poll(testPollTimeout);
+        verify(testRecordConverter, atLeastOnceWithTimeout).convert(consumerRecords);
+        verify(testEventConsumer, atLeastOnceWithTimeout).consume(Collections.singletonList(kafkaEventMessage));
+        verify(testConsumer, atLeastOnceWithTimeout).commitAsync();
 
         taskRunner.interrupt();
     }
