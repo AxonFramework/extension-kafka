@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022. Axon Framework
+ * Copyright (c) 2010-2025. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,6 +56,7 @@ public class AsyncFetcher<K, V, E> implements Fetcher<K, V, E> {
     private final ExecutorService executorService;
     private final boolean requirePoolShutdown;
     private final Set<FetchEventsTask<K, V, E>> activeFetchers = ConcurrentHashMap.newKeySet();
+    private final OffsetCommitType offsetCommitType;
 
     /**
      * Instantiate a Builder to be able to create a {@link AsyncFetcher}.
@@ -85,6 +86,7 @@ public class AsyncFetcher<K, V, E> implements Fetcher<K, V, E> {
         this.pollTimeout = builder.pollTimeout;
         this.executorService = builder.executorService;
         this.requirePoolShutdown = builder.requirePoolShutdown;
+        this.offsetCommitType = builder.offsetCommitType;
     }
 
     /**
@@ -92,10 +94,10 @@ public class AsyncFetcher<K, V, E> implements Fetcher<K, V, E> {
      */
     @Override
     public Registration poll(Consumer<K, V> consumer,
-                             RecordConverter<K, V, E> recordConverter,
-                             EventConsumer<E> eventConsumer) {
+            RecordConverter<K, V, E> recordConverter,
+            EventConsumer<E> eventConsumer) {
         return poll(consumer, recordConverter, eventConsumer,
-                    e -> logger.warn("Error from fetching thread, should be handled properly", e));
+                e -> logger.warn("Error from fetching thread, should be handled properly", e));
     }
 
     /**
@@ -103,14 +105,15 @@ public class AsyncFetcher<K, V, E> implements Fetcher<K, V, E> {
      */
     @Override
     public Registration poll(Consumer<K, V> consumer, RecordConverter<K, V, E> recordConverter,
-                             EventConsumer<E> eventConsumer, RuntimeErrorHandler runtimeErrorHandler) {
+            EventConsumer<E> eventConsumer, RuntimeErrorHandler runtimeErrorHandler) {
         FetchEventsTask<K, V, E> fetcherTask =
                 new FetchEventsTask<>(consumer,
-                                      pollTimeout,
-                                      recordConverter,
-                                      eventConsumer,
-                                      activeFetchers::remove,
-                                      runtimeErrorHandler);
+                        pollTimeout,
+                        recordConverter,
+                        eventConsumer,
+                        activeFetchers::remove,
+                        runtimeErrorHandler,
+                        offsetCommitType);
 
         activeFetchers.add(fetcherTask);
         executorService.execute(fetcherTask);
@@ -148,6 +151,7 @@ public class AsyncFetcher<K, V, E> implements Fetcher<K, V, E> {
         private Duration pollTimeout = Duration.ofMillis(DEFAULT_POLL_TIMEOUT_MS);
         private ExecutorService executorService = Executors.newCachedThreadPool(new AxonThreadFactory("AsyncFetcher"));
         private boolean requirePoolShutdown = true;
+        private OffsetCommitType offsetCommitType = OffsetCommitType.AUTO;
 
         /**
          * Set the {@code pollTimeout} in milliseconds for polling records from a topic. Defaults to {@code 5000}
@@ -158,8 +162,33 @@ public class AsyncFetcher<K, V, E> implements Fetcher<K, V, E> {
          */
         public Builder<K, V, E> pollTimeout(long timeoutMillis) {
             assertThat(timeoutMillis, timeout -> timeout > 0,
-                       "The poll timeout may not be negative [" + timeoutMillis + "]");
+                    "The poll timeout may not be negative [" + timeoutMillis + "]");
             this.pollTimeout = Duration.ofMillis(timeoutMillis);
+            return this;
+        }
+
+        /**
+         * Sets the {@code offsetCommitType} defining how the {@link FetchEventsTask} will commit offsets during
+         * processing of events.
+         * <p>
+         * Options are:
+         * <ul>
+         *     <li>{@link OffsetCommitType#AUTO} - let the Kafka consumer commit offsets automatically in background.
+         *     </li>
+         *     <li>{@link OffsetCommitType#COMMIT_SYNC} - let the Kafka consumer commit offsets synchronously after
+         *     processing.</li>
+         *     <li>{@link OffsetCommitType#COMMIT_ASYNC} - let the Kafka consumer commit offsets asynchronously after
+         *     processing.</li>
+         * </ul>
+         * <p>
+         * Defaults to {@code OffsetCommitType#AUTO}, meaning the offset commit task happens in the background.
+         *
+         * @param offsetCommitType {@link OffsetCommitType} enum to specify the offset commit type
+         * @return the current Builder instance, for fluent interfacing
+         */
+        public AsyncFetcher.Builder<K, V, E> offsetCommitType(OffsetCommitType offsetCommitType) {
+            assertNonNull(offsetCommitType, "OffsetCommitType may not be null");
+            this.offsetCommitType = offsetCommitType;
             return this;
         }
 

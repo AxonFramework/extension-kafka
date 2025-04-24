@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022. Axon Framework
+ * Copyright (c) 2010-2025. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -76,7 +76,8 @@ class FetchEventsTaskTest {
                 testRecordConverter,
                 testEventConsumer,
                 testCloseHandler,
-                runtimeErrorHandler
+                runtimeErrorHandler,
+                OffsetCommitType.AUTO
         );
 
         when(testConsumer.poll(testPollTimeout)).thenReturn(consumerRecords);
@@ -95,7 +96,8 @@ class FetchEventsTaskTest {
                         testRecordConverter,
                         testEventConsumer,
                         testCloseHandler,
-                        runtimeErrorHandler
+                        runtimeErrorHandler,
+                        OffsetCommitType.AUTO
                 )
         );
     }
@@ -111,7 +113,8 @@ class FetchEventsTaskTest {
                         testRecordConverter,
                         testEventConsumer,
                         testCloseHandler,
-                        runtimeErrorHandler
+                        runtimeErrorHandler,
+                        OffsetCommitType.AUTO
                 )
         );
     }
@@ -127,7 +130,8 @@ class FetchEventsTaskTest {
                 testRecordConverter,
                 failingEventConsumer,
                 testCloseHandler,
-                runtimeErrorHandler
+                runtimeErrorHandler,
+                OffsetCommitType.AUTO
         );
 
         Thread taskRunner = new Thread(testSubjectWithFailingEventConsumer);
@@ -148,6 +152,8 @@ class FetchEventsTaskTest {
         verify(testConsumer, atLeastOnceWithTimeout).poll(testPollTimeout);
         verify(testRecordConverter, atLeastOnceWithTimeout).convert(consumerRecords);
         verify(testEventConsumer, atLeastOnceWithTimeout).consume(Collections.singletonList(kafkaEventMessage));
+        verify(testConsumer, never()).commitSync();
+        verify(testConsumer, never()).commitAsync();
 
         taskRunner.interrupt();
     }
@@ -163,6 +169,8 @@ class FetchEventsTaskTest {
         verify(testConsumer, atLeastOnceWithTimeout).poll(testPollTimeout);
         verify(testRecordConverter, atLeastOnceWithTimeout).convert(consumerRecords);
         verifyNoMoreInteractions(testEventConsumer);
+        verify(testConsumer, never()).commitSync();
+        verify(testConsumer, never()).commitAsync();
 
         taskRunner.interrupt();
     }
@@ -176,5 +184,55 @@ class FetchEventsTaskTest {
 
         assertWithin(Duration.ofMillis(TIMEOUT_MILLIS), () -> assertTrue(expectedToBeClosed.get()));
         verify(testConsumer, timeout(TIMEOUT_MILLIS)).close();
+    }
+
+    @Test
+    void testFetchEventsTaskPollsConvertsAndConsumesRecordsAndCommitOffsetsSync() throws InterruptedException {
+        VerificationMode atLeastOnceWithTimeout = timeout(TIMEOUT_MILLIS).atLeastOnce();
+
+        FetchEventsTask<String, String, KafkaEventMessage> testSubjectWithCommitOffsets = new FetchEventsTask<>(
+                testConsumer,
+                testPollTimeout,
+                testRecordConverter,
+                testEventConsumer,
+                testCloseHandler,
+                runtimeErrorHandler,
+                OffsetCommitType.COMMIT_SYNC
+        );
+
+        Thread taskRunner = new Thread(testSubjectWithCommitOffsets);
+        taskRunner.start();
+
+        verify(testConsumer, atLeastOnceWithTimeout).poll(testPollTimeout);
+        verify(testRecordConverter, atLeastOnceWithTimeout).convert(consumerRecords);
+        verify(testEventConsumer, atLeastOnceWithTimeout).consume(Collections.singletonList(kafkaEventMessage));
+        verify(testConsumer, atLeastOnceWithTimeout).commitSync();
+
+        taskRunner.interrupt();
+    }
+
+    @Test
+    void testFetchEventsTaskPollsConvertsAndConsumesRecordsAndCommitOffsetsAsync() throws InterruptedException {
+        VerificationMode atLeastOnceWithTimeout = timeout(TIMEOUT_MILLIS).atLeastOnce();
+
+        FetchEventsTask<String, String, KafkaEventMessage> testSubjectWithCommitOffsets = new FetchEventsTask<>(
+                testConsumer,
+                testPollTimeout,
+                testRecordConverter,
+                testEventConsumer,
+                testCloseHandler,
+                runtimeErrorHandler,
+                OffsetCommitType.COMMIT_ASYNC
+        );
+
+        Thread taskRunner = new Thread(testSubjectWithCommitOffsets);
+        taskRunner.start();
+
+        verify(testConsumer, atLeastOnceWithTimeout).poll(testPollTimeout);
+        verify(testRecordConverter, atLeastOnceWithTimeout).convert(consumerRecords);
+        verify(testEventConsumer, atLeastOnceWithTimeout).consume(Collections.singletonList(kafkaEventMessage));
+        verify(testConsumer, atLeastOnceWithTimeout).commitAsync();
+
+        taskRunner.interrupt();
     }
 }
