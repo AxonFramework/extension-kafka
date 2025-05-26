@@ -62,15 +62,15 @@
         <log4j.version>2.24.3</log4j.version>
         <!-- Testing -->
         <commons-io.version>2.19.0</commons-io.version>
-        <jackson.version>2.16.0</jackson.version>
+        <jackson.version>2.19.0</jackson.version>
         <javax.inject.version>1</javax.inject.version>
         <jaxb-api.version>2.3.1</jaxb-api.version>
-        <junit.jupiter.version>5.10.1</junit.jupiter.version>
+        <junit.jupiter.version>5.12.2</junit.jupiter.version>
         <mockito.version>4.11.0</mockito.version>
-        <awaitility.version>4.2.0</awaitility.version>
+        <awaitility.version>4.3.0</awaitility.version>
         <!-- Plugins -->
         <central-publishing-maven-plugin.version>0.7.0</central-publishing-maven-plugin.version>
-        <jacoco-maven.version>0.8.11</jacoco-maven.version>
+        <jacoco-maven.version>0.8.13</jacoco-maven.version>
         <maven-assembly.version>3.7.1</maven-assembly.version>
         <maven-clean-plugin.version>3.4.1</maven-clean-plugin.version>
         <maven-compiler.version>3.14.0</maven-compiler.version>
