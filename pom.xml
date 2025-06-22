@@ -59,17 +59,17 @@
         <spring.boot.version>2.7.18</spring.boot.version>
         <!-- Logging -->
         <slf4j.version>2.0.17</slf4j.version>
-        <log4j.version>2.24.3</log4j.version>
+        <log4j.version>2.25.0</log4j.version>
         <!-- Testing -->
         <commons-io.version>2.19.0</commons-io.version>
-        <jackson.version>2.19.0</jackson.version>
+        <jackson.version>2.19.1</jackson.version>
         <javax.inject.version>1</javax.inject.version>
         <jaxb-api.version>2.3.1</jaxb-api.version>
         <junit.jupiter.version>5.13.1</junit.jupiter.version>
         <mockito.version>4.11.0</mockito.version>
         <awaitility.version>4.3.0</awaitility.version>
         <!-- Plugins -->
-        <central-publishing-maven-plugin.version>0.7.0</central-publishing-maven-plugin.version>
+        <central-publishing-maven-plugin.version>0.8.0</central-publishing-maven-plugin.version>
         <jacoco-maven.version>0.8.13</jacoco-maven.version>
         <maven-assembly.version>3.7.1</maven-assembly.version>
         <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
