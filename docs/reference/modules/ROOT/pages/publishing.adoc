@@ -3,7 +3,7 @@
 
 When Event Messages are published to an Event Bus (or Event Store), they can be forwarded to a Kafka topic using the `KafkaPublisher`. To achieve this it will utilize a Kafka `Producer`, retrieved through Axon's `ProducerFactory`. The `KafkaPublisher` in turn receives the events to publish from a `KafkaEventPublisher`.
 
-Since the `KafkaEventPublisher` is an event message handler in Axon terms, we can provide it to any xref:axon-framework-reference:events:event-processors/index.adoc[Event Processor] to receive the published events. The choice of event processor which brings differing characteristics for event publication to Kafka:
+Since the `KafkaEventPublisher` is an event message handler in Axon terms, we can provide it to any Event Processor to receive the published events. The choice of event processor which brings differing characteristics for event publication to Kafka:
 
 - *Subscribing Event Processor* - publication of messages to Kafka will occur in the same thread (and Unit of Work) which published the events to the event bus. This approach ensures failure to publish to Kafka enforces failure of the initial event publication on the event bus
 
