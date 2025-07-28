@@ -19,7 +19,7 @@ See the link:https://github.com/AxonFramework/extension-kafka/releases/tag/axon-
 
 === _Contributors_
 
-We'd like to thank all the contributors who worked on this release!
+We'd like to thank all the contributors who worked on this release.
 
 - link:https://github.com/bradskuse[@bradskuse]
 
@@ -31,7 +31,7 @@ We'd like to thank all the contributors who worked on this release!
 
 === _Contributors_
 
-We'd like to thank all the contributors who worked on this release!
+We'd like to thank all the contributors who worked on this release.
 
 - link:https://github.com/aupodogov[@aupodogov]
 
