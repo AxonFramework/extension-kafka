@@ -4,6 +4,19 @@
 You can find the release notes for the Kafka Extension of version 4.10.0 and up, below.
 For earlier releases, please go to the link:https://legacydocs.axoniq.io/reference-guide/release-notes/rn-extensions/rn-kafka[legacy documentation].
 
+== Release 4.11.1
+
+=== _Enhancements_
+
+- [#555] Add option to commit offsets link:https://github.com/AxonFramework/extension-kafka/pull/556[#556]
+- Allow SubscribableKafkaMessageSource option of manually commiting offsets link:https://github.com/AxonFramework/extension-kafka/issues/555[#555]
+
+=== _Contributors_
+
+We'd like to thank all the contributors who worked on this release!
+
+- link:https://github.com/bradskuse[@bradskuse]
+
 == Release 4.11.0
 
 === _Features_
