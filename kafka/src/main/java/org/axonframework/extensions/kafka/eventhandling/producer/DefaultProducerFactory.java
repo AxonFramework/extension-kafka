@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -296,6 +297,12 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
      */
     private static final class PoolableProducer<K, V> extends ProducerDecorator<K, V> {
 
+        /**
+         * Flag that marks the producer as corrupted.
+         * When set, the producer is closed instead of being returned to the pool
+         */
+        private final AtomicBoolean corrupted = new AtomicBoolean(false);
+
         private final BlockingQueue<PoolableProducer<K, V>> pool;
         private final Duration closeTimeout;
 
@@ -308,15 +315,44 @@ public class DefaultProducerFactory<K, V> implements ProducerFactory<K, V> {
         }
 
         @Override
+        public void beginTransaction() throws ProducerFencedException {
+            executeTransactionOperation(super::beginTransaction);
+        }
+
+        @Override
+        public void commitTransaction() throws ProducerFencedException {
+            executeTransactionOperation(super::commitTransaction);
+        }
+
+        @Override
+        public void abortTransaction() throws ProducerFencedException {
+            executeTransactionOperation(super::abortTransaction);
+        }
+
+        @Override
         public void close() {
             close(closeTimeout);
         }
 
         @Override
         public void close(Duration timeout) {
+            if (corrupted.get()) {
+                super.close(timeout);
+                return;
+            }
+
             boolean isAdded = this.pool.offer(this);
             if (!isAdded) {
                 super.close(timeout);
+            }
+        }
+
+        private void executeTransactionOperation(Runnable transactionOperation) {
+            try {
+                transactionOperation.run();
+            } catch (Exception exception) {
+                corrupted.set(true);
+                throw exception;
             }
         }
     }

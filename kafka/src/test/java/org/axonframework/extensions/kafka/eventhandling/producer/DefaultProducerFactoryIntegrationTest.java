@@ -20,6 +20,7 @@ import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.errors.ProducerFencedException;
 import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaAdminUtils;
 import org.axonframework.extensions.kafka.eventhandling.util.KafkaContainerTest;
@@ -54,7 +55,9 @@ class DefaultProducerFactoryIntegrationTest extends KafkaContainerTest {
             "testProducerCreation",
             "testSendingMessagesUsingMultipleProducers",
             "testUsingCallbackWhilePublishingMessages",
-            "testTransactionalProducerBehaviorOnCommittingAnAbortedTransaction"};
+            "testTransactionalProducerBehaviorOnCommittingAnAbortedTransaction",
+            "testTransactionalCorruptedProducerIsRemovedFromCache"
+    };
 
     @BeforeAll
     static void before() {
@@ -62,7 +65,7 @@ class DefaultProducerFactoryIntegrationTest extends KafkaContainerTest {
     }
 
     @AfterAll
-    public static void after() {
+    static void after() {
         KafkaAdminUtils.deleteTopics(getBootstrapServers(), TOPICS);
     }
 
@@ -178,10 +181,7 @@ class DefaultProducerFactoryIntegrationTest extends KafkaContainerTest {
 
     @Test
     void testTransactionalProducerCreation() {
-        assumeFalse(
-                System.getProperty("os.name").contains("Windows"),
-                "Transactional producers not supported on Windows"
-        );
+        assumeNotWindows();
 
         ProducerFactory<String, String> producerFactory =
                 transactionalProducerFactory(getBootstrapServers(), "xyz");
@@ -196,10 +196,7 @@ class DefaultProducerFactoryIntegrationTest extends KafkaContainerTest {
 
     @Test
     void testTransactionalProducerBehaviorOnCommittingAnAbortedTransaction() {
-        assumeFalse(
-                System.getProperty("os.name").contains("Windows"),
-                "Transactional producers not supported on Windows"
-        );
+        assumeNotWindows();
 
         ProducerFactory<String, String> producerFactory =
                 transactionalProducerFactory(getBootstrapServers(), "xyz");
@@ -217,10 +214,7 @@ class DefaultProducerFactoryIntegrationTest extends KafkaContainerTest {
 
     @Test
     void testTransactionalProducerBehaviorOnSendingOffsetsWhenTransactionIsClosed() {
-        assumeFalse(
-                System.getProperty("os.name").contains("Windows"),
-                "Transactional producers not supported on Windows"
-        );
+        assumeNotWindows();
 
         ProducerFactory<String, String> producerFactory =
                 transactionalProducerFactory(getBootstrapServers(), "xyz");
@@ -241,5 +235,45 @@ class DefaultProducerFactoryIntegrationTest extends KafkaContainerTest {
         producer.flush();
         verify(cb, only()).onCompletion(any(RecordMetadata.class), any());
         cleanup(pf, producer);
+    }
+
+    @Test
+    void testTransactionalCorruptedProducerIsRemovedFromCache() {
+        assumeNotWindows();
+
+        String transactionalIdPrefix = "cache-removal-transactional-id-prefix-";
+
+        ProducerFactory<String, String> producerFactory =
+                transactionalProducerFactory(getBootstrapServers(), transactionalIdPrefix);
+        // Second factory with the same prefix bumps the broker-side epoch, fencing producers from the first factory.
+        ProducerFactory<String, String> corruptingProducerFactory =
+                transactionalProducerFactory(getBootstrapServers(), transactionalIdPrefix);
+
+        Producer<String, String> producer = producerFactory.createProducer();
+        Producer<String, String> corruptingProducer = corruptingProducerFactory.createProducer();
+        List<Producer<String, String>> producersToClose = new ArrayList<>(Collections.singletonList(producer));
+        try {
+            producer.beginTransaction();
+            send(producer, "testTransactionalCorruptedProducerIsRemovedFromCache", "message");
+
+            assertThrows(ProducerFencedException.class, producer::commitTransaction);
+
+            producer.close();
+
+            Producer<String, String> nextProducer = producerFactory.createProducer();
+            producersToClose.add(nextProducer);
+
+            assertNotSame(producer, nextProducer, "Corrupted producer was returned to the pool");
+        } finally {
+            cleanup(producerFactory, producersToClose);
+            cleanup(corruptingProducerFactory, corruptingProducer);
+        }
+    }
+
+    private void assumeNotWindows() {
+        assumeFalse(
+                System.getProperty("os.name").contains("Windows"),
+                "Transactional producers not supported on Windows"
+        );
     }
 }
