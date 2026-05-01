@@ -31,7 +31,7 @@ public abstract class KafkaContainerTest {
 
     @Container
     protected static final KafkaContainer KAFKA_CONTAINER =
-            new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka"));
+            new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.9.6"));
 
     protected static String getBootstrapServers() {
         return KAFKA_CONTAINER.getBootstrapServers();
